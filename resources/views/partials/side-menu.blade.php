@@ -1,15 +1,45 @@
 {{-- resources/views/partials/side-menu.blade.php --}}
 @php
 $menu = [
-['name'=>'account.dashboard', 'is'=>'account.dashboard',  'label'=>'Hesabım',            'icon'=>'fi fi-rr-user'],
-['name'=>'account.bookings',  'is'=>'account.bookings*',  'label'=>'Rezervasyonlarım',   'icon'=>'fi fi-rr-calendar'],
-['name'=>'account.coupons',   'is'=>'account.coupons*',   'label'=>'İndirim Kuponlarım', 'icon'=>'fi fi-rr-ticket'],
-['name'=>'account.tickets',   'is'=>'account.tickets*',   'label'=>'Destek Taleplerim',  'icon'=>'fi fi-rr-headset', 'badge'=>1],
-['name'=>'account.settings',  'is'=>'account.settings*',  'label'=>'Üyelik Ayarlarım',   'icon'=>'fi fi-rr-settings'],
+[
+'name'  => 'account.dashboard',
+'is'    => 'account.dashboard',
+'label' => 'customer_account.menu.dashboard',
+'icon'  => 'fi fi-rr-user',
+],
+[
+'name'  => 'account.bookings',
+'is'    => 'account.bookings*',
+'label' => 'customer_account.menu.bookings',
+'icon'  => 'fi fi-rr-calendar',
+],
+[
+'name'  => 'account.coupons',
+'is'    => 'account.coupons*',
+'label' => 'customer_account.menu.coupons',
+'icon'  => 'fi fi-rr-ticket',
+],
+[
+'name'  => 'account.tickets',
+'is'    => 'account.tickets*',
+'label' => 'customer_account.menu.tickets',
+'icon'  => 'fi fi-rr-headset',
+'badge' => 1, // ileride dinamik yapılacak
+],
+[
+'name'  => 'account.settings',
+'is'    => 'account.settings*',
+'label' => 'customer_account.menu.settings',
+'icon'  => 'fi fi-rr-settings',
+],
 ];
+
 $activeIndex = 0;
 foreach ($menu as $i => $it) {
-if (request()->routeIs($it['is'])) { $activeIndex = $i; break; }
+if (request()->routeIs($it['is'])) {
+$activeIndex = $i;
+break;
+}
 }
 $active = $menu[$activeIndex];
 @endphp
@@ -21,7 +51,7 @@ $active = $menu[$activeIndex];
     <a href="{{ route($it['name']) }}"
        class="btn w-100 d-flex align-items-center justify-content-start gap-2 p-3 {{ $isActive ? 'btn-primary text-white' : 'btn-outline-primary' }}">
         <i class="{{ $it['icon'] }} fs-5"></i>
-        <span class="fw-semibold">{{ $it['label'] }}</span>
+        <span class="fw-semibold">{{ t($it['label']) }}</span>
         @if (!empty($it['badge']))
         <span class="badge text-bg-danger ms-auto">{{ $it['badge'] }}</span>
         @endif
@@ -38,7 +68,7 @@ $active = $menu[$activeIndex];
             aria-expanded="false"
             aria-controls="accountMobileMenu">
         <i class="{{ $active['icon'] }} fs-5"></i>
-        <span class="fw-semibold">{{ $active['label'] }}</span>
+        <span class="fw-semibold">{{ t($active['label']) }}</span>
         @if (!empty($active['badge']))
         <span class="badge text-bg-danger ms-auto me-2">{{ $active['badge'] }}</span>
         @else
@@ -53,7 +83,7 @@ $active = $menu[$activeIndex];
         <a href="{{ route($it['name']) }}"
            class="btn w-100 d-flex align-items-center justify-content-start gap-2 p-3 mb-2 btn-outline-primary">
             <i class="{{ $it['icon'] }} fs-5"></i>
-            <span class="fw-semibold">{{ $it['label'] }}</span>
+            <span class="fw-semibold">{{ t($it['label']) }}</span>
             @if (!empty($it['badge']))
             <span class="badge text-bg-danger ms-auto">{{ $it['badge'] }}</span>
             @endif

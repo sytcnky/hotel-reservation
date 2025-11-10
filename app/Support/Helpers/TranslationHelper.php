@@ -3,7 +3,7 @@
 use App\Models\Translation;
 
 if (! function_exists('t')) {
-    function t(string $dotKey, ?string $locale = null): string
+    function t(string $dotKey, array $replacements = [], ?string $locale = null): string
     {
         if (! str_contains($dotKey, '.')) {
             return $dotKey;
