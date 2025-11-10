@@ -1,0 +1,140 @@
+[
+    {
+        "id": 1,
+        "code": "HTL001",
+        "name": "Otel Sunrise",
+        "stars": 4,
+        "category": "Butik Otel",
+        "board_type": "Ultra Her şey dahil",
+        "description": "İçmeler'de doğayla iç içe butik otel.",
+        "location": {
+            "address": "İçmeler Mah. Sahil Cad. No:12",
+            "city": "Marmaris",
+            "region": "Muğla",
+            "country": "Türkiye",
+            "lat": 36.8491,
+            "lng": 28.2707
+        },
+        "contact": {
+            "phone": "+90 252 123 4567",
+            "email": "info@otelsunrise.com"
+        },
+        "facilities": [
+            "WiFi",
+            "Yüzme Havuzu",
+            "Klima",
+            "Otopark",
+            "Kahvaltı",
+            "Özel Plaj"
+        ],
+        "features": [
+            {
+                "category": "Genel Özellikler",
+                "items": [
+                    "Denize 300 m mesafede",
+                    "Her şey dahil konsept",
+                    "24 saat resepsiyon",
+                    "Açık büfe ve A la carte restoran",
+                    "Lobi ve bar alanı",
+                    "Asansör, jeneratör, bagaj odası"
+                ]
+            },
+            {
+                "category": "Spa & Wellness",
+                "items": [
+                    "Hamam, sauna, jakuzi",
+                    "Masaj hizmetleri",
+                    "Fitness merkezi",
+                    "Güzellik salonu",
+                    "Kapalı yüzme havuzu"
+                ]
+            },
+            {
+                "category": "Spor & Aktiviteler",
+                "items": [
+                    "Tenis, masa tenisi, bilardo",
+                    "Günlük animasyon",
+                    "Su sporları (jet ski, banana)",
+                    "Havuz oyunları",
+                    "Canlı müzik akşamları",
+                    "Bisiklet kiralama"
+                ]
+            },
+            {
+                "category": "Çocuk Hizmetleri",
+                "items": [
+                    "Çocuk havuzu ve park",
+                    "Mini kulüp (4-12 yaş)",
+                    "Bebek bakımı (ücretli)",
+                    "Mama sandalyesi ve beşik",
+                    "Çocuklar için animasyon"
+                ]
+            }
+        ],
+        "notes": [
+            "Girişte kimlik ibrazı zorunludur.",
+            "Evcil hayvan kabul edilmemektedir.",
+            "Tesis bazı hizmetleri sezonluk sunabilir.",
+            "Aile konseptinde hizmet vermektedir.",
+            "Erken giriş ve geç çıkış talepleri müsaitlik doğrultusunda karşılanır."
+        ],
+        "policies": {
+            "check_in": "14:00",
+            "check_out": "11:00",
+            "min_stay": 2,
+            "cancellation": "3 gün öncesine kadar ücretsiz iptal."
+        },
+        "rooms": [
+            {
+                "id": "STD",
+                "name": "Standart Oda",
+                "capacity": {
+                    "adults": 2,
+                    "children": 1
+                },
+                "size": 24,
+                "bed_type": "Çift Kişilik",
+                "smoking": false,
+                "view": "Bahçe",
+                "price_per_night": 1800,
+                "images": [
+                    "/images/samples/room-1.jpg",
+                    "/images/samples/room-2.jpg",
+                    "/images/samples/room-3.jpg",
+                    "/images/samples/room-4.jpg",
+                    "/images/samples/room-5.jpg",
+                    "/images/samples/room-6.jpg",
+                    "/images/samples/room-7.jpg"
+                ],
+                "facilities": [
+                    "WiFi",
+                    "Klima",
+                    "Balkon",
+                    "Televizyon",
+                    "Mini Buzdolabı",
+                    "Çay-Kahve Makinesi",
+                    "Saç Kurutma Makinesi",
+                    "Oda Servisi",
+                    "Kasa",
+                    "Ücretsiz Banyo Malzemeleri",
+                    "Çalışma Masası",
+                    "Telefon",
+                    "Terlik",
+                    "Gardırop",
+                    "Laminant Zemin"
+                ],
+                "description": "İki kişilik konforlu standart oda."
+            }
+        ],
+        "images": [
+            "/images/samples/hotel-0.jpg",
+            "/images/samples/hotel-1.jpg",
+            "/images/samples/hotel-2.jpg",
+            "/images/samples/hotel-3.jpg",
+            "/images/samples/hotel-4.jpg",
+            "/images/samples/hotel-5.jpg",
+            "/images/samples/hotel-6.jpg",
+            "/images/samples/hotel-7.jpg"
+        ]
+    }
+]

@@ -1,0 +1,23 @@
+[
+    {
+        "id": "route-1",
+        "from": "Dalaman Havalimanı",
+        "to": "İçmeler",
+        "distance_km": 105,
+        "estimated_duration_min": 90
+    },
+    {
+        "id": "route-2",
+        "from": "Dalaman Havalimanı",
+        "to": "Marmaris",
+        "distance_km": 95,
+        "estimated_duration_min": 80
+    },
+    {
+        "id": "route-3",
+        "from": "Bodrum Havalimanı",
+        "to": "İçmeler",
+        "distance_km": 140,
+        "estimated_duration_min": 120
+    }
+]

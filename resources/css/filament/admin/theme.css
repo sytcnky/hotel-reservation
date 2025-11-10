@@ -1,0 +1,18 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+@import '@flaticon/flaticon-uicons/css/all/all.css';
+@import 'tailwindcss';
+@config '../../../../tailwind.config.ts';
+
+/* Filament butonu kare yap */
+.fi-icon-trigger{width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.fi-btn-icon{font-size:18px;line-height:1}
+
+/* Dropdown görünümü */
+.icon-dd__section{padding:8px;}
+.icon-search{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,.2);}
+.dark .icon-search{border-color:rgba(255,255,255,.15);background:#0b0b0b;color:#fff;}
+.icon-grid{max-height:220px;overflow:auto;display:grid;gap:8px;}
+.icon-grid.cols-6{grid-template-columns:repeat(5,minmax(0,1fr));}
+.icon-option{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer}
+.icon-option:hover{background:rgba(0,0,0,.05)}
+.dark .icon-option:hover{background:rgba(255,255,255,.1)}

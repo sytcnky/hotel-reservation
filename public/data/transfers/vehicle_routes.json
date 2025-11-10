@@ -1,0 +1,24 @@
+[
+    {
+        "vehicle_id": "vehicle-1",
+        "route_id": "route-1",
+        "price": { "currency": "TRY", "one_way": 1500, "round_trip": 2800 },
+        "notes": "Fiyat grup içindir. Uçuş bilgisi zorunludur.",
+        "cancellation_policy": { "free_cancellation_until_hours": 24, "cancellation_fee_after": 500 }
+    },
+    {
+        "vehicle_id": "vehicle-1",
+        "route_id": "route-2",
+        "price": { "currency": "TRY", "one_way": 1400, "round_trip": 2600 }
+    },
+    {
+        "vehicle_id": "vehicle-2",
+        "route_id": "route-1",
+        "price": { "currency": "TRY", "one_way": 1700, "round_trip": 3200 }
+    },
+    {
+        "vehicle_id": "vehicle-3",
+        "route_id": "route-1",
+        "price": { "currency": "TRY", "one_way": 2200, "round_trip": 4000 }
+    }
+]

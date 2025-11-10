@@ -1,0 +1,400 @@
+$primary: #1E3A5F; // Gece mavisi – güven ve profesyonellik
+$secondary: #6C7A89; // Dingin gri – nötr destek rengi
+$success: #27AE60; // Yeşil – başarılı işlemler
+$danger: #C0392B; // Yumuşak kırmızı – hata/iptal
+$warning: #F39C12; // Kehribar – uyarılar
+$info: #3498DB; // Temiz mavi – bilgilendirme
+$light: #F8F9FA; // Açık gri – arka planlar
+$dark: #2C3E50; // Derin koyu gri – başlıklar/footer
+
+$tooltip-bg: $warning;
+$tooltip-color: $primary;
+$breadcrumb-divider: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><path d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='#{$secondary}'/></svg>");
+$breadcrumb-active-color: $primary;
+$enable-negative-margins: true;
+
+@import "flatpickr/dist/themes/airbnb.css";
+@import "intl-tel-input/build/css/intlTelInput.css";
+@import "bootstrap";
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root{
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+html{
+    -webkit-text-size-adjust: 100%;
+    font-synthesis-weight: none;   /* sahte bold yok */
+    font-synthesis-style: none;    /* sahte italic yok */
+}
+
+.breadcrumb a {
+    color: $secondary;
+    text-decoration: none;
+}
+
+body {
+    font-family: var(--font-body), serif;
+    letter-spacing: 0;             /* gövde metninde ek aralık verme */
+    text-rendering: optimizeLegibility; /* ligatür/kerning ipucu */
+    font-kerning: normal;
+    font-optical-sizing: auto;      /* variable fontsa optik boyutlandırma */
+    color: #212529;
+}
+
+button:focus,
+button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.btn-success {
+    color: $light;
+}
+
+.btn-success:hover,
+.btn-outline-success:hover,
+.btn-outline-secondary:hover,
+.btn-outline-secondary.active {
+    color: white;
+}
+
+
+.fi {
+    line-height: 0;
+    display: inline-block;
+}
+
+.btn .fi {
+}
+
+i.fi {
+    direction: ltr;
+}
+
+a:focus,
+.btn:focus,
+.dropdown-toggle:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.dropdown-toggle:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+.thumbnail-scroll,
+.thumbnail-scroll * {
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -moz-user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+}
+
+.main-gallery {
+    cursor: pointer;
+}
+
+.active-thumb {
+    position: relative;
+}
+
+.active-thumb:after {
+    content: "";
+    box-shadow: inset 0 0 0 5px var(--bs-primary);
+    display: block;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+.thumbnail-scroll {
+    user-select: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.thumbnail-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
+
+.thumbnail-scroll img {
+    pointer-events: none;
+    user-drag: none;
+    user-select: none;
+}
+
+
+.menu-sep {
+    opacity: .5;
+}
+
+.main-menu .nav-link {
+    color: white;
+}
+
+.navbar-nav .nav-link.active, .navbar-nav .nav-link.show {
+    color: #553706;
+}
+
+.avatar-fallback {
+    width: 32px;
+    height: 32px;
+    background-color: #6c757d; /* tercihe göre renk */
+    font-size: 0.85rem;
+}
+
+.hero-tabs .nav-link {
+    color: white;
+}
+
+.hero-tabs .nav-item {
+    background-color: rgba(10, 10, 10, 0.7);
+    border-top-left-radius: var(--bs-nav-tabs-border-radius);
+    border-top-right-radius: var(--bs-nav-tabs-border-radius);
+}
+
+.campaign-slide {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none;
+}
+
+.campaign-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.datepicker-dropdown {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.datepicker-dropdown .datepicker-controls .button {
+    background: none;
+    border: none;
+}
+
+.datepicker-picker {
+    padding: 10px;
+}
+
+
+.collapse-wrapper {
+    overflow: hidden;
+    transition: height 0.4s ease;
+    height: 0;
+}
+
+.collapse-wrapper.expanded {
+    height: auto; /* JS ile auto yükseklik ayarlanacak */
+}
+
+.room-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+}
+
+.room-card.expanded .room-details {
+    max-height: 1000px;
+}
+
+@media (min-width: 768px) {
+    .w-md-auto {
+        width: auto !important;
+    }
+}
+
+
+.hero-tabs {
+    position: relative;
+}
+
+.hero-tabs:after {
+    content: "";
+    background: url("@/images/hero-girl.png") no-repeat;
+    position: absolute;
+    background-size: cover;
+    bottom: 0;
+    right: 0;
+    width: 320px;
+    height: 320px;
+    z-index: -1;
+}
+
+.hero-overlay {
+    background-color: hsla(210, 92%, 11%, 1);
+    background-image: radial-gradient(at 40% 20%, hsl(215, 97%, 27%) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsl(46, 78%, 52%) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsl(216, 99%, 27%) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsl(216, 99%, 27%) 0px, transparent 50%);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: .8;
+}
+
+.hero-slide {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+@media (max-width: 769px) {
+    .hero-slide {
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        min-height: 400px;
+    }
+}
+
+.hero-slide .overlay {
+    position: absolute;
+    inset: 0;
+}
+
+
+footer .list-unstyled a {
+    color: #4a5568;
+}
+
+.bg-gradient-to-top {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+}
+
+.text-shadow {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+
+/* dashed yardımcı sınıf */
+.border-dashed { border-style: dashed !important; }
+
+/* Kupon kart genişlikleri (carousel görünümü) */
+.coupon-viewport .coupon-track .coupon-card { flex: 0 0 100%; }
+@media (min-width: 768px) { /* md: 2 kolon */
+    .coupon-viewport .coupon-track .coupon-card { flex-basis: calc(50% - 0px); }
+}
+@media (min-width: 992px) { /* lg: 3 kolon */
+    .coupon-viewport .coupon-track .coupon-card { flex-basis: calc(33.333% - 0px); }
+}
+
+/* Sol rozet kutucuğu */
+.coupon-badge {
+    min-width: 86px;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .5rem;
+    padding: .25rem .25rem;
+    line-height: 1.1;
+    background: #fff;
+    height: 100%;
+    align-content: center;
+}
+
+.coupon-viewport {
+    position: relative;
+    overflow-x: auto; /* kuponlar yatay kayıyorsa */
+    padding-right: 1rem; /* degrade alanın altında içerik gizlenmesin */
+}
+
+/* Sağ tarafta degrade */
+.coupon-viewport::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;   /* genişlik degrade ne kadar uzasın */
+    height: 100%;
+    pointer-events: none; /* tıklamayı engellemesin */
+    background: linear-gradient(to right, rgba(255,255,255,0), var(--bs-light));
+}
+
+@include media-breakpoint-down(lg){
+    .container, .container-fluid, .container-sm, .container-md, .container-lg, .container-xl, .container-xxl{
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+/* Mobile Bottom Nav */
+$bottom-nav-height: 64px;
+
+.mobile-bottom-nav {
+    /* iOS çentik güvenli alanı */
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+
+    /* body altında içerik gizlenmesin diye body’ye boşluk veriyoruz (yalnızca mobilde) */
+    @media (max-width: 767.98px) {
+        body & { /* hiçbir şey */ }
+        :root {
+            --bottom-nav-height: #{$bottom-nav-height};
+        }
+    }
+
+    ul { height: $bottom-nav-height; }
+
+    .mobile-bottom-link {
+        height: 100%;
+        display: flex;
+        gap: .25rem;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--bs-gray-700);
+        font-size: .75rem;
+        line-height: 1;
+        padding: .25rem .5rem;
+
+        .mobile-bottom-icon {
+            font-size: 1.35rem;
+            line-height: 1;
+        }
+
+        &.is-active {
+            color: var(--bs-primary);
+            .mobile-bottom-icon { transform: translateY(-1px); }
+            font-weight: 600;
+        }
+
+        &:active { filter: brightness(0.95); }
+    }
+
+    /* Hover (sadece pointer’lı cihazlar) */
+    @media (hover: hover) and (pointer: fine) {
+        .mobile-bottom-link:hover {
+            color: var(--bs-primary);
+        }
+    }
+}
+
+/* İçerik altına yer açılsın (sadece mobil) */
+@media (max-width: 767.98px) {
+    body { padding-bottom: calc(var(--bottom-nav-height, 64px) + env(safe-area-inset-bottom)); }
+}
+
+/* Phone input overrides */
+.iti {
+    display: block !important;
+}
+
+.iti__search-input {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
