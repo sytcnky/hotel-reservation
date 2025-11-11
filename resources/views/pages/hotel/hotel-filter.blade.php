@@ -1,4 +1,4 @@
-<form method="GET" action="{{ route('hotels') }}" class="border rounded p-3 mb-4 bg-light">
+<form method="GET" action="{{ localized_route('hotels') }}" class="border rounded p-3 mb-4 bg-light">
     <!-- Kategori -->
     <div class="mb-3">
         <label class="form-label small">Konaklama Türü</label>

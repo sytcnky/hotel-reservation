@@ -21,26 +21,23 @@ class SetLocaleFromRequest
             $default = $active[0];
         }
 
+        // Session yoksa: sadece default locale set et, session kullanma
+        if (! $request->hasSession()) {
+            app()->setLocale($default);
+            return $next($request);
+        }
+
         $user = $request->user();
 
-        // 1) Kullanıcıya kayıtlı locale varsa
         if ($user && $user->locale && in_array($user->locale, $active, true)) {
             $locale = $user->locale;
-
-            // 2) Yoksa session
         } elseif ($sessionLocale = $request->session()->get('locale')) {
-            $locale = in_array($sessionLocale, $active, true)
-                ? $sessionLocale
-                : $default;
-
-            // 3) En son default
+            $locale = in_array($sessionLocale, $active, true) ? $sessionLocale : $default;
         } else {
             $locale = $default;
         }
 
-        // Session'ı senkron tut (özellikle login sonrası)
         $request->session()->put('locale', $locale);
-
         app()->setLocale($locale);
 
         return $next($request);

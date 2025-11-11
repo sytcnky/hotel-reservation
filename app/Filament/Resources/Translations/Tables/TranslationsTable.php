@@ -44,7 +44,6 @@ class TranslationsTable
                 ->label(strtoupper($code))
                 ->searchable()
                 ->rules(['nullable', 'string', 'max:1000']);
-            // ÖNEMLİ: buraya afterStateUpdated KOYMUYORUZ
         }
 
         return $table

@@ -63,7 +63,7 @@
                         <div class="card-body">
                             <div class="row align-items-end">
                                 <div class="col-lg-3 mb-3 mb-lg-0">
-                                    <a href="{{ route('hotel.detail', ['id' => $hotel->id]) }}" class="">
+                                    <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}" class="">
                                         <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}"
                                              class="img-fluid rounded" alt="otel görseli">
                                     </a>
@@ -117,7 +117,7 @@
                                             @endif
                                         </div>
                                         <div class="d-grid mt-1">
-                                            <a href="{{ route('hotel.detail', ['id' => $hotel->id]) }}"
+                                            <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}"
                                                class="btn btn-outline-primary mt-2">Oteli İncele</a>
                                         </div>
                                     </div>

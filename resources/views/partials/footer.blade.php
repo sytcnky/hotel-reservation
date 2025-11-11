@@ -26,11 +26,11 @@
                 <ul class="list-unstyled">
                     <li>
                         <a class="text-decoration-none {{ request()->routeIs('hotels') ? 'active' : '' }}"
-                           href="{{ route('hotels') }}">Oteller</a>
+                           href="#">Oteller</a>
                     </li>
                     <li class="nav-item">
                         <a class="text-decoration-none {{ request()->routeIs('transfers') ? 'active' : '' }}"
-                           href="{{ route('transfers') }}">Havalimanı Transferi</a>
+                           href="#">Havalimanı Transferi</a>
                     </li>
                     <li><a class="text-decoration-none" href="#">Kiralık Villalar</a></li>
                     <li><a class="text-decoration-none" href="#">Günlük Turlar</a></li>

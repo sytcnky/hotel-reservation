@@ -21,8 +21,8 @@ final class LoginController extends Controller
     public function store(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => ['required','email'],
-            'password' => ['required','string'],
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'string'],
         ]);
 
         $remember = $request->boolean('remember');
@@ -35,7 +35,8 @@ final class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('home'));
+        // Kullanıcının intended URL'si yoksa, aktif locale'in ana sayfasına yönlendir
+        return redirect()->intended(localized_route('home'));
     }
 
     // POST /logout
@@ -46,6 +47,7 @@ final class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home');
+        // logout yönlendirmesi de locale-aware
+        return redirect(localized_route('home'));
     }
 }

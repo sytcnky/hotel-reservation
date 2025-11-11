@@ -65,7 +65,7 @@
                             <div class="card-body p-2">
                                 <div class="row align-items-center">
                                     <div class="col-xl-3 mb-3 mb-lg-0">
-                                        <a href="{{ route('hotel.detail', ['id' => $hotel->id]) }}">
+                                        <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}">
                                             <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}" class="img-fluid rounded" alt="otel görseli">
                                         </a>
                                     </div>
@@ -106,7 +106,7 @@
                                                 @endif
                                             </div>
                                             <div class="d-grid mt-1">
-                                                <a href="{{ route('hotel.detail', ['id' => $hotel->id]) }}" class="btn btn-outline-primary mt-2">Oteli İncele</a>
+                                                <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}" class="btn btn-outline-primary mt-2">Oteli İncele</a>
                                             </div>
                                         </div>
                                     </div>
@@ -126,7 +126,7 @@
                                 <div class="row align-items-center">
                                     <!-- Sol: Görsel -->
                                     <div class="col-xl-3 mb-3 mb-lg-0">
-                                        <a href="{{ route('villa.villa-detail', ['slug' => $villa['slug']]) }}">
+                                        <a href="{{ localized_route('villa.villa-detail', ['slug' => $villa['slug']]) }}">
                                             <img src="{{ asset($villa['gallery'][0] ?? '/images/default.jpg') }}"
                                                  class="img-fluid rounded"
                                                  alt="{{ $villa['name']['tr'] }}">
@@ -176,7 +176,7 @@
                                                 @endif
                                             </div>
                                             <div class="d-grid mt-1">
-                                                <a href="{{ route('villa.villa-detail', ['slug' => $villa['slug']]) }}"
+                                                <a href="{{ localized_route('villa.villa-detail', ['slug' => $villa['slug']]) }}"
                                                    class="btn btn-outline-primary mt-auto w-100">
                                                     Villayı İncele
                                                 </a>
@@ -257,7 +257,7 @@
                 @foreach ($excursionsSidebar as $excursion)
                 <div class="card shadow-sm position-relative overflow-hidden mb-4">
                     <div class="position-relative">
-                        <a href="{{ route('excursions.detail', ['slug' => $excursion['slug']]) }}">
+                        <a href="{{ localized_route('excursions.detail', ['slug' => $excursion['slug']]) }}">
                             <img src="{{ asset($excursion['gallery'][0] ?? '/images/default.jpg') }}" class="card-img-top object-fit-cover" alt="{{ $excursion['name'] }}" height="200">
                         </a>
                         <span class="badge bg-primary position-absolute top-0 end-0 m-2 shadow-sm">{{ $excursion['category'] ?? '' }}</span>
@@ -269,7 +269,7 @@
                             <div class="text-muted small">Kişi Başı</div>
                             <div class="fw-bold fs-5">{{ $excursion['prices']['adult']['TRY'] ?? '—' }}₺</div>
                         </div>
-                        <a href="{{ route('excursions.detail', ['slug' => $excursion['slug']]) }}" class="btn btn-outline-secondary btn-sm">Gezi Detayları ve Rezervasyon</a>
+                        <a href="{{ localized_route('excursions.detail', ['slug' => $excursion['slug']]) }}" class="btn btn-outline-secondary btn-sm">Gezi Detayları ve Rezervasyon</a>
                     </div>
                 </div>
                 @endforeach

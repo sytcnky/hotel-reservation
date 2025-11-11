@@ -3,6 +3,15 @@
 @section('title', 'Kayıt Ol')
 
 @section('content')
+<script>
+    window.intlTelInputI18n = {
+        searchPlaceholder: "{{ e(t('intl_tel.search_placeholder')) }}",
+        zeroSearchResults: "{{ e(t('intl_tel.zero_results')) }}",
+        clearSearch: "{{ e(t('intl_tel.clear_search')) }}",
+    };
+    window.phone_required = "{{ e(t('intl_tel.phone_required')) }}";
+    window.phone_invalid  = "{{ e(t('intl_tel.phone_invalid')) }}";
+</script>
 <section class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-7 col-xl-5">
@@ -32,7 +41,7 @@
                         type="tel"
                         id="phone"
                         name="phone"
-                        value="{{ old('phone', auth()->user()->phone) }}"
+                        value="{{ old('phone') }}"
                         class="form-control @error('phone') is-invalid @enderror"
                         data-phone-input
                         required

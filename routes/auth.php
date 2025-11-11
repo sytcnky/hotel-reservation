@@ -20,7 +20,7 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('/login', [LoginController::class, 'store'])
-        ->middleware('throttle:10,1')   // 10 deneme / 1 dakika
+        ->middleware('throttle:10,1')
         ->name('login.store');
 
     // Register
@@ -28,7 +28,7 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('/register', [RegisterController::class, 'store'])
-        ->middleware('throttle:10,1')   // kayıt spamına karşı basit limit
+        ->middleware('throttle:10,1')
         ->name('register.store');
 
     // Forgot password
@@ -36,7 +36,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->middleware('throttle:5,1')    // 5 istek / 1 dakika
+        ->middleware('throttle:5,1')
         ->name('password.email');
 
     // Reset password
@@ -44,7 +44,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.reset');
 
     Route::post('/reset-password', [NewPasswordController::class, 'store'])
-        ->middleware('throttle:10,1')   // token brute force'a karşı
+        ->middleware('throttle:10,1')
         ->name('password.update');
 });
 
@@ -67,22 +67,28 @@ Route::post('/logout', [LoginController::class, 'destroy'])
 // Doğrulama bilgi ekranı
 Route::get('/email/verify', function () {
     return view('pages.auth.verify-email');
-})->middleware('auth')->name('verification.notice');
+})
+    ->middleware('auth')
+    ->name('verification.notice');
 
 // Link ile doğrulama
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
 
-    return redirect()->route('home');
-})->middleware(['auth', 'signed'])->name('verification.verify');
+    return redirect(localized_route('home'));
+})
+    ->middleware(['auth', 'signed'])
+    ->name('verification.verify');
 
 // Doğrulama mailini tekrar gönder
 Route::post('/email/verification-notification', function (Request $request) {
     if ($request->user()->hasVerifiedEmail()) {
-        return redirect()->route('home');
+        return redirect(localized_route('home'));
     }
 
     $request->user()->sendEmailVerificationNotification();
 
     return back()->with('status', 'verification-link-sent');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+})
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('verification.send');

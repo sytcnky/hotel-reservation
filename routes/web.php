@@ -6,184 +6,171 @@ use Illuminate\Http\Request;
 use App\Support\UIconRegistry;
 use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
-
-
 use App\Support\Helpers\LocaleHelper;
+use App\Support\Routing\LocalizedRoute;
+
+/*
+|--------------------------------------------------------------------------
+| Locale switch
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/locale/{locale}', function (string $locale) {
     $active = LocaleHelper::active();
 
     if (in_array($locale, $active, true)) {
-        // Oturumdaki kullanıcı için kalıcı yap
         if (auth()->check()) {
             auth()->user()->forceFill(['locale' => $locale])->save();
         }
 
-        // Misafir veya anlık kullanım için
         session(['locale' => $locale]);
-
         app()->setLocale($locale);
     }
 
     return back();
 })->name('locale.switch');
 
-
 /*
 |--------------------------------------------------------------------------
 | Auth Routes
 |--------------------------------------------------------------------------
-|
-| Tüm login/register/forgot/reset/verify rotaları
-| routes/auth.php içinde tanımlı.
-|
 */
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| Site Routes (FE)
+| Root redirect -> /{locale}
 |--------------------------------------------------------------------------
 */
 
-Route::view('/', 'pages.home')->name('home');
+Route::get('/', function () {
+    $active = LocaleHelper::active();
+    $default = config('app.locale', 'tr');
 
-/** Transfers (statik view varsa aç, yoksa 404) */
-Route::get('/transferler', function () {
-    if (view()->exists('pages.transfer.index')) {
-        return view('pages.transfer.index');
+    $locale =
+        session('locale')
+        ?? (auth()->user()->locale ?? $default);
+
+    if (! in_array($locale, $active, true)) {
+        $locale = $active[0] ?? $default;
     }
 
-    abort(404);
-})->name('transfers');
+    return redirect('/' . $locale);
+});
 
-/** Hotels list + filters from public JSON */
-Route::get('/hotels', function () {
+/*
+|--------------------------------------------------------------------------
+| Site Routes (FE) - localized
+|--------------------------------------------------------------------------
+|
+| Her route:
+|  - URL: /{locale}/{slug}
+|  - İsim: {locale}.{baseName}
+|  - Blade: localized_route('baseName')
+|
+*/
+
+/** Home */
+LocalizedRoute::view('home', '', 'pages.home');
+
+/** Hotels list */
+LocalizedRoute::get('hotels', 'hotels', function () {
     $path = public_path('data/hotels.json');
     abort_unless(File::exists($path), 404);
 
     $hotels = collect(json_decode(File::get($path)));
 
-    // Yıldız filtresi (çoklu)
     if (request()->filled('stars')) {
-        $stars = request()->input('stars');
-        $stars = is_array($stars) ? $stars : [$stars];
-
-        $hotels = $hotels->filter(fn ($hotel) => in_array($hotel->stars, $stars));
+        $stars = (array) request()->input('stars');
+        $hotels = $hotels->filter(fn($hotel) => in_array($hotel->stars, $stars));
     }
 
-    // Kategori filtresi (tekli)
     if (request()->filled('category')) {
         $category = request()->input('category');
-        $hotels = $hotels->filter(fn ($hotel) => $hotel->category === $category);
+        $hotels = $hotels->filter(fn($hotel) => $hotel->category === $category);
     }
 
     return view('pages.hotel.index', compact('hotels'));
-})->name('hotels');
+});
 
 /** Hotel detail */
-Route::get('/hotel/{id}', function ($id) {
+LocalizedRoute::get('hotel.detail', 'hotel/{id}', function ($id) {
     $path = public_path('data/hotels.json');
     abort_unless(File::exists($path), 404);
 
     $hotels = json_decode(File::get($path), true);
     $hotel  = collect($hotels)->firstWhere('id', (int) $id);
-
     abort_unless($hotel, 404);
 
     return view('pages.hotel.hotel-detail', compact('hotel'));
-})->name('hotel.detail');
+});
+
+/** Transfers */
+LocalizedRoute::get('transfers', 'transfers', function () {
+    if (view()->exists('pages.transfer.index')) {
+        return view('pages.transfer.index');
+    }
+
+    abort(404);
+});
 
 /** Villas */
-Route::get('/villalar', function () {
+LocalizedRoute::get('villa', 'villalar', function () {
     $path = public_path('data/villas/villas.json');
     abort_unless(File::exists($path), 404);
 
     $villas = json_decode(File::get($path), true);
-
     return view('pages.villa.index', compact('villas'));
-})->name('villa');
+});
 
-Route::get('/villa/{slug}', function ($slug) {
+/** Villa detail */
+LocalizedRoute::get('villa.villa-detail', 'villa/{slug}', function ($slug) {
     $path = public_path('data/villas/villas.json');
     abort_unless(File::exists($path), 404);
 
     $villas = json_decode(File::get($path), true);
     $villa  = collect($villas)->firstWhere('slug', $slug);
-
     abort_unless($villa, 404);
 
     return view('pages.villa.villa-detail', compact('villa'));
-})->name('villa.villa-detail');
+});
 
 /** Excursions */
-Route::get('/excursions', function () {
+LocalizedRoute::get('excursions', 'excursions', function () {
     $path = public_path('data/excursions/excursions.json');
     abort_unless(File::exists($path), 404);
 
     $excursions = json_decode(File::get($path), true);
-
     return view('pages.excursion.index', compact('excursions'));
-})->name('excursions');
+});
 
-Route::get('/excursions/{slug}', function ($slug) {
+/** Excursion detail */
+LocalizedRoute::get('excursions.detail', 'excursions/{slug}', function ($slug) {
     $path = public_path('data/excursions/excursions.json');
     abort_unless(File::exists($path), 404);
 
     $excursions = json_decode(File::get($path), true);
     $excursion  = collect($excursions)->firstWhere('slug', $slug);
-
     abort_unless($excursion, 404);
 
     return view('pages.excursion.excursion-detail', compact('excursion'));
-})->name('excursions.detail');
+});
 
-/** Basit statik sayfalar */
-Route::view('/contact', 'pages.contact.index')->name('contact');
-Route::view('/help', 'pages.help.index')->name('help');
-Route::view('/payment', 'pages.payment.index')->name('payment');
-Route::view('/success', 'pages.payment.success')->name('success');
-Route::view('/cart', 'pages.cart.index')->name('cart');
+/** Statik sayfalar */
+LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
+LocalizedRoute::view('help', 'help', 'pages.help.index');
+LocalizedRoute::view('payment', 'payment', 'pages.payment.index');
+LocalizedRoute::view('success', 'success', 'pages.payment.success');
+LocalizedRoute::view('cart', 'cart', 'pages.cart.index');
 
-/*
-|--------------------------------------------------------------------------
-| Account alanı — KİLİTLİ
-|--------------------------------------------------------------------------
-*/
-
-Route::prefix('account')
-    ->name('account.')
-    ->middleware(['auth', 'verified'])
-    ->group(function () {
-        Route::redirect('/', '/account/dashboard');
-
-        Route::view('/dashboard', 'pages.account.index')->name('dashboard');
-        Route::view('/bookings', 'pages.account.bookings')->name('bookings');
-        Route::view('/coupons', 'pages.account.coupons')->name('coupons');
-        Route::view('/tickets', 'pages.account.tickets')->name('tickets');
-
-        Route::view('/settings', 'pages.account.settings')->name('settings');
-        Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-        Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
-
-        Route::get('/tickets/{id}', function ($id) {
-            return view('pages.account.ticket-detail', ['id' => $id]);
-        })->name('tickets.show');
-    });
-
-/*
-|--------------------------------------------------------------------------
-| Guides
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/gezi-rehberi', function () {
+/** Guides list */
+LocalizedRoute::get('guides', 'gezi-rehberi', function () {
     $guides = [
         [
             'title'        => 'Marmaris',
             'slug'         => 'marmaris-gezi-rehberi',
-            'excerpt'      => 'Marmaris’te gezilecek yerler, plajlar, yeme-içme ve turlar...',
+            'excerpt'      => 'Marmaris’te gezilecek yerler...',
             'cover'        => '/images/samples/popular-marmaris.jpg',
             'category'     => 'Ege',
             'published_at' => '2025-08-01',
@@ -191,7 +178,7 @@ Route::get('/gezi-rehberi', function () {
         [
             'title'        => 'İçmeler',
             'slug'         => 'icmeler-gezi-rehberi',
-            'excerpt'      => 'İçmeler’in en popüler plajları ve aktiviteleri.',
+            'excerpt'      => 'İçmeler’in en popüler plajları...',
             'cover'        => '/images/samples/icmeler-1.jpg',
             'category'     => 'Ege',
             'published_at' => '2025-07-20',
@@ -199,9 +186,10 @@ Route::get('/gezi-rehberi', function () {
     ];
 
     return view('pages.guides.index', compact('guides'));
-})->name('guides');
+});
 
-Route::get('/gezi-rehberi/{slug}', function ($slug) {
+/** Guide detail */
+LocalizedRoute::get('guides.show', 'gezi-rehberi/{slug}', function ($slug) {
     $all = collect([
         'sedir-adasi' => [
             'title' => 'Sedir Adası',
@@ -224,6 +212,7 @@ Route::get('/gezi-rehberi/{slug}', function ($slug) {
 
     $guide = $all[$slug];
 
+    // Ek veriler
     $hotelsPath     = public_path('data/hotels.json');
     $villasPath     = public_path('data/villas/villas.json');
     $excursionsPath = public_path('data/excursions/excursions.json');
@@ -232,34 +221,77 @@ Route::get('/gezi-rehberi/{slug}', function ($slug) {
     $villas     = File::exists($villasPath) ? json_decode(File::get($villasPath), true) : [];
     $excursions = File::exists($excursionsPath) ? json_decode(File::get($excursionsPath), true) : [];
 
-    $hotel            = $hotels[0] ?? null;
-    $villa            = $villas[0] ?? null;
+    $hotel             = $hotels[0] ?? null;
+    $villa             = $villas[0] ?? null;
     $excursionsSidebar = array_slice($excursions, 0, 2);
 
-    return view('pages.guides.show', compact('guide', 'slug', 'hotel', 'villa', 'excursionsSidebar'));
-})->name('guides.show');
+    return view('pages.guides.show', compact(
+        'guide',
+        'slug',
+        'hotel',
+        'villa',
+        'excursionsSidebar'
+    ));
+});
+
 
 /*
 |--------------------------------------------------------------------------
-| Admin Utilities
+| Account alanı (localized)
+|--------------------------------------------------------------------------
+|
+| - URL: /{locale}/{slug}
+| - Base: account.*
+| - İsim: {locale}.account.*
+|
+*/
+
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    // View sayfalar
+    LocalizedRoute::view('account.dashboard', 'account/dashboard', 'pages.account.index');
+
+    LocalizedRoute::view('account.bookings', 'account/bookings', 'pages.account.bookings');
+
+    LocalizedRoute::view('account.coupons', 'account/coupons', 'pages.account.coupons');
+
+    LocalizedRoute::view('account.tickets', 'account/tickets', 'pages.account.tickets');
+
+    LocalizedRoute::view('account.settings', 'account/settings', 'pages.account.settings');
+
+    LocalizedRoute::get('account.tickets.show', 'account/tickets/{id}', function ($id) {
+        return view('pages.account.ticket-detail', ['id' => $id]);
+    });
+
+    // Form action'ları (PUT) - her aktif locale için
+    foreach (LocaleHelper::active() as $locale) {
+        Route::prefix($locale)
+            ->name($locale . '.')
+            ->group(function () {
+                Route::put('/account/settings', [SettingsController::class, 'update'])
+                    ->name('account.settings.update');
+
+                Route::put('/account/password', [PasswordController::class, 'update'])
+                    ->name('account.password.update');
+            });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Utilities & Debug
 |--------------------------------------------------------------------------
 */
 
 Route::get('/admin/uicons', function (Request $r) {
-    $variant = $r->string('variant', 'outline'); // outline | solid | bold | straight | thin | all
+    $variant = $r->string('variant', 'outline');
     $icons   = UIconRegistry::list($variant);
 
     return response()->json($icons, 200, [
         'Cache-Control' => 'public, max-age=86400',
-        'ETag'          => md5($variant.'|'.count($icons)),
+        'ETag'          => md5($variant . '|' . count($icons)),
     ]);
 })->middleware(['auth']);
-
-/*
-|--------------------------------------------------------------------------
-| Debug (local)
-|--------------------------------------------------------------------------
-*/
 
 if (app()->environment('local')) {
     Route::get('/whoami', fn () => [

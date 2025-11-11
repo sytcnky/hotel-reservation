@@ -1,54 +1,54 @@
-{{-- resources/views/partials/side-menu.blade.php --}}
 @php
+use Illuminate\Support\Str;
+
+$current = Str::after(request()->route()->getName(), app()->getLocale() . '.');
+
 $menu = [
 [
 'name'  => 'account.dashboard',
-'is'    => 'account.dashboard',
+'match' => 'account.dashboard',
 'label' => 'customer_account.menu.dashboard',
 'icon'  => 'fi fi-rr-user',
 ],
 [
 'name'  => 'account.bookings',
-'is'    => 'account.bookings*',
+'match' => 'account.bookings*',
 'label' => 'customer_account.menu.bookings',
 'icon'  => 'fi fi-rr-calendar',
 ],
 [
 'name'  => 'account.coupons',
-'is'    => 'account.coupons*',
+'match' => 'account.coupons*',
 'label' => 'customer_account.menu.coupons',
 'icon'  => 'fi fi-rr-ticket',
 ],
 [
 'name'  => 'account.tickets',
-'is'    => 'account.tickets*',
+'match' => 'account.tickets*',
 'label' => 'customer_account.menu.tickets',
 'icon'  => 'fi fi-rr-headset',
-'badge' => 1, // ileride dinamik yapılacak
+'badge' => 1,
 ],
 [
 'name'  => 'account.settings',
-'is'    => 'account.settings*',
+'match' => 'account.settings*',
 'label' => 'customer_account.menu.settings',
 'icon'  => 'fi fi-rr-settings',
 ],
 ];
 
-$activeIndex = 0;
-foreach ($menu as $i => $it) {
-if (request()->routeIs($it['is'])) {
-$activeIndex = $i;
-break;
-}
-}
+$activeIndex = collect($menu)
+->search(fn ($it) => Str::is($it['match'], $current))
+?? 0;
+
 $active = $menu[$activeIndex];
 @endphp
 
-{{-- DESKTOP (lg+): tam liste --}}
+{{-- DESKTOP --}}
 <nav class="d-none d-lg-grid gap-2">
     @foreach ($menu as $it)
-    @php $isActive = request()->routeIs($it['is']); @endphp
-    <a href="{{ route($it['name']) }}"
+    @php $isActive = Str::is($it['match'], $current); @endphp
+    <a href="{{ localized_route($it['name']) }}"
        class="btn w-100 d-flex align-items-center justify-content-start gap-2 p-3 {{ $isActive ? 'btn-primary text-white' : 'btn-outline-primary' }}">
         <i class="{{ $it['icon'] }} fs-5"></i>
         <span class="fw-semibold">{{ t($it['label']) }}</span>
@@ -59,7 +59,7 @@ $active = $menu[$activeIndex];
     @endforeach
 </nav>
 
-{{-- MOBILE/TABLET (lg-): Aktif öğe = collapse toggler (buton), diğerleri aşağıda --}}
+{{-- MOBILE --}}
 <div class="d-lg-none">
     <button type="button"
             class="btn w-100 d-flex align-items-center justify-content-start gap-2 p-3 btn-primary text-white"
@@ -80,7 +80,7 @@ $active = $menu[$activeIndex];
     <div class="collapse mt-2" id="accountMobileMenu">
         @foreach ($menu as $i => $it)
         @continue($i === $activeIndex)
-        <a href="{{ route($it['name']) }}"
+        <a href="{{ localized_route($it['name']) }}"
            class="btn w-100 d-flex align-items-center justify-content-start gap-2 p-3 mb-2 btn-outline-primary">
             <i class="{{ $it['icon'] }} fs-5"></i>
             <span class="fw-semibold">{{ t($it['label']) }}</span>

@@ -7,11 +7,13 @@ export function initPhoneInputs() {
 
     inputs.forEach((input) => {
         const iti = intlTelInput(input, {
-            initialCountry: 'tr',
+            initialCountry: 'auto',
             nationalMode: true,
             separateDialCode: true,
+            strictMode: true,
             autoPlaceholder: 'aggressive',
             placeholderNumberType: 'MOBILE',
+            i18n: window.intlTelInputI18n || {},
         });
 
         // E.164 değer geldiyse set et
@@ -27,11 +29,14 @@ export function initPhoneInputs() {
         form.addEventListener('submit', (event) => {
             const raw = input.value.trim();
 
+            const requiredMessage = window.phone_required;
+            const invalidMessage  = window.phone_invalid;
+
             // Boşsa:
             if (!raw) {
                 if (input.hasAttribute('required')) {
                     event.preventDefault();
-                    showError(input, 'Bu alan zorunludur.');
+                    showError(input, requiredMessage);
                 } else {
                     clearError(input);
                 }
@@ -40,13 +45,14 @@ export function initPhoneInputs() {
 
             if (!iti.isValidNumber()) {
                 event.preventDefault();
-                showError(input, 'Lütfen geçerli bir telefon numarası girin.');
+                showError(input, invalidMessage);
                 return;
             }
 
             input.value = iti.getNumber(); // E.164
             clearError(input);
         });
+
     });
 
     function resolveErrorElement(input) {

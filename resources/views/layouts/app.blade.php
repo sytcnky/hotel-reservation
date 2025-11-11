@@ -8,6 +8,7 @@
     {{-- Site tarafı: Bootstrap + site.css, tek entry --}}
     @vite(['resources/js/site/site.js'])
 
+
 </head>
 <body>
 @include('partials.header')

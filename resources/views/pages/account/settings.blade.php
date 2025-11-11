@@ -35,13 +35,21 @@ $pwdOpen = $status === 'password-updated'
 @if ($status === 'password-updated')
 <div class="alert alert-success">Şifreniz güncellendi.</div>
 @endif
-
+<script>
+    window.intlTelInputI18n = {
+        searchPlaceholder: "{{ e(t('intl_tel.search_placeholder')) }}",
+        zeroSearchResults: "{{ e(t('intl_tel.zero_results')) }}",
+        clearSearch: "{{ e(t('intl_tel.clear_search')) }}",
+    };
+    window.phone_required = "{{ e(t('intl_tel.phone_required')) }}";
+    window.phone_invalid  = "{{ e(t('intl_tel.phone_invalid')) }}";
+</script>
 {{-- ÜYELİK BİLGİLERİM --}}
 <div class="card shadow-sm mb-3">
     <div class="card-body">
         <h2 class="h6 mb-3">Üyelik Bilgilerim</h2>
 
-        <form action="{{ route('account.settings.update') }}" method="post" class="row g-3" novalidate>
+        <form action="{{ localized_route('account.settings.update') }}" method="post" class="row g-3" novalidate>
             @csrf
             @method('PUT')
 
@@ -134,7 +142,7 @@ $pwdOpen = $status === 'password-updated'
 
         {{-- Gerçek form --}}
         <form id="passwordForm"
-              action="{{ route('account.password.update') }}"
+              action="{{ localized_route('account.password.update') }}"
               method="post"
               class="mt-3 {{ $pwdOpen ? '' : 'd-none' }}"
               novalidate>

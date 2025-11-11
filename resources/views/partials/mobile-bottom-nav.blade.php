@@ -5,20 +5,20 @@ $items = [
 [
 'label' => 'Hesabım',
 'icon'  => 'fi fi-rr-user',
-'href'  => route('account.dashboard'),
-'active'=> request()->routeIs('account.*'),
+'href'  => localized_route('account.dashboard'),
+'active'=> request()->routeIs('*.account.*'),
 ],
 [
 'label' => 'Rezervasyonlarım',
 'icon'  => 'fi fi-rr-calendar-check',
-'href'  => route('account.bookings'),
-'active'=> request()->routeIs('account.bookings*'),
+'href'  => localized_route('account.bookings'),
+'active'=> request()->routeIs('*.account.bookings*'),
 ],
 [
 'label' => 'Sepet',
 'icon'  => 'fi fi-rr-basket-shopping-simple',
-'href'  => route('cart'),
-'active'=> request()->routeIs('cart*'),
+'href'  => localized_route('cart'),
+'active'=> request()->routeIs('*.cart*'),
 'badge' => $cartCount > 0 ? $cartCount : 2,
 ],
 ];

@@ -32,7 +32,7 @@
                     <div class="row align-items-end">
                         <!-- Sol: Görsel -->
                         <div class="col-xl-3 mb-3 mb-lg-0">
-                            <a href="{{ route('villa.villa-detail', ['slug' => $villa['slug']]) }}">
+                            <a href="{{ localized_route('villa.villa-detail', ['slug' => $villa['slug']]) }}">
                                 <img src="{{ asset($villa['gallery'][0] ?? '/images/default.jpg') }}"
                                      class="img-fluid rounded"
                                      alt="{{ $villa['name']['tr'] }}">
@@ -90,7 +90,7 @@
                                     @endif
                                 </div>
                                 <div class="d-grid mt-1">
-                                    <a href="{{ route('villa.villa-detail', ['slug' => $villa['slug']]) }}"
+                                    <a href="{{ localized_route('villa.villa-detail', ['slug' => $villa['slug']]) }}"
                                        class="btn btn-outline-primary mt-auto w-100">
                                         Villayı İncele
                                     </a>

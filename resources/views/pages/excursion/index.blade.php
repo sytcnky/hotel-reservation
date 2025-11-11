@@ -25,14 +25,14 @@
     <div class="mb-4">
         <ul class="nav nav-pills gap-2 flex-wrap">
             <li class="nav-item">
-                <a href="{{ route('excursions') }}"
+                <a href="{{ localized_route('excursions') }}"
                    class="nav-link {{ !$activeCategory ? 'active' : 'text-secondary' }}">
                     Tümü
                 </a>
             </li>
             @foreach ($categories as $category)
             <li class="nav-item">
-                <a href="{{ route('excursions', ['category' => $category]) }}"
+                <a href="{{ localized_route('excursions', ['category' => $category]) }}"
                    class="nav-link {{ $activeCategory === $category ? 'active' : 'text-secondary' }}">
                     {{ $category }}
                 </a>
@@ -51,7 +51,7 @@
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 shadow-sm position-relative overflow-hidden">
                 <div class="position-relative">
-                    <a href="{{ route('excursions.detail', ['slug' => $excursion['slug']]) }}">
+                    <a href="{{ localized_route('excursions.detail', ['slug' => $excursion['slug']]) }}">
                         <img src="{{ asset($excursion['gallery'][0] ?? '/images/default.jpg') }}"
                              class="card-img-top object-fit-cover"
                              alt="{{ $excursion['name'] }}" height="200">
@@ -76,7 +76,7 @@
                     </div>
 
                     {{-- Butonlar --}}
-                    <a href="{{ route('excursions.detail', ['slug' => $excursion['slug']]) }}"
+                    <a href="{{ localized_route('excursions.detail', ['slug' => $excursion['slug']]) }}"
                        class="btn btn-outline-secondary">
                         Gezi Detayları ve Rezervasyon
                     </a>

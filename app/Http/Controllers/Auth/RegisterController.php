@@ -26,7 +26,7 @@ final class RegisterController extends Controller
             'last_name'  => ['required', 'string', 'max:100'],
             'phone'      => ['required', 'regex:/^\+[1-9]\d{7,14}$/'],
             'email'      => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password'   => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(8)->letters()->mixedCase()->numbers()],
+            'password'   => ['required', 'confirmed', PasswordRule::min(8)->letters()->mixedCase()->numbers()],
         ]);
 
         $user = User::create([
@@ -38,14 +38,14 @@ final class RegisterController extends Controller
             'locale'     => app()->getLocale() ?? 'tr',
         ]);
 
-        // Yeni üyeler otomatik müşteri
+        // Yeni üyeler otomatik müşteri rolü alır
         Role::findOrCreate('customer', 'web');
         $user->syncRoles(['customer']);
 
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect()->route('home')
+        return redirect(localized_route('home'))
             ->with('status', 'verification-link-sent');
     }
 }

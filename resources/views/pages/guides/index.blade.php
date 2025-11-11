@@ -27,7 +27,7 @@
                     <div class="position-relative z-2">
                         <h3 class="fw-bold display-5 mt-5">{{ $g['title'] }}</h3>
                         <p class="mb-4">Marmaris’te gezilecek yerler, plajlar, yeme-içme ve turlar...</p>
-                        <a href="{{ route('guides.show', $g['slug']) }}" class="btn btn-outline-light">{{ $g['title'] }} Gezi Rehberi</a>
+                        <a href="{{ localized_route('guides.show', ['slug' => $g['slug']]) }}" class="btn btn-outline-light">{{ $g['title'] }} Gezi Rehberi</a>
                     </div>
                     <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
                 </div>

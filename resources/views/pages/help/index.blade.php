@@ -8,7 +8,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <h1 class="h4 mb-2">Yardım & Sık Sorulan Sorular</h1>
-            <p class="text-muted mb-4">Aradığını bulamazsan <a href="{{ route('contact') }}">bize ulaş</a>.</p>
+            <p class="text-muted mb-4">Aradığını bulamazsan <a href="{{ localized_route('contact') }}">bize ulaş</a>.</p>
 
 
             <!-- Arama -->
@@ -123,7 +123,7 @@
                             <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
                             <span>Whatsapp Destek</span>
                         </a>
-                        <a href="{{ route('contact') }}" class="btn btn-outline-primary">
+                        <a href="{{ localized_route('contact') }}" class="btn btn-outline-primary">
                             Bize Ulaşın
                         </a>
                     </div>

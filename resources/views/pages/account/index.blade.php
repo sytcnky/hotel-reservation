@@ -35,7 +35,7 @@ $displayName = $authUser?->first_name ?: $authUser?->name ?: '';
             <div class="card-body text-secondary">
                 <i class="fi fi-rr-calendar dash-icon" aria-hidden="true"></i>
                 <div class="dash-title">{{ t('customer_account.menu.bookings') }}</div>
-                <a href="{{ route('account.bookings') }}"
+                <a href="{{ localized_route('account.bookings') }}"
                    class="stretched-link"
                    aria-label="{{ t('customer_account.menu.bookings') }}"></a>
             </div>
@@ -48,7 +48,7 @@ $displayName = $authUser?->first_name ?: $authUser?->name ?: '';
             <div class="card-body text-secondary">
                 <i class="fi fi-rr-ticket dash-icon" aria-hidden="true"></i>
                 <div class="dash-title">{{ t('customer_account.menu.coupons') }}</div>
-                <a href="{{ route('account.coupons') }}"
+                <a href="{{ localized_route('account.coupons') }}"
                    class="stretched-link"
                    aria-label="{{ t('customer_account.menu.coupons') }}"></a>
             </div>
@@ -62,7 +62,7 @@ $displayName = $authUser?->first_name ?: $authUser?->name ?: '';
             <div class="card-body text-secondary">
                 <i class="fi fi-rr-life-ring dash-icon" aria-hidden="true"></i>
                 <div class="dash-title">{{ t('customer_account.menu.tickets') }}</div>
-                <a href="{{ route('account.tickets') }}"
+                <a href="{{ localized_route('account.tickets') }}"
                    class="stretched-link"
                    aria-label="{{ t('customer_account.menu.tickets') }}"></a>
             </div>
@@ -75,7 +75,7 @@ $displayName = $authUser?->first_name ?: $authUser?->name ?: '';
             <div class="card-body text-secondary">
                 <i class="fi fi-rr-settings dash-icon" aria-hidden="true"></i>
                 <div class="dash-title">{{ t('customer_account.menu.settings') }}</div>
-                <a href="{{ route('account.settings') }}"
+                <a href="{{ localized_route('account.settings') }}"
                    class="stretched-link"
                    aria-label="{{ t('customer_account.menu.settings') }}"></a>
             </div>

@@ -26,10 +26,10 @@
             @endisset
 
             <div class="d-flex flex-column flex-md-row gap-2 justify-content-center mt-2">
-                <a href="{{ route('home') }}" class="btn btn-primary">
+                <a href="{{ localized_route('home') }}" class="btn btn-primary">
                     Anasayfaya Dön
                 </a>
-                <a href="{{ route('account.bookings') }}" class="btn btn-outline-secondary">
+                <a href="{{ localized_route('account.bookings') }}" class="btn btn-outline-secondary">
                     Rezervasyonlarım
                 </a>
             </div>

@@ -42,7 +42,7 @@
                 </div>
                 <span class="badge bg-success">Cevaplandı</span>
             </div>
-            <a href="{{ route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Rezervasyon iptal koşulları"></a>
+            <a href="{{ localized_route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Rezervasyon iptal koşulları"></a>
         </div>
     </div>
 
@@ -58,7 +58,7 @@
                 </div>
                 <span class="badge bg-dark">Kapandı</span>
             </div>
-            <a href="{{ route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Fatura bilgisi güncelleme"></a>
+            <a href="{{ localized_route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Fatura bilgisi güncelleme"></a>
         </div>
     </div>
 
@@ -74,7 +74,7 @@
                 </div>
                 <span class="badge bg-info">Yanıt Bekliyor</span>
             </div>
-            <a href="{{ route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Oda tipinde değişiklik talebi"></a>
+            <a href="{{ localized_route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Oda tipinde değişiklik talebi"></a>
         </div>
     </div>
 
@@ -90,7 +90,7 @@
                 </div>
                 <span class="badge bg-dark">Kapandı</span>
             </div>
-            <a href="{{ route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Transfer saatinde revizyon"></a>
+            <a href="{{ localized_route('account.tickets.show', ['id' => 1042]) }}" class="stretched-link" aria-label="Talep detayına git: Transfer saatinde revizyon"></a>
         </div>
     </div>
 </div>

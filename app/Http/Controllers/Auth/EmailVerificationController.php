@@ -21,21 +21,22 @@ final class EmailVerificationController extends Controller
     public function verify(EmailVerificationRequest $request)
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('home');
+            return redirect(localized_route('home'));
         }
 
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }
 
-        return redirect()->route('home')->with('status', 'email-verified');
+        return redirect(localized_route('home'))
+            ->with('status', 'email-verified');
     }
 
     // POST /email/verification-notification
     public function send(Request $request)
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('home');
+            return redirect(localized_route('home'));
         }
 
         $request->user()->sendEmailVerificationNotification();
