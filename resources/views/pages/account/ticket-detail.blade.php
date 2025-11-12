@@ -89,7 +89,7 @@
 
 {{-- Geri bağlantısı --}}
 <div class="mt-4">
-    <a href="{{ route('account.tickets') }}" class="btn btn-outline-secondary">
+    <a href="{{ localized_route('account.tickets') }}" class="btn btn-outline-secondary">
         ← Tüm taleplere dön
     </a>
 </div>

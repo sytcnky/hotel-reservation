@@ -1,9 +1,12 @@
 {{-- resources/views/partials/header.blade.php --}}
 @php
 use App\Support\Helpers\LocaleHelper;
+use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Str;
 
 $currentRoute = Str::after(request()->route()->getName(), app()->getLocale() . '.');
+$currencies      = \App\Support\Helpers\CurrencyHelper::active();
+$currentCurrency = \App\Support\Helpers\CurrencyHelper::currentCode();
 
 /** @var \App\Models\User|null $authUser */
 $authUser = auth()->user();
@@ -115,9 +118,12 @@ $initials = mb_strtoupper($initials);
                 <div>
                     <div class="dropdown-header px-0">{{ t('nav.currency') }}</div>
                     <div class="btn-group w-100" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm active">₺ TL</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm">€ EUR</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm">$ USD</button>
+                        @foreach ($currencies as $c)
+                        <a href="{{ route('currency.switch', $c['code']) }}"
+                           class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }}">
+                            {{ $c['symbol'] }} {{ $c['code'] }}
+                        </a>
+                        @endforeach
                     </div>
                 </div>
             </div>

@@ -8,6 +8,8 @@ use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
 use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
+use App\Http\Controllers\TransferController;
+use App\Support\Helpers\CurrencyHelper;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +31,27 @@ Route::get('/locale/{locale}', function (string $locale) {
 
     return back();
 })->name('locale.switch');
+
+/*
+|--------------------------------------------------------------------------
+| Currency switch
+|--------------------------------------------------------------------------
+*/
+Route::get('/currency/{code}', function (string $code) {
+    if (CurrencyHelper::exists($code)) {
+
+        if (auth()->check()) {
+            auth()->user()
+                ->forceFill(['currency' => $code])
+                ->save();
+        }
+
+        session(['currency' => $code]);
+    }
+
+    return back();
+})->name('currency.switch');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -107,13 +130,7 @@ LocalizedRoute::get('hotel.detail', 'hotel/{id}', function ($id) {
 });
 
 /** Transfers */
-LocalizedRoute::get('transfers', 'transfers', function () {
-    if (view()->exists('pages.transfer.index')) {
-        return view('pages.transfer.index');
-    }
-
-    abort(404);
-});
+LocalizedRoute::get('transfers', 'transfers', [TransferController::class, 'index']);
 
 /** Villas */
 LocalizedRoute::get('villa', 'villalar', function () {
