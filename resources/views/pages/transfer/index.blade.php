@@ -29,7 +29,11 @@
 <section class="container pb-5">
     <div class="bg-white p-4 rounded shadow-lg">
         {{-- Arama Formu --}}
-        <form class="row g-3 needs-validation" action="{{ localized_route('transfers') }}" method="GET" novalidate>
+        <form id="transferSearchForm"
+              class="row g-3 needs-validation"
+              action="{{ localized_route('transfers') }}"
+              method="GET"
+              novalidate>
             {{-- Yön Seçimi --}}
             <div class="col-12 text-center mb-2" style="margin-top: -25px">
                 <div class="btn-group bg-white shadow-sm" role="group" aria-label="Yön Seçimi">
@@ -134,14 +138,14 @@
                 <label for="guestInput" class="form-label">Kişi Sayısı</label>
 
                 @php
-                $giAdults = max(0, (int) request('adults', 2));
+                $giAdults   = max(0, (int) request('adults', 2));
                 $giChildren = max(0, (int) request('children', 0));
-                $giInfants = max(0, (int) request('infants', 0));
-                $giTotal = $giAdults + $giChildren + $giInfants;
-                $giText = $giTotal > 0
+                $giInfants  = max(0, (int) request('infants', 0));
+                $giTotal    = $giAdults + $giChildren + $giInfants;
+                $giText     = $giTotal > 0
                 ? ($giAdults . ' Yetişkin'
                 . ($giChildren ? ', ' . $giChildren . ' Çocuk' : '')
-                . ($giInfants ? ', ' . $giInfants . ' Bebek' : '')
+                . ($giInfants  ? ', ' . $giInfants  . ' Bebek'  : '')
                 )
                 : '';
                 @endphp
@@ -161,7 +165,6 @@
 
                     <div class="guest-dropdown border rounded shadow-sm bg-white p-3 position-absolute w-100"
                          style="z-index: 10; top: 100%; display: none;">
-
                         {{-- Yetişkin --}}
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span>Yetişkin</span>
@@ -231,16 +234,24 @@
         </form>
     </div>
 
+    @if ($errors->any())
+    <div class="alert alert-danger mt-3">
+        {{ $errors->first() }}
+    </div>
+    @endif
+
     {{-- Teklif Kartı: sadece uygun teklif varsa --}}
     @if(!empty($transferOffer))
     @php
     $fromLabel = collect($locations)->firstWhere('id', $transferOffer['from_location_id'])['label'] ?? '';
-    $toLabel = collect($locations)->firstWhere('id', $transferOffer['to_location_id'])['label'] ?? '';
+    $toLabel   = collect($locations)->firstWhere('id', $transferOffer['to_location_id'])['label'] ?? '';
+
+    $gallery = $transferOffer['vehicle_gallery'] ?? [];
     @endphp
 
     <div class="bg-white p-4 rounded shadow-sm mb-4 mt-3">
         <div class="row">
-            {{-- Sol: Galeri (şimdilik örnek) --}}
+            {{-- Sol: Galeri --}}
             <div class="col-lg-5 pe-lg-5 mb-4">
                 <div class="gallery">
                     <h4 class="fw-bold">{{ $transferOffer['vehicle_name'] }}</h4>
@@ -248,29 +259,35 @@
                         Konforlu ve geniş araçlarımızla havalimanından konaklama noktanıza güvenli transfer.
                     </p>
 
-                    <div class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
-                         style="height: 260px;">
-                        <img src="/images/samples/arac-1.png"
-                             class="w-100 h-100"
+                    <div
+                        class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
+                        style="height: 260px;">
+                        @foreach($gallery as $index => $image)
+                        <img src="{{ $image['desktop'] }}"
+                             srcset="{{ $image['desktop'] }} 1x, {{ $image['desktop2x'] }} 2x"
+                             class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
                              style="object-fit: contain;"
-                             alt="Araç Görseli">
+                             alt="{{ $image['alt'] }}">
+                        @endforeach
                     </div>
 
                     <div class="d-flex gap-2 overflow-auto thumbnail-scroll">
-                        @foreach(['/images/samples/arac-1.png','/images/samples/arac-2.png','/images/samples/arac-3.png','/images/samples/arac-4.png'] as $image)
+                        @foreach($gallery as $index => $image)
                         <div class="flex-shrink-0 rounded overflow-hidden bg-black"
+                             data-gallery-thumb
                              style="width: 72px; height: 72px; cursor: pointer;">
-                            <img src="{{ $image }}"
+                            <img src="{{ $image['thumb'] }}"
+                                 srcset="{{ $image['thumb'] }} 1x, {{ $image['thumb2x'] }} 2x"
                                  class="w-100 h-100"
                                  style="object-fit: cover;"
-                                 alt="Araç Görseli">
+                                 alt="{{ $image['alt'] }}">
                         </div>
                         @endforeach
                     </div>
                 </div>
             </div>
 
-            {{-- Sağ: Özet + Rezervasyon Formu (booking akışı sonra bağlanacak) --}}
+            {{-- Sağ: Özet + Rezervasyon --}}
             <div class="col-lg-7 d-flex flex-column justify-content-between">
                 <div>
                     <div class="row g-3">
@@ -348,8 +365,11 @@
                     </div>
                 </div>
 
-                {{-- Rezervasyon Formu (placeholder, booking aşamasında bağlanacak) --}}
-                <form method="POST" action="#">
+                {{-- Rezervasyon Formu --}}
+                <form id="transferBookForm"
+                      method="POST"
+                      action="{{ localized_route('transfer.book') }}"
+                      novalidate>
                     @csrf
 
                     <input type="hidden" name="route_id" value="{{ $transferOffer['route_id'] }}">
@@ -364,6 +384,9 @@
                     <input type="hidden" name="infants" value="{{ $transferOffer['infants'] }}">
                     <input type="hidden" name="price_total" value="{{ $transferOffer['price_total'] }}">
                     <input type="hidden" name="currency" value="{{ $transferOffer['currency'] }}">
+                    <input type="hidden" name="from_label" value="{{ $fromLabel }}">
+                    <input type="hidden" name="to_label" value="{{ $toLabel }}">
+                    <input type="hidden" name="vehicle_image" value="{{ $transferOffer['vehicle_image'] ?? '' }}">
 
                     <div class="bg-light p-3 mt-3 rounded">
                         <div class="row">
@@ -374,8 +397,7 @@
                                     <input type="time"
                                            id="pickup_time_outbound"
                                            name="pickup_time_outbound"
-                                           class="form-control"
-                                           required>
+                                           class="form-control">
                                     <span class="input-group-text bg-white">
                                             <i class="fi fi-rr-clock"></i>
                                         </span>
@@ -384,7 +406,9 @@
 
                             {{-- Gidiş Uçuş No (opsiyonel) --}}
                             <div class="col-lg-6 mb-3">
-                                <label for="flight_number_outbound" class="form-label">Gidiş Uçuş Numarası</label>
+                                <label for="flight_number_outbound" class="form-label">
+                                    Gidiş Uçuş Numarası
+                                </label>
                                 <input type="text"
                                        id="flight_number_outbound"
                                        name="flight_number_outbound"
@@ -400,8 +424,7 @@
                                     <input type="time"
                                            id="pickup_time_return"
                                            name="pickup_time_return"
-                                           class="form-control"
-                                           required>
+                                           class="form-control">
                                     <span class="input-group-text bg-white">
                                                 <i class="fi fi-rr-clock"></i>
                                             </span>
@@ -410,7 +433,9 @@
 
                             {{-- Dönüş Uçuş No (opsiyonel) --}}
                             <div class="col-lg-6 mb-3">
-                                <label for="flight_number_return" class="form-label">Dönüş Uçuş Numarası</label>
+                                <label for="flight_number_return" class="form-label">
+                                    Dönüş Uçuş Numarası
+                                </label>
                                 <input type="text"
                                        id="flight_number_return"
                                        name="flight_number_return"
@@ -424,6 +449,9 @@
                                     <i class="fi fi-rr-info align-middle me-1"></i>
                                     Uçuş numaranızı girerseniz, uçak iniş saatine göre karşılama yapılır.
                                 </p>
+                                <div id="bookPairError" class="text-danger small d-none">
+                                    Saat veya Uçuş numarası alanlarından en az biri dolu olmalıdır.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -454,6 +482,12 @@
             <i class="fi fi-rr-info me-1 align-middle"></i>
             Seçtiğiniz kriterlere uygun transfer bulunamadı. Lütfen farklı bir lokasyon veya kişi sayısı ile tekrar deneyin.
         </p>
+    </div>
+    @endif
+
+    @if (session('ok') === 'validated')
+    <div class="alert alert-success mt-3">
+        Rezervasyon bilgileri başarıyla doğrulandı.
     </div>
     @endif
 </section>
@@ -551,15 +585,12 @@
                 const prevToVal = toSelect.value;
 
                 toSelect.innerHTML = '';
-
                 originalToOptions.forEach(opt => {
                     if (opt.value === '' || opt.value !== fromVal) {
                         const o = document.createElement('option');
                         o.value = opt.value;
                         o.textContent = opt.text;
-                        if (opt.value === prevToVal && opt.value !== fromVal) {
-                            o.selected = true;
-                        }
+                        if (opt.value === prevToVal && opt.value !== fromVal) o.selected = true;
                         toSelect.appendChild(o);
                     }
                 });
@@ -584,7 +615,6 @@
         function syncReturnRequired() {
             if (!returnDateInput || !oneWayRadio || !roundTripRadio) return;
             returnDateInput.required = !!roundTripRadio.checked;
-            // yön değişince varsa hata temizle
             returnDateInput.classList.remove('is-invalid');
         }
         syncReturnRequired();
@@ -594,81 +624,54 @@
         }
 
         // Alan değişince invalid state'i anında kaldır
-        if (departureDateInput) {
-            departureDateInput.addEventListener('input', () => {
-                if (departureDateInput.value.trim()) {
-                    departureDateInput.classList.remove('is-invalid');
-                }
-            });
-        }
-        if (returnDateInput) {
-            returnDateInput.addEventListener('input', () => {
-                if (returnDateInput.value.trim()) {
-                    returnDateInput.classList.remove('is-invalid');
-                }
-            });
-        }
+        departureDateInput?.addEventListener('input', () => {
+            if (departureDateInput.value.trim()) departureDateInput.classList.remove('is-invalid');
+        });
+        returnDateInput?.addEventListener('input', () => {
+            if (returnDateInput.value.trim()) returnDateInput.classList.remove('is-invalid');
+        });
 
-        // GuestPicker değişimini dinle (guestpicker.js içinden tetikleniyor)
+        // GuestPicker değişimi (guestpicker.js tetikler)
         if (guestInputVisible) {
             document.addEventListener('guestCountChanged', function (e) {
-                const total = e.detail && typeof e.detail.total === 'number'
-                    ? e.detail.total
-                    : 0;
-                if (total > 0) {
-                    guestInputVisible.classList.remove('is-invalid');
-                }
+                const total = e.detail && typeof e.detail.total === 'number' ? e.detail.total : 0;
+                if (total > 0) guestInputVisible.classList.remove('is-invalid');
             });
         }
 
-        // Form validation: sadece kırmızı border, success yok
-        const forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
+        // --- SADECE ARAMA FORMU doğrulama ---
+        const searchForm = document.getElementById('transferSearchForm');
+        if (searchForm) {
+            searchForm.addEventListener('submit', function (event) {
                 let valid = true;
 
                 // Direction
-                const dirInputs = form.querySelectorAll('input[name="direction"]');
+                const dirInputs = searchForm.querySelectorAll('input[name="direction"]');
                 const dirChecked = Array.from(dirInputs).some(i => i.checked);
-                if (!dirChecked) {
-                    valid = false;
-                }
+                if (!dirChecked) valid = false;
 
                 // From / To
-                if (fromSelect && !fromSelect.value) {
-                    fromSelect.classList.add('is-invalid');
-                    valid = false;
-                }
-                if (toSelect && !toSelect.value) {
-                    toSelect.classList.add('is-invalid');
-                    valid = false;
-                }
+                if (fromSelect && !fromSelect.value) { fromSelect.classList.add('is-invalid'); valid = false; }
+                if (toSelect && !toSelect.value) { toSelect.classList.add('is-invalid'); valid = false; }
 
-                // Gidiş tarihi (zorunlu)
+                // Tarihler
                 if (!departureDateInput || !departureDateInput.value.trim()) {
-                    if (departureDateInput) departureDateInput.classList.add('is-invalid');
+                    departureDateInput?.classList.add('is-invalid');
                     valid = false;
                 }
-
-                // Roundtrip ise dönüş tarihi (zorunlu)
                 if (roundTripRadio && roundTripRadio.checked) {
                     if (!returnDateInput || !returnDateInput.value.trim()) {
-                        if (returnDateInput) returnDateInput.classList.add('is-invalid');
+                        returnDateInput?.classList.add('is-invalid');
                         valid = false;
                     }
                 }
 
-                // Guest validation (min 1 yetişkin, toplam > 0)
-                const adultInput = form.querySelector('input[name="adults"]');
-                const childInput = form.querySelector('input[name="children"]');
-                const infantInput = form.querySelector('input[name="infants"]');
-
-                const adults = parseInt(adultInput ? adultInput.value : '0', 10) || 0;
-                const children = parseInt(childInput ? childInput.value : '0', 10) || 0;
-                const infants = parseInt(infantInput ? infantInput.value : '0', 10) || 0;
-                const total = adults + children + infants;
+                // Kişi (min 1 yetişkin)
+                const adults   = parseInt(searchForm.querySelector('input[name="adults"]')?.value || '0', 10);
+                const children = parseInt(searchForm.querySelector('input[name="children"]')?.value || '0', 10);
+                const infants  = parseInt(searchForm.querySelector('input[name="infants"]')?.value || '0', 10);
+                const total    = adults + children + infants;
                 const guestValid = adults >= 1 && total > 0;
-
                 if (!guestValid && guestInputVisible) {
                     guestInputVisible.classList.add('is-invalid');
                     valid = false;
@@ -678,8 +681,58 @@
                     event.preventDefault();
                     event.stopPropagation();
                 }
-            }, false);
-        });
+            });
+        }
+
+        // --- BOOKING FORMU: Saat veya Uçuş No çiftlerinden en az biri ---
+        const bookForm = document.getElementById('transferBookForm');
+        if (bookForm) {
+            const outTime   = document.getElementById('pickup_time_outbound');
+            const outFlight = document.getElementById('flight_number_outbound');
+            const retTime   = document.getElementById('pickup_time_return');   // tek yönse yok
+            const retFlight = document.getElementById('flight_number_return'); // tek yönse yok
+            const pairError = document.getElementById('bookPairError');
+
+            function pairValid(timeEl, flightEl) {
+                const a = !!(timeEl && timeEl.value && timeEl.value.trim());
+                const b = !!(flightEl && flightEl.value && flightEl.value.trim());
+                return a || b;
+            }
+            function markPairInvalid(timeEl, flightEl) {
+                timeEl?.classList.add('is-invalid');
+                flightEl?.classList.add('is-invalid');
+            }
+            function clearPairInvalid(timeEl, flightEl) {
+                timeEl?.classList.remove('is-invalid');
+                flightEl?.classList.remove('is-invalid');
+            }
+
+            [outTime, outFlight, retTime, retFlight].forEach(el => {
+                el?.addEventListener('input', () => {
+                    clearPairInvalid(outTime, outFlight);
+                    clearPairInvalid(retTime, retFlight);
+                    pairError?.classList.add('d-none');
+                });
+            });
+
+            bookForm.addEventListener('submit', function (e) {
+                let ok = true;
+
+                // Gidiş çifti zorunlu
+                if (!pairValid(outTime, outFlight)) { markPairInvalid(outTime, outFlight); ok = false; }
+
+                // Dönüş çifti, dönüş varsa zorunlu
+                if (retTime || retFlight) {
+                    if (!pairValid(retTime, retFlight)) { markPairInvalid(retTime, retFlight); ok = false; }
+                }
+
+                if (!ok) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    pairError?.classList.remove('d-none');
+                }
+            });
+        }
     });
 </script>
 

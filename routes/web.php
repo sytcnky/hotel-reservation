@@ -10,6 +10,11 @@ use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
 use App\Http\Controllers\TransferController;
 use App\Support\Helpers\CurrencyHelper;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CartController;
+
+/** Transfer booking (validate only, step-1) */
+LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::class, 'bookTransfer']);
 
 /*
 |--------------------------------------------------------------------------
@@ -180,6 +185,8 @@ LocalizedRoute::view('help', 'help', 'pages.help.index');
 LocalizedRoute::view('payment', 'payment', 'pages.payment.index');
 LocalizedRoute::view('success', 'success', 'pages.payment.success');
 LocalizedRoute::view('cart', 'cart', 'pages.cart.index');
+Route::delete('/cart/item/{key}', [CartController::class, 'remove'])
+    ->name('cart.remove');
 
 /** Guides list */
 LocalizedRoute::get('guides', 'gezi-rehberi', function () {

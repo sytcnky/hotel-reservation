@@ -59,6 +59,7 @@ class TransferVehicleForm
                                                 ->multiple()
                                                 ->reorderable()
                                                 ->panelLayout('grid')
+                                                ->preserveFilenames()
                                                 ->columnSpan(12),
                                         ]),
                                 ]),

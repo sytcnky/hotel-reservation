@@ -64,6 +64,25 @@ class TransferController extends Controller
                     );
 
                     if ($pricing) {
+                        // --- Araç galerisini de ekle ---
+                        $mediaItems = $vehicle->getMedia('gallery');
+
+                        $vehicleGallery = $mediaItems->map(function ($media) {
+                            return [
+                                'desktop'   => $media->getUrl('desktop'),
+                                'desktop2x' => $media->getUrl('desktop2x'),
+                                'thumb'     => $media->getUrl('thumb'),
+                                'thumb2x'   => $media->getUrl('thumb2x'),
+                                'alt'       => $media->name,
+                            ];
+                        })->toArray();
+
+                        // Sepet için kullanılacak tek bir görsel (ilk eleman)
+                        $vehicleImage = null;
+                        if (!empty($vehicleGallery)) {
+                            $vehicleImage = $vehicleGallery[0]['thumb'] ?? $vehicleGallery[0]['desktop'];
+                        }
+
                         $transferOffer = [
                             'route_id'               => $route->id,
                             'from_location_id'       => $fromId,
@@ -80,7 +99,12 @@ class TransferController extends Controller
                             'capacity_total'         => $vehicle->capacity_total,
                             'price_total'            => $pricing['total'],
                             'currency'               => $pricing['currency'],
+
+                            // Yeni alanlar
+                            'vehicle_gallery'        => $vehicleGallery,
+                            'vehicle_image'          => $vehicleImage,
                         ];
+
                     }
                 }
             }

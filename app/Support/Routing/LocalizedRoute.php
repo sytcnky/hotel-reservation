@@ -21,6 +21,54 @@ class LocalizedRoute
     }
 
     /**
+     * Çok dilli POST route.
+     *
+     * @param  string                $baseName
+     * @param  string                $defaultSlug
+     * @param  callable|array|string $action
+     */
+    public static function post(string $baseName, string $defaultSlug, $action): void
+    {
+        self::map('post', $baseName, $defaultSlug, $action);
+    }
+
+    /**
+     * Çok dilli PUT route.
+     *
+     * @param  string                $baseName
+     * @param  string                $defaultSlug
+     * @param  callable|array|string $action
+     */
+    public static function put(string $baseName, string $defaultSlug, $action): void
+    {
+        self::map('put', $baseName, $defaultSlug, $action);
+    }
+
+    /**
+     * Çok dilli PATCH route.
+     *
+     * @param  string                $baseName
+     * @param  string                $defaultSlug
+     * @param  callable|array|string $action
+     */
+    public static function patch(string $baseName, string $defaultSlug, $action): void
+    {
+        self::map('patch', $baseName, $defaultSlug, $action);
+    }
+
+    /**
+     * Çok dilli DELETE route.
+     *
+     * @param  string                $baseName
+     * @param  string                $defaultSlug
+     * @param  callable|array|string $action
+     */
+    public static function delete(string $baseName, string $defaultSlug, $action): void
+    {
+        self::map('delete', $baseName, $defaultSlug, $action);
+    }
+
+    /**
      * Çok dilli view route (statik sayfalar için).
      *
      * @param string $baseName
