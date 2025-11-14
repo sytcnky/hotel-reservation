@@ -116,13 +116,26 @@
             @if (!empty($cartItems))
             @foreach ($cartItems as $key => $ci)
             @php
-            $s = (array) ($ci['snapshot'] ?? []);
-            // Fallback yok: sadece snapshot içinde varsa kullan
-            $vehicleImage = !empty($s['vehicle_image']) ? $s['vehicle_image'] : null;
+            $type = $ci['product_type'] ?? 'unknown';
             @endphp
 
+            @if ($type === 'transfer')
+            {{-- TRANSFER --}}
+            @include('pages.cart.item-transfer', [
+            'key' => $key,
+            'ci'  => $ci,
+            ])
+
+            @elseif ($type === 'tour' || $type === 'excursion')
+            {{-- GÜNLÜK TUR --}}
+            @include('pages.cart.item-tour', [
+            'key' => $key,
+            'ci'  => $ci,
+            ])
+
+            @else
+            {{-- DİĞER / GEÇİCİ ÜRÜNLER --}}
             <div class="card shadow-sm mb-3 position-relative">
-                {{-- Sil butonu --}}
                 <form method="POST"
                       action="{{ route('cart.remove', ['key' => $key]) }}"
                       class="position-absolute top-0 end-0 m-2">
@@ -138,62 +151,31 @@
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
                         <div class="col-4 col-md-3">
-                            @if ($vehicleImage)
-                            <img src="{{ $vehicleImage }}"
+                            <img src="{{ asset('/images/samples/excursion-1b.jpg') }}"
                                  class="img-fluid rounded object-fit-cover"
-                                 alt="Transfer görseli">
-                            @endif
+                                 alt="Sepet ürünü">
                         </div>
-
                         <div class="col-8 col-md-6">
                             <div class="small text-uppercase text-muted mb-1">
-                                {{ ($ci['product_type'] ?? '') === 'transfer' ? 'Transfer' : ucfirst($ci['product_type'] ?? '') }} <small>{{ ($s['direction'] ?? '') === 'roundtrip' ? '(Gidiş-Dönüş)' : '(Tek Yön)' }}</small>
+                                {{ ucfirst($type) }}
                             </div>
-
                             <h5 class="mb-1">
-                                {{ $s['from_label'] ?? $s['from_location_id'] }}
-                                →
-                                {{ $s['to_label'] ?? $s['to_location_id'] }}
+                                {{ data_get($ci, 'snapshot.tour_name', 'Ürün') }}
                             </h5>
-
-                            <div class="text-muted small">
-                                @if (!empty($s['departure_date']))
-                                <div>
-                                    <i class="fi fi-rr-calendar"></i>
-                                    {{ $s['departure_date'] }}
-                                    @if (!empty($s['pickup_time_outbound'])), {{ $s['pickup_time_outbound'] }} @endif
-                                </div>
-                                @endif
-
-                                @if (($s['direction'] ?? null) === 'roundtrip' && !empty($s['return_date']))
-                                <div>
-                                    <i class="fi fi-rr-calendar"></i>
-                                    {{ $s['return_date'] }}
-                                    @if (!empty($s['pickup_time_return'])), {{ $s['pickup_time_return'] }} @endif
-                                </div>
-                                @endif
-
-                                <div>
-                                    <i class="fi fi-rr-users"></i>
-                                    {{ (int)($s['adults'] ?? 0) }} Yetişkin
-                                    @if ((int)($s['children'] ?? 0) > 0), {{ (int)($s['children'] ?? 0) }} Çocuk @endif
-                                    @if ((int)($s['infants'] ?? 0) > 0), {{ (int)($s['infants'] ?? 0) }} Bebek @endif
-                                </div>
-                            </div>
                         </div>
-
                         <div class="col-12 col-md-3 text-md-end">
                             <div class="fw-bold fs-5 text-primary">
-                                {{ number_format((float)($ci['amount'] ?? 0), 0, ',', '.') }} {{ $ci['currency'] ?? 'TRY' }}
+                                {{ number_format((float)($ci['amount'] ?? 0), 0, ',', '.') }}
+                                {{ $ci['currency'] ?? 'TRY' }}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            @endif
             @endforeach
             @endif
             {{-- <<< DİNAMİK BİTİŞ --}}
-
 
             {{-- DEMO öğeleri (bir süre kalsın) --}}
             <div class="card shadow-sm mb-3 position-relative">
@@ -217,31 +199,6 @@
                         <div class="col-12 col-md-3 text-md-end">
                             <div class="text-muted text-decoration-line-through small">₺14.000</div>
                             <div class="fw-bold fs-5 text-primary">₺12.450</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-3 position-relative">
-                <button type="button" class="btn btn-sm btn-light text-danger position-absolute top-0 end-0 m-2" title="Sil">
-                    <i class="fi fi-rr-trash"></i>
-                </button>
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-4 col-md-3">
-                            <img src="{{ asset('/images/samples/excursion-1b.jpg') }}" class="img-fluid rounded object-fit-cover" alt="Tur görseli">
-                        </div>
-                        <div class="col-8 col-md-6">
-                            <div class="small text-uppercase text-muted mb-1">Günlük Tur</div>
-                            <h5 class="mb-1">Marmaris Tekne Turu</h5>
-                            <div class="text-muted small">
-                                <div><i class="fi fi-rr-calendar"></i> 22 Aug</div>
-                                <div><i class="fi fi-rr-users"></i> 2 Yetişkin, 1 Çocuk</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-3 text-md-end">
-                            <div class="text-muted text-decoration-line-through small">₺2.500</div>
-                            <div class="fw-bold fs-5 text-primary">₺2.250</div>
                         </div>
                     </div>
                 </div>
@@ -284,7 +241,7 @@
                     <h6 class="fw-light mb-0">6 Gece otel rezervasyonunuza</h6>
                     <h4 class="fw-bold mb-2">Havalimanı Transferi %10 indirimli!</h4>
                     <a href="{{ localized_route('transfers') }}" class="btn btn-outline-light stretched-link fw-semibold mt-3 btn-sm">
-                        Hemen Sepetine Ekle
+                        Hemen Rezervasyon Yap
                     </a>
                 </div>
             </div>

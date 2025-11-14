@@ -1,10 +1,8 @@
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import { Turkish } from "flatpickr/dist/l10n/tr.js";
-import { initGuestPicker } from '../ui/guestpicker.js';
 
 export function initTransferForm() {
-    initGuestPicker(document);
     const oneway = document.getElementById('oneway');
     const roundtrip = document.getElementById('roundtrip');
     const returnDateWrapper = document.getElementById('returnDateWrapper');
@@ -26,24 +24,23 @@ export function initTransferForm() {
     roundtrip.addEventListener('change', toggleReturnDate);
     requestAnimationFrame(toggleReturnDate);
 
-    // Flatpickr başlat
-    const departurePicker = flatpickr(departureInput, {
+    const returnPicker = flatpickr(returnInput, {
+        locale: Turkish,
+        dateFormat: "d.m.Y",
+        minDate: null,
+    });
+
+    flatpickr(departureInput, {
         locale: Turkish,
         dateFormat: "d.m.Y",
         minDate: "today",
-        onChange: function(selectedDates) {
+        onChange(selectedDates) {
             if (selectedDates.length) {
                 returnPicker.set('minDate', selectedDates[0]);
             } else {
                 returnPicker.clear();
                 returnPicker.set('minDate', null);
             }
-        }
-    });
-
-    const returnPicker = flatpickr(returnInput, {
-        locale: Turkish,
-        dateFormat: "d.m.Y",
-        minDate: null // ilk başta aktif değil
+        },
     });
 }

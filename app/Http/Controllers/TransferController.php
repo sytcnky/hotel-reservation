@@ -69,10 +69,12 @@ class TransferController extends Controller
 
                         $vehicleGallery = $mediaItems->map(function ($media) {
                             return [
-                                'desktop'   => $media->getUrl('desktop'),
-                                'desktop2x' => $media->getUrl('desktop2x'),
-                                'thumb'     => $media->getUrl('thumb'),
-                                'thumb2x'   => $media->getUrl('thumb2x'),
+                                'large'    => $media->getUrl('large'),
+                                'large2x'  => $media->getUrl('large2x'),
+                                'thumb'    => $media->getUrl('thumb'),
+                                'thumb2x'  => $media->getUrl('thumb2x'),
+                                'small'    => $media->getUrl('small'),
+                                'small2x'  => $media->getUrl('small2x'),
                                 'alt'       => $media->name,
                             ];
                         })->toArray();

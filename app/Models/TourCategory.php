@@ -11,6 +11,11 @@ class TourCategory extends Model
 {
     use HasFactory, SoftDeletes, HasLocalizedColumns;
 
+    public function tours()
+    {
+        return $this->hasMany(Tour::class, 'tour_category_id');
+    }
+
     protected $fillable = ['name','slug','description','is_active','sort_order'];
 
     protected $casts = [

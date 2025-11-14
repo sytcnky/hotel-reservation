@@ -92,30 +92,29 @@ class LocalizedRoute
      */
     protected static function map(string $method, string $baseName, string $defaultSlug, $payload): void
     {
-        $locales = LocaleHelper::active(); // ['tr', 'en', ...] bekliyoruz
+        $locales = LocaleHelper::active();
 
-        // İlgili route için slug çevirileri
         $translation = Translation::query()
             ->where('group', 'routes')
             ->where('key', $baseName)
             ->first();
 
         foreach ($locales as $locale) {
-            // 1) Çeviriden slug al, yoksa default kullan
             $slug = $translation->values[$locale] ?? $defaultSlug;
-            $slug = trim($slug, '/'); // sadece path, prefix yok
+            $slug = trim($slug, '/');
 
-            // Home gibi boş slug ise sadece /{locale}
             $path = $slug === '' ? '/' : '/' . $slug;
 
-            // 2) Prefix + name group
             Route::prefix($locale)
                 ->name($locale . '.')
                 ->group(function () use ($method, $path, $baseName, $payload) {
-                    // Aynı baseName her locale için kullanılır; group name ile birleşir.
                     if ($method === 'view') {
+                        // BURASI DEĞİŞTİ
                         [$view, $data] = $payload;
-                        $route = Route::view($path, $view, $data);
+
+                        $route = Route::get($path, function () use ($view, $data) {
+                            return view($view, $data);
+                        });
                     } else {
                         $route = Route::$method($path, $payload);
                     }
@@ -124,4 +123,5 @@ class LocalizedRoute
                 });
         }
     }
+
 }

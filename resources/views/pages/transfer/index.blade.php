@@ -263,8 +263,8 @@
                         class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
                         style="height: 260px;">
                         @foreach($gallery as $index => $image)
-                        <img src="{{ $image['desktop'] }}"
-                             srcset="{{ $image['desktop'] }} 1x, {{ $image['desktop2x'] }} 2x"
+                        <img src="{{ $image['large'] }}"
+                             srcset="{{ $image['large'] }} 1x, {{ $image['large2x'] }} 2x"
                              class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
                              style="object-fit: contain;"
                              alt="{{ $image['alt'] }}">

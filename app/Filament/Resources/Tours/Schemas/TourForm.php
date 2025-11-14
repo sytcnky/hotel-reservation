@@ -114,6 +114,7 @@ class TourForm
                         Section::make(__('admin.tours.sections.gallery'))->columns(12)->schema([
                             SpatieMediaLibraryFileUpload::make('gallery')
                                 ->hiddenLabel()->collection('gallery')->image()
+                                ->preserveFilenames()
                                 ->multiple()->reorderable()->panelLayout('grid')->columnSpan(12),
                         ]),
 
@@ -145,7 +146,7 @@ class TourForm
 
                         Section::make(__('admin.tours.sections.cover'))->schema([
                             SpatieMediaLibraryFileUpload::make('cover')->hiddenLabel()
-                                ->collection('cover')->image()->maxFiles(1),
+                                ->preserveFilenames()->collection('cover')->image()->maxFiles(1),
                         ]),
 
                         Section::make(__('admin.tours.sections.classification'))->schema([

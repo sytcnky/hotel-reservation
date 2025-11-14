@@ -13,8 +13,11 @@ import { initExcursionDetails } from './pages/excursion-details';
 import { initHelpSearch } from './pages/help';
 import { initPayment } from './pages/payment';
 import { initPhoneInputs } from './ui/phone-input';
+import { initGuestPicker } from './ui/guestpicker.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    initGuestPicker(document);
+
     // === Galeri ===
     initGallery();
 

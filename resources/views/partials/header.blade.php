@@ -58,13 +58,6 @@ $initials = mb_strtoupper($initials);
 
         <div class="vr"></div>
 
-        {{-- Ödeme Yap --}}
-        <a href="{{ localized_route('payment') }}" class="text-dark text-decoration-none">
-            {{ t('nav.payment') }}
-        </a>
-
-        <div class="vr"></div>
-
         {{-- Yardım --}}
         <a href="{{ localized_route('help') }}" class="text-dark text-decoration-none">
             {{ t('nav.help') }}
@@ -102,8 +95,9 @@ $initials = mb_strtoupper($initials);
                 <div class="mb-2">
                     <div class="dropdown-header px-0">{{ t('nav.language') }}</div>
                     <div class="btn-group" role="group">
+
                         @foreach($languages as $code => $lang)
-                        <a href="{{ route('locale.switch', ['locale' => $code]) }}"
+                        <a href="{{ locale_switch_url($code) }}"
                            class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 {{ $locale === $code ? 'active' : '' }}">
                             @if($lang['flag'])
                             <img src="{{ $lang['flag'] }}" alt="{{ strtoupper($code) }}" width="20" height="20">
@@ -111,6 +105,7 @@ $initials = mb_strtoupper($initials);
                             {{ $lang['label'] }}
                         </a>
                         @endforeach
+
                     </div>
                 </div>
 
@@ -306,7 +301,7 @@ $initials = mb_strtoupper($initials);
                     <div class="dropdown-header px-0">Dil Seçimi</div>
                     <div class="btn-group w-100" role="group">
                         @foreach($languages as $code => $lang)
-                        <a href="{{ route('locale.switch', ['locale' => $code]) }}"
+                        <a href="{{ locale_switch_url($code) }}"
                            class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 {{ $locale === $code ? 'active' : '' }}">
                             @if($lang['flag'])
                             <img src="{{ $lang['flag'] }}" alt="{{ strtoupper($code) }}" width="20" height="20">
@@ -317,11 +312,14 @@ $initials = mb_strtoupper($initials);
                     </div>
                 </div>
                 <div>
-                    <div class="dropdown-header px-0">Para Birimi</div>
+                    <div class="dropdown-header px-0">{{ t('nav.currency') }}</div>
                     <div class="btn-group w-100" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm active">₺ TL</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm">€ EUR</button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm">$ USD</button>
+                        @foreach ($currencies as $c)
+                        <a href="{{ route('currency.switch', $c['code']) }}"
+                           class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }}">
+                            {{ $c['symbol'] }} {{ $c['code'] }}
+                        </a>
+                        @endforeach
                     </div>
                 </div>
             </div>

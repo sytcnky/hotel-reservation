@@ -12,9 +12,13 @@ use App\Http\Controllers\TransferController;
 use App\Support\Helpers\CurrencyHelper;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\TourController;
 
-/** Transfer booking (validate only, step-1) */
+/** Transfer booking -> sepete ekleme */
 LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::class, 'bookTransfer']);
+
+/** Excursion (tour) booking -> sepete ekleme */
+LocalizedRoute::post('tour.book', 'excursions/book', [CheckoutController::class, 'bookTour']);
 
 /*
 |--------------------------------------------------------------------------
@@ -22,8 +26,8 @@ LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::clas
 |--------------------------------------------------------------------------
 */
 
-Route::get('/locale/{locale}', function (string $locale) {
-    $active = LocaleHelper::active();
+Route::get('/locale/{locale}', function (Request $request, string $locale) {
+    $active  = LocaleHelper::active();
 
     if (in_array($locale, $active, true)) {
         if (auth()->check()) {
@@ -34,8 +38,15 @@ Route::get('/locale/{locale}', function (string $locale) {
         app()->setLocale($locale);
     }
 
+    $redirect = $request->query('redirect');
+
+    if (is_string($redirect) && $redirect !== '') {
+        return redirect($redirect);
+    }
+
     return back();
 })->name('locale.switch');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -159,25 +170,10 @@ LocalizedRoute::get('villa.villa-detail', 'villa/{slug}', function ($slug) {
 });
 
 /** Excursions */
-LocalizedRoute::get('excursions', 'excursions', function () {
-    $path = public_path('data/excursions/excursions.json');
-    abort_unless(File::exists($path), 404);
-
-    $excursions = json_decode(File::get($path), true);
-    return view('pages.excursion.index', compact('excursions'));
-});
+LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']);
 
 /** Excursion detail */
-LocalizedRoute::get('excursions.detail', 'excursions/{slug}', function ($slug) {
-    $path = public_path('data/excursions/excursions.json');
-    abort_unless(File::exists($path), 404);
-
-    $excursions = json_decode(File::get($path), true);
-    $excursion  = collect($excursions)->firstWhere('slug', $slug);
-    abort_unless($excursion, 404);
-
-    return view('pages.excursion.excursion-detail', compact('excursion'));
-});
+LocalizedRoute::get('excursions.detail', 'excursions/{slug}', [TourController::class, 'show']);
 
 /** Statik sayfalar */
 LocalizedRoute::view('contact', 'contact', 'pages.contact.index');

@@ -1,15 +1,23 @@
+// resources/js/pages/excursion-details.js
+
 import flatpickr from "flatpickr";
 import { Turkish } from "flatpickr/dist/l10n/tr.js";
 import { initGuestPicker } from "../ui/guestpicker.js";
 
 export function initExcursionDetails() {
+    // Bu sayfadaki guestpicker'ları kur
     initGuestPicker(document);
 
-    const dateInput = document.getElementById('excursion-date');
-    const priceOutput = document.getElementById('excursion-price-total');
-    const guestInput = document.getElementById('guestInput');
+    const dateInput   = document.getElementById("excursion-date");
+    const guestInput  = document.getElementById("guestInput");
+    const priceOutput = document.getElementById("excursion-price-total");
+    const totalInput  = document.getElementById("inputTotal");
 
-    // Flatpickr başlat
+    const hiddenAdults   = document.getElementById("inputAdults");
+    const hiddenChildren = document.getElementById("inputChildren");
+    const hiddenInfants  = document.getElementById("inputInfants");
+
+    // Tarih seçici
     if (dateInput) {
         flatpickr(dateInput, {
             locale: Turkish,
@@ -18,71 +26,64 @@ export function initExcursionDetails() {
         });
     }
 
-    // Fiyatı hesapla
+    // Dropdown içindeki input'lardan sayıları oku ve hidden'ları senkronize et
+    function readCounts() {
+        const dropdown = guestInput
+            ? guestInput.closest(".guest-picker-wrapper")?.querySelector(".guest-dropdown")
+            : null;
+
+        const aEl = dropdown?.querySelector('input[data-type="adult"]');
+        const cEl = dropdown?.querySelector('input[data-type="child"]');
+        const iEl = dropdown?.querySelector('input[data-type="infant"]');
+
+        const adults   = parseInt(aEl?.value ?? hiddenAdults?.value ?? "0", 10) || 0;
+        const children = parseInt(cEl?.value ?? hiddenChildren?.value ?? "0", 10) || 0;
+        const infants  = parseInt(iEl?.value ?? hiddenInfants?.value ?? "0", 10) || 0;
+
+        if (hiddenAdults)   hiddenAdults.value   = String(adults);
+        if (hiddenChildren) hiddenChildren.value = String(children);
+        if (hiddenInfants)  hiddenInfants.value  = String(infants);
+
+        return { adults, children, infants };
+    }
+
+    // Toplam fiyatı hesapla
     function calculateTotal() {
         if (!guestInput || !guestInput.dataset.prices) return;
 
-        const prices = JSON.parse(guestInput.dataset.prices);
-        const currency = guestInput.dataset.currency || 'TRY';
+        let prices;
+        try {
+            prices = JSON.parse(guestInput.dataset.prices);
+        } catch {
+            return;
+        }
 
-        const counts = {
-            adult: parseInt(document.getElementById('adultCount')?.value || '0', 10),
-            child: parseInt(document.getElementById('childCount')?.value || '0', 10),
-            infant: parseInt(document.getElementById('infantCount')?.value || '0', 10),
-        };
+        const currency = (guestInput.dataset.currency || "TRY").toUpperCase();
+        const cfg = prices && prices[currency] ? prices[currency] : null;
+        if (!cfg) return;
+
+        const { adults, children, infants } = readCounts();
 
         let total = 0;
-        for (const type in counts) {
-            const count = counts[type];
-            const price = prices?.[type]?.[currency];
-
-            if (typeof price === 'undefined') continue;
-
-            total += count * price;
-        }
+        total += adults   * Number(cfg.adult  ?? 0);
+        total += children * Number(cfg.child  ?? 0);
+        total += infants  * Number(cfg.infant ?? 0);
 
         if (priceOutput) {
-            priceOutput.textContent = `${total.toLocaleString('tr-TR')}₺`;
+            priceOutput.textContent =
+                total > 0
+                    ? `${total.toLocaleString("tr-TR")} ${currency}`
+                    : "—";
+        }
+
+        if (totalInput) {
+            totalInput.value = String(total);
         }
     }
 
+    // guestpicker.js, kişi sayısı değişince bu event'i dispatch ediyor
+    document.addEventListener("guestCountChanged", calculateTotal);
 
-    // Artırma/azaltma butonları
-    window.increase = function (type) {
-        const input = document.getElementById(`${type}Count`);
-        const hidden = document.getElementById(`input${capitalize(type)}`);
-        if (!input || !hidden) return;
-
-        let val = parseInt(input.value || '0', 10);
-        if (val < 10) {
-            input.value = val + 1;
-            hidden.value = val + 1;
-            calculateTotal();
-        }
-    };
-
-    window.decrease = function (type) {
-        const input = document.getElementById(`${type}Count`);
-        const hidden = document.getElementById(`input${capitalize(type)}`);
-        if (!input || !hidden) return;
-
-        let val = parseInt(input.value || '0', 10);
-        const min = (type === 'adult') ? 1 : 0;
-        if (val > min) {
-            input.value = val - 1;
-            hidden.value = val - 1;
-            calculateTotal();
-        }
-    };
-
-    // Sayfa açıldığında toplam fiyatı göster
+    // Sayfa açılışında başlangıç değerini göster
     calculateTotal();
-
-    // guestpicker.js bir değişiklik yayarsa (örn. dropdown kapatıldığında)
-    document.addEventListener('guestCountChanged', calculateTotal);
-
-    // Yardımcı
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
 }
