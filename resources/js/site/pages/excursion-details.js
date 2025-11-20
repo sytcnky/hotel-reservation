@@ -2,12 +2,8 @@
 
 import flatpickr from "flatpickr";
 import { Turkish } from "flatpickr/dist/l10n/tr.js";
-import { initGuestPicker } from "../ui/guestpicker.js";
 
 export function initExcursionDetails() {
-    // Bu sayfadaki guestpicker'ları kur
-    initGuestPicker(document);
-
     const dateInput   = document.getElementById("excursion-date");
     const guestInput  = document.getElementById("guestInput");
     const priceOutput = document.getElementById("excursion-price-total");

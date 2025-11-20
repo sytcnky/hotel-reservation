@@ -1,3 +1,5 @@
+// resources/js/site.js
+
 import '../../css/site.scss'
 import '@flaticon/flaticon-uicons/css/all/all.css'
 import * as bootstrap from 'bootstrap'
@@ -16,6 +18,7 @@ import { initPhoneInputs } from './ui/phone-input';
 import { initGuestPicker } from './ui/guestpicker.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // === Guest Picker: tüm sayfa için tek yerden init ===
     initGuestPicker(document);
 
     // === Galeri ===
@@ -70,51 +73,4 @@ document.addEventListener('DOMContentLoaded', () => {
     tooltipTriggerList.forEach(el => {
         new bootstrap.Tooltip(el)
     });
-
-    // === Misafir artır/azalt (GLOBAL) ===
-    function increase(type) {
-        const input = document.getElementById(type + 'Count');
-        let val = parseInt(input.value);
-        if (val < 10) {
-            input.value = val + 1;
-            document.getElementById('input' + capitalize(type)).value = val + 1;
-            updateGuestSummary();
-        }
-    }
-
-    function decrease(type) {
-        const input = document.getElementById(type + 'Count');
-        let val = parseInt(input.value);
-        if (type === 'adult' && val > 1) {
-            input.value = val - 1;
-            document.getElementById('input' + capitalize(type)).value = val - 1;
-            updateGuestSummary();
-        }
-        if (type === 'child' && val > 0) {
-            input.value = val - 1;
-            document.getElementById('input' + capitalize(type)).value = val - 1;
-            updateGuestSummary();
-        }
-    }
-
-    function capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    function updateGuestSummary() {
-        const adult = parseInt(document.getElementById('adultCount')?.value || 0);
-        const child = parseInt(document.getElementById('childCount')?.value || 0);
-
-        let summary = `${adult} Yetişkin`;
-        if (child > 0) {
-            summary += `, ${child} Çocuk`;
-        }
-
-        const guestSummaryEl = document.getElementById('guestSummary');
-        if (guestSummaryEl) guestSummaryEl.textContent = summary;
-    }
-
-    // === Global erişim ===
-    window.increase = increase;
-    window.decrease = decrease;
 });

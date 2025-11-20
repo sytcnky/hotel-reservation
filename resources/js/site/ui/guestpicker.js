@@ -1,3 +1,5 @@
+// resources/js/ui/guestpicker.js
+
 export function initGuestPicker(container = document) {
     const pickers = container.querySelectorAll('.guest-picker-wrapper');
     if (!pickers.length) return;
@@ -22,6 +24,7 @@ export function initGuestPicker(container = document) {
         };
 
         function updateDisplay() {
+            // Görünür text
             const parts = [];
             if (counts.adult > 0) parts.push(`${counts.adult} Yetişkin`);
             if (counts.child > 0) parts.push(`${counts.child} Çocuk`);
@@ -29,24 +32,58 @@ export function initGuestPicker(container = document) {
 
             input.value = parts.length > 0 ? parts.join(', ') : 'Kişi sayısı seçin';
 
-            const adultInput = dropdown.querySelector('input[data-type="adult"]');
-            const childInput = dropdown.querySelector('input[data-type="child"]');
+            // Dropdown içindeki sayısal input'ları güncelle
+            const adultInput  = dropdown.querySelector('input[data-type="adult"]');
+            const childInput  = dropdown.querySelector('input[data-type="child"]');
             const infantInput = dropdown.querySelector('input[data-type="infant"]');
 
-            if (adultInput) adultInput.value = counts.adult;
-            if (childInput) childInput.value = counts.child;
+            if (adultInput)  adultInput.value  = counts.adult;
+            if (childInput)  childInput.value  = counts.child;
             if (infantInput) infantInput.value = counts.infant;
 
+            // Aynı picker içinde HIDDEN alanları (name="adults|children|infants") güncelle
+            const nameMap = {
+                adult: 'adults',
+                child: 'children',
+                infant: 'infants',
+            };
+
+            Object.entries(nameMap).forEach(([type, name]) => {
+                const hiddenInputs = picker.querySelectorAll(`input[type="hidden"][name="${name}"]`);
+                hiddenInputs.forEach((el) => {
+                    el.value = String(counts[type]);
+                });
+            });
+
+            // Sayfa genelinde kullanılan bazı hidden ID'ler:
+            // - Excursion: #inputAdults, #inputChildren, #inputInfants
+            // - Hotel:    #adultsInput, #childrenInput
+            const idMap = {
+                adult: ['inputAdults', 'adultsInput'],
+                child: ['inputChildren', 'childrenInput'],
+                infant: ['inputInfants', 'infantsInput'],
+            };
+
+            Object.entries(idMap).forEach(([type, ids]) => {
+                ids.forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = String(counts[type]);
+                });
+            });
+
+            // Toplam misafir sayısını global event ile yayınla
             const totalGuests = counts.adult + counts.child + counts.infant;
             const event = new CustomEvent('guestCountChanged', { detail: { total: totalGuests } });
             document.dispatchEvent(event);
         }
 
+        // Input'a tıklayınca aç/kapat
         input.addEventListener('click', (e) => {
             e.stopPropagation();
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         });
 
+        // Artı / eksi butonları
         dropdown.addEventListener('click', (e) => {
             const btn = e.target;
             if (!btn.classList.contains('plus') && !btn.classList.contains('minus')) return;
@@ -64,6 +101,7 @@ export function initGuestPicker(container = document) {
             updateDisplay();
         });
 
+        // Picker dışına tıklayınca dropdown kapanır
         document.addEventListener('click', (e) => {
             if (!picker.contains(e.target)) {
                 dropdown.style.display = 'none';

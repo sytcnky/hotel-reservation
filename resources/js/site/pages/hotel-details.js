@@ -1,8 +1,7 @@
-import { initGuestPicker } from '../ui/guestpicker.js';
+// resources/js/pages/hotel-details.js
 
 export function initHotelDetails() {
     initRoomToggles();
-    initGuestPicker(document);
 }
 
 function initRoomToggles() {
