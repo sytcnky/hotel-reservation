@@ -177,4 +177,120 @@ class RoomRateResolver
 
         return [null, null];
     }
+
+
+    /**
+     * Bir konaklamayı (check-in / check-out + kişi sayıları) özetler.
+     *
+     * Dönen yapı:
+     *  - ok: bool
+     *  - state: 'no_rate' | 'closed' | 'ok_room' | 'ok_person'
+     *  - price_mode: 'room' | 'person' | null
+     *  - nights: int
+     *  - total: float               // toplam konaklama tutarı
+     *  - per_night_total: float     // gecelik ortalama toplam
+     *  - unit_amount: float|null    // kuraldaki baz fiyat (gece / kişi)
+     *  - currency_id: int|null
+     *  - board_type_id: int|null
+     *  - meta: []
+     */
+    public function summarizeStay(
+        Room $room,
+        string $dateStart,
+        string $dateEnd,
+        int $currencyId,
+        ?int $boardTypeId,
+        int $adults,
+        int $children = 0
+    ): array {
+        // Günlük detayları al
+        $days = $this->resolveRange(
+            $room,
+            $dateStart,
+            $dateEnd,
+            $currencyId,
+            $boardTypeId,
+            $adults,
+            $children
+        );
+
+        if ($days->isEmpty()) {
+            return [
+                'ok'            => false,
+                'state'         => 'no_rate',
+                'reason'        => 'empty_range',
+                'price_mode'    => null,
+                'nights'        => 0,
+                'total'         => 0.0,
+                'per_night_total' => 0.0,
+                'unit_amount'   => null,
+                'currency_id'   => null,
+                'board_type_id' => $boardTypeId,
+                'meta'          => [],
+            ];
+        }
+
+        // Herhangi bir gün kapalı mı?
+        if ($days->contains(fn (array $d) => ($d['closed'] ?? false) === true)) {
+            return [
+                'ok'            => false,
+                'state'         => 'closed',
+                'reason'        => 'closed',
+                'price_mode'    => null,
+                'nights'        => $days->count(),
+                'total'         => 0.0,
+                'per_night_total' => 0.0,
+                'unit_amount'   => null,
+                'currency_id'   => null,
+                'board_type_id' => $boardTypeId,
+                'meta'          => [],
+            ];
+        }
+
+        // Herhangi bir gün için kural bulunamamış mı?
+        if ($days->contains(fn (array $d) => ($d['ok'] ?? false) === false)) {
+            $firstError = $days->first(fn (array $d) => ($d['ok'] ?? false) === false);
+
+            return [
+                'ok'            => false,
+                'state'         => 'no_rate',
+                'reason'        => $firstError['reason'] ?? 'rule_not_found',
+                'price_mode'    => null,
+                'nights'        => $days->count(),
+                'total'         => 0.0,
+                'per_night_total' => 0.0,
+                'unit_amount'   => null,
+                'currency_id'   => null,
+                'board_type_id' => $boardTypeId,
+                'meta'          => [],
+            ];
+        }
+
+        // Buraya geldiysek tüm günler için fiyat var
+        $nights   = $days->count();
+        $total    = $days->sum('total');
+        $first    = $days->first();
+        $mode     = $first['price_mode'] ?? null;
+        $currency = $first['currency_id'] ?? $currencyId;
+        $board    = $first['board_type_id'] ?? $boardTypeId;
+
+        return [
+            'ok'             => true,
+            'state'          => $mode === 'room' ? 'ok_room' : 'ok_person',
+            'price_mode'     => $mode,
+            'nights'         => $nights,
+            'total'          => $total,
+            'per_night_total'=> $nights > 0 ? $total / $nights : 0.0,
+            'unit_amount'    => $first['unit_amount'] ?? null,
+            'currency_id'    => $currency,
+            'board_type_id'  => $board,
+            'meta'           => [
+                'adults'   => $adults,
+                'children' => $children,
+                // İstersen ileride günlük bazda detayları da ekleyebiliriz
+                // 'days'  => $days->all(),
+            ],
+        ];
+    }
+
 }

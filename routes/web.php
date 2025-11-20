@@ -4,15 +4,20 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use App\Support\UIconRegistry;
-use App\Http\Controllers\Account\PasswordController;
-use App\Http\Controllers\Account\SettingsController;
 use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
 use App\Http\Controllers\TransferController;
 use App\Support\Helpers\CurrencyHelper;
+
+use App\Http\Controllers\Account\PasswordController;
+use App\Http\Controllers\Account\SettingsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\TourController;
+use App\Http\Controllers\HotelController;
+
+/** Excursion (tour) booking -> sepete ekleme */
+LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
 
 /** Transfer booking -> sepete ekleme */
 LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::class, 'bookTransfer']);
@@ -114,36 +119,10 @@ Route::get('/', function () {
 LocalizedRoute::view('home', '', 'pages.home');
 
 /** Hotels list */
-LocalizedRoute::get('hotels', 'hotels', function () {
-    $path = public_path('data/hotels.json');
-    abort_unless(File::exists($path), 404);
-
-    $hotels = collect(json_decode(File::get($path)));
-
-    if (request()->filled('stars')) {
-        $stars = (array) request()->input('stars');
-        $hotels = $hotels->filter(fn($hotel) => in_array($hotel->stars, $stars));
-    }
-
-    if (request()->filled('category')) {
-        $category = request()->input('category');
-        $hotels = $hotels->filter(fn($hotel) => $hotel->category === $category);
-    }
-
-    return view('pages.hotel.index', compact('hotels'));
-});
+LocalizedRoute::get('hotels', 'oteller', [HotelController::class, 'index']);
 
 /** Hotel detail */
-LocalizedRoute::get('hotel.detail', 'hotel/{id}', function ($id) {
-    $path = public_path('data/hotels.json');
-    abort_unless(File::exists($path), 404);
-
-    $hotels = json_decode(File::get($path), true);
-    $hotel  = collect($hotels)->firstWhere('id', (int) $id);
-    abort_unless($hotel, 404);
-
-    return view('pages.hotel.hotel-detail', compact('hotel'));
-});
+LocalizedRoute::get('hotel.detail', 'hotel/{slug}', [HotelController::class, 'show']);
 
 /** Transfers */
 LocalizedRoute::get('transfers', 'transfers', [TransferController::class, 'index']);

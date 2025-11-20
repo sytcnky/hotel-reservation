@@ -2,39 +2,37 @@
 
 namespace App\Support\Helpers;
 
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-
 class MediaConversions
 {
     public static function apply($model, string $collectionName = null): void
     {
         $c = $collectionName;
 
-        // Thumbnail
+        // Mini thumbnail
         $model->addMediaConversion('thumb')
+            ->width(150)
+            ->format('webp')
+            ->performOnCollections($c);
+
+        // Mini thumbnail retina
+        $model->addMediaConversion('thumb2x')
             ->width(300)
             ->format('webp')
             ->performOnCollections($c);
 
-        // Thumbnail retina
-        $model->addMediaConversion('thumb2x')
-            ->width(600)
-            ->format('webp')
-            ->performOnCollections($c);
-
-        // Small (mobil slot)
+        // Small
         $model->addMediaConversion('small')
-            ->width(450)
+            ->width(320)
             ->format('webp')
             ->performOnCollections($c);
 
         // Small retina
         $model->addMediaConversion('small2x')
-            ->width(900)
+            ->width(640)
             ->format('webp')
             ->performOnCollections($c);
 
-        // Large (desktop slot)
+        // Large
         $model->addMediaConversion('large')
             ->width(900)
             ->format('webp')

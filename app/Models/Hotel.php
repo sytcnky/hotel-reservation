@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Support\Helpers\MediaConversions;
 
 class Hotel extends Model implements HasMedia
 {
@@ -39,7 +41,8 @@ class Hotel extends Model implements HasMedia
         'notes',
         'cancellation_policy_id',
         'child_discount_active',
-        'child_discount_percent'
+        'child_discount_percent',
+        'promo_video_id'
     ];
 
     protected $casts = [
@@ -54,7 +57,7 @@ class Hotel extends Model implements HasMedia
         'nearby' => 'array',
         'child_discount_active' => 'boolean',
         'child_discount_percent' => 'float',
-
+        'promo_video_id' => 'string'
     ];
 
     /**
@@ -71,18 +74,42 @@ class Hotel extends Model implements HasMedia
 
     private static function max(string $string) {}
 
+    // app/Models/Hotel.php
+
     public function getNameLAttribute(): ?string
     {
-        $v = $this->name;
-        $loc = app()->getLocale();
-        $base = config('app.locale', 'tr');
+        // Typed property'e dokunmadan, ham attribute'u al
+        $raw = $this->getAttribute('name');
 
-        if (is_array($v)) {
-            return $v[$loc] ?? ($v[$base] ?? (array_values($v)[0] ?? null));
+        if ($raw === null) {
+            return null;
         }
 
-        return is_string($v) ? $v : null;
+        // JSON string geldiyse decode etmeyi dene
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                // Tek dilli düz string kayıt ise aynen döndür
+                return $raw;
+            }
+        }
+
+        // Hâlâ array değilse (ör. cast edilmemişse) stringe çevir
+        if (! is_array($raw)) {
+            return (string) $raw;
+        }
+
+        $loc  = app()->getLocale();
+        $base = config('app.locale', 'tr');
+
+        // Önce aktif dil, sonra base, sonra ilk eleman
+        return $raw[$loc] ?? $raw[$base] ?? reset($raw) ?: null;
     }
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -164,9 +191,54 @@ class Hotel extends Model implements HasMedia
     */
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('cover')->singleFile();
-        $this->addMediaCollection('gallery')->useFallbackUrl('/images/default.jpg');
+        // Kapak (tek dosya)
+        $this
+            ->addMediaCollection('cover')
+            ->singleFile()
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
+
+        // Galeri (çoklu)
+        $this
+            ->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
     }
+
+    public function registerMediaConversions(Media $media = null): void
+    {
+        // Standart ICR dönüşümleri
+        MediaConversions::apply($this, 'cover');
+        MediaConversions::apply($this, 'gallery');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors (image helpers)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getCoverImageAttribute(): array
+    {
+        $media = $this->getFirstMedia('cover');
+        return \App\Support\Helpers\ImageHelper::normalize($media);
+    }
+
+    public function getGalleryImagesAttribute(): array
+    {
+        return $this->getMedia('gallery')
+            ->map(fn($m) => \App\Support\Helpers\ImageHelper::normalize($m))
+            ->toArray();
+    }
+
 
     /*
     |--------------------------------------------------------------------------

@@ -178,6 +178,8 @@ return [
                 'sale_percent' => 'İndirim (%)',
                 'child_sale_helper' => 'Bu indirim sadece kişi başı fiyat kuralları için geçerli olur.'
             ],
+            'promo_video_id' => 'Youtube Video ID',
+            'promo_video_id_placeholder' => '5NV6Rdv1a3I'
         ],
         'sections' => [
             'media' => 'Medya',

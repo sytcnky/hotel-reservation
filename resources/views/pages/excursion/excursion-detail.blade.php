@@ -8,14 +8,11 @@
     <div class="row">
         <div class="col">
             <h1 class="mb-1">{{ $tour['name'] }}</h1>
-
             <div class="mb-1">
                 @if (!empty($tour['category_name']))
                 <span class="badge bg-primary">{{ $tour['category_name'] }}</span>
                 @endif
             </div>
-
-            {{-- Konum bilgisini şu an modelde tutmuyoruz; istersen ekleriz --}}
         </div>
     </div>
 
@@ -23,28 +20,38 @@
         <div class="col-xl-8">
             {{-- Galeri --}}
             <div class="gallery">
+                @php
+                $galleryImages = $tour['gallery'] ?? [];
+
+                if (empty($galleryImages)) {
+                $galleryImages = [
+                \App\Support\Helpers\ImageHelper::normalize(null),
+                ];
+                }
+                @endphp
                 <div class="main-gallery position-relative mb-3 bg-black d-flex align-items-center justify-content-center rounded-3"
                      style="height: 420px;">
-                    @foreach ($tour['gallery'] as $index => $img)
-                    <img src="{{ $img['large'] }}"
-                         srcset="{{ $img['large'] }} 1x, {{ $img['large2x'] }} 2x"
-                         class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index === 0 ? '' : 'd-none' }}"
-                         style="object-fit: contain;"
-                         data-index="{{ $index }}"
-                         alt="{{ $img['alt'] }}">
+                    @foreach ($galleryImages as $index => $img)
+                    <x-responsive-image
+                        :image="$img"
+                        preset="gallery"
+                        class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index === 0 ? '' : 'd-none' }}"
+                        style="object-fit: contain;"
+                        :data-index="$index"
+                    />
                     @endforeach
                 </div>
 
                 <div class="d-flex overflow-auto gap-2 pb-2 thumbnail-scroll" data-gallery-thumbs>
-                    @foreach ($tour['gallery'] as $index => $img)
+                    @foreach ($galleryImages as $index => $img)
                     <div class="flex-shrink-0 overflow-hidden bg-black rounded"
-                         style="width: 92px; height: 92px; cursor: pointer;"
-                         data-gallery-thumb>
-                        <img src="{{ $img['small'] }}"
-                             srcset="{{ $img['small'] }} 1x, {{ $img['small2x'] }} 2x"
-                             class="w-100 h-100"
-                             style="object-fit: cover; object-position: center;"
-                             alt="{{ $img['alt'] }}">
+                         style="width: 92px; height: 92px; cursor: pointer;" data-gallery-thumb>
+                        <x-responsive-image
+                            :image="$img"
+                            preset="gallery-thumb"
+                            class="w-100 h-100"
+                            style="object-fit: cover; object-position: center;"
+                        />
                     </div>
                     @endforeach
                 </div>

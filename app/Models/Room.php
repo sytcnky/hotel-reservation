@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Services\RoomRateResolver;
+use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Room extends Model implements HasMedia
 {
@@ -95,16 +97,41 @@ class Room extends Model implements HasMedia
             ->withTimestamps();
     }
 
-    // --- Media Collections ---
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('gallery')
-            ->useFallbackUrl('/images/default.jpg');
-    }
-
     // --- Fiyatlar ---
     public function rateRules()
     {
         return $this->hasMany(RoomRateRule::class);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        // Galeri (çoklu)
+        $this
+            ->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
+    }
+
+    public function registerMediaConversions(Media $media = null): void
+    {
+        // Standart ICR dönüşümleri
+        MediaConversions::apply($this, 'gallery');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors (image helpers)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getGalleryImagesAttribute(): array
+    {
+        return $this->getMedia('gallery')
+            ->map(fn($m) => \App\Support\Helpers\ImageHelper::normalize($m))
+            ->toArray();
     }
 }

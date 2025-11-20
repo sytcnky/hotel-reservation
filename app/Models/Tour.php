@@ -84,4 +84,25 @@ class Tour extends Model implements HasMedia
         MediaConversions::apply($this, 'cover');
         MediaConversions::apply($this, 'gallery');
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors (image helpers)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getCoverImageAttribute(): array
+    {
+        $media = $this->getFirstMedia('cover');
+
+        return \App\Support\Helpers\ImageHelper::normalize($media);
+    }
+
+    public function getGalleryImagesAttribute(): array
+    {
+        return $this->getMedia('gallery')
+            ->map(fn (Media $media) => \App\Support\Helpers\ImageHelper::normalize($media))
+            ->toArray();
+    }
+
 }

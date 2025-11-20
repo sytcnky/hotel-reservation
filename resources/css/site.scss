@@ -12,6 +12,7 @@ $tooltip-color: $primary;
 $breadcrumb-divider: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><path d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='#{$secondary}'/></svg>");
 $breadcrumb-active-color: $primary;
 $enable-negative-margins: true;
+$modal-backdrop-opacity: .9;
 
 @import "flatpickr/dist/themes/airbnb.css";
 @import "intl-tel-input/build/css/intlTelInput.css";
@@ -100,6 +101,7 @@ a:focus,
 
 .main-gallery {
     cursor: pointer;
+    overflow: hidden;
 }
 
 .active-thumb {
@@ -210,6 +212,12 @@ a:focus,
 
 .room-card.expanded .room-details {
     max-height: 1000px;
+}
+
+@media (min-width: 1200px) {
+    .room-thumb {
+        max-width: 150px;
+    }
 }
 
 @media (min-width: 768px) {

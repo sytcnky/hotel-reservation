@@ -51,80 +51,138 @@
     <div class="row">
         <!-- Filter Sidebar -->
         <div class="col-xl-3" id="filterCol">
-            @include('pages.hotel.hotel-filter')
+
         </div>
 
         <!-- Hotel Listing -->
         <div class="col-xl-9" id="listingCol">
             <div class="row g-3 hotel-list-container list-view" id="hotelList">
                 @foreach ($hotels as $hotel)
+                @php
+                $locale = app()->getLocale();
+
+                // Slug (jsonb ise aktive dile göre çek)
+                $slugSource = $hotel->slug ?? null;
+                if (is_array($slugSource)) {
+                $slug = $slugSource[$locale] ?? reset($slugSource);
+                } else {
+                $slug = $slugSource;
+                }
+
+                // Cover görsel (thumb + thumb2x)
+                $cover = $hotel->getFirstMedia('cover');
+                if ($cover) {
+                $coverThumb  = $cover->getUrl('thumb');
+                $coverThumb2 = $cover->getUrl('thumb2x');
+                } else {
+                $coverThumb  = asset('/images/default.jpg');
+                $coverThumb2 = $coverThumb;
+                }
+
+                $hotelName = $hotel->name_l ?? $hotel->name ?? 'Otel';
+
+                // Yıldız (starRating ilişkisinden)
+                $stars = (int) ($hotel->starRating?->rating_value ?? 0);
+
+                // Lokasyon: area -> city -> region hiyerarşisi
+                $area   = $hotel->location;
+                $city   = $area?->parent?->name;
+                $region = $area?->parent?->parent?->name;
+                $locationLabel = collect([$city, $region])
+                ->filter()
+                ->implode(', ');
+
+                // Özellik rozetleri (featureGroups üzerinden, varsa)
+                $featureGroups = $hotel->featureGroups ?? collect();
+                $allFeatures   = $featureGroups instanceof \Illuminate\Support\Collection
+                ? $featureGroups->flatMap(fn($fg) => $fg->facilities->pluck('name_l'))
+                : collect();
+
+                $totalFeatures   = $allFeatures->count();
+                $visibleFeatures = 5;
+                @endphp
+
                 <div class="col-12">
-                    <div class="card shadow-sm">
+                    <div class="card shadow-sm h-100">
                         <div class="card-body">
                             <div class="row align-items-end">
+                                {{-- Sol: Görsel --}}
                                 <div class="col-lg-3 mb-3 mb-lg-0">
-                                    <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}" class="">
-                                        <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}"
-                                             class="img-fluid rounded" alt="otel görseli">
+                                    <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}">
+                                        <x-responsive-image
+                                            :image="$hotel->cover_image"
+                                            preset="listing-card"
+                                            class="rounded object-fit-cover w-100"
+                                        />
                                     </a>
                                 </div>
+
+                                {{-- Orta: Başlık, yıldız, konum, özellikler --}}
                                 <div class="col-lg-6 mb-3 mb-lg-0">
-                                    <h4 class="card-title mb-0">{{ $hotel->name }}</h4>
+                                    <h4 class="card-title mb-1">
+                                        <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}"
+                                           class="text-decoration-none text-dark">
+                                            {{ $hotelName }}
+                                        </a>
+                                    </h4>
+
                                     <div class="mb-1 d-flex align-items-center">
-                                        @for ($i = 0; $i < $hotel->stars; $i++)
+                                        @for ($i = 0; $i < $stars; $i++)
                                         <i class="fi fi-ss-star text-warning"></i>
                                         @endfor
-                                        @for ($i = $hotel->stars; $i < 5; $i++)
+                                        @for ($i = $stars; $i < 5; $i++)
                                         <i class="fi fi-rs-star text-warning"></i>
                                         @endfor
-
-                                        <span class="ms-1 text-secondary">{{ $hotel->board_type }}</span>
                                     </div>
-                                    <span class="card-text text-muted mb-0">{{ $hotel->location->city }}, {{ $hotel->location->region }}</span>
-                                    <div class="mt-2">
-                                        @php
-                                        $allFeatures = collect($hotel->features ?? [])
-                                        ->pluck('items')
-                                        ->flatten();
 
-                                        $total = $allFeatures->count();
-                                        $visible = 5;
-                                        @endphp
-
-                                        <div class="d-flex flex-wrap gap-1 mt-2">
-                                            @foreach ($allFeatures->take($visible) as $feature)
-                                            <span
-                                                class="badge bg-transparent text-secondary border">{{ $feature }}</span>
-                                            @endforeach
-
-                                            @if ($total > $visible)
-                                            <span class="badge bg-transparent    text-secondary border">+{{ $total - $visible }} daha</span>
-                                            @endif
-                                        </div>
-
+                                    @if ($locationLabel)
+                                    <div class="text-muted small">
+                                        <i class="fi fi-rr-marker"></i>
+                                        {{ $locationLabel }}
                                     </div>
+                                    @endif
+
+                                    @if ($totalFeatures > 0)
+                                    <div class="d-flex flex-wrap gap-1 mt-2">
+                                        @foreach ($allFeatures->take($visibleFeatures) as $feature)
+                                        <span class="badge bg-transparent text-secondary border">
+                                            {{ $feature }}
+                                        </span>
+                                        @endforeach
+
+                                        @if ($totalFeatures > $visibleFeatures)
+                                        <span class="badge bg-transparent text-secondary border">
+                                            +{{ $totalFeatures - $visibleFeatures }} daha
+                                        </span>
+                                        @endif
+                                    </div>
+                                    @endif
                                 </div>
 
+                                {{-- Sağ: Fiyat placeholder + buton --}}
                                 <div class="col-lg-3 text-lg-end">
-                                    <div class="d-flex flex-column">
-                                        <div class="text-danger small">
-                                            <i class="fi fi-rs-user align-middle"></i> yeni üyelere 15% indirim!</span>
+                                    <div class="d-flex flex-column align-items-lg-end">
+                                        <div class="text-danger small mb-1">
+                                            <i class="fi fi-rs-user align-middle"></i>
+                                            yeni üyelere %15 indirim!
                                         </div>
-                                        <div>
-                                            @if ($firstRoom = $hotel->rooms[0] ?? null)
-                                            <p><strong>{{ number_format($firstRoom->price_per_night) }}₺</strong>'den
-                                                başyan fiyatlar</p>
-                                            @endif
+
+                                        <div class="mb-2">
+                                            <span class="text-muted small d-block">Başlayan fiyatlar</span>
+                                            {{-- İleride from_price bağlanacak --}}
                                         </div>
-                                        <div class="d-grid mt-1">
-                                            <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}"
-                                               class="btn btn-outline-primary mt-2">Oteli İncele</a>
+
+                                        <div class="d-grid mt-1 w-100">
+                                            <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}"
+                                               class="btn btn-outline-primary mt-2">
+                                                Oteli İncele
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
+                            </div> {{-- .row --}}
+                        </div> {{-- .card-body --}}
+                    </div> {{-- .card --}}
                 </div>
                 @endforeach
             </div>

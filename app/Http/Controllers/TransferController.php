@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use App\Support\Helpers\ImageHelper;
 
 class TransferController extends Controller
 {
@@ -64,28 +65,25 @@ class TransferController extends Controller
                     );
 
                     if ($pricing) {
-                        // --- Araç galerisini de ekle ---
+                        // --- Araç galerisini normalize et ---
                         $mediaItems = $vehicle->getMedia('gallery');
 
-                        $vehicleGallery = $mediaItems->map(function ($media) {
-                            return [
-                                'large'    => $media->getUrl('large'),
-                                'large2x'  => $media->getUrl('large2x'),
-                                'thumb'    => $media->getUrl('thumb'),
-                                'thumb2x'  => $media->getUrl('thumb2x'),
-                                'small'    => $media->getUrl('small'),
-                                'small2x'  => $media->getUrl('small2x'),
-                                'alt'       => $media->name,
-                            ];
-                        })->toArray();
+                        $vehicleGallery = $mediaItems
+                            ->map(fn ($media) => ImageHelper::normalize($media))
+                            ->values()
+                            ->all();
 
-                        // Sepet için kullanılacak tek bir görsel (ilk eleman)
-                        $vehicleImage = null;
-                        if (!empty($vehicleGallery)) {
-                            $vehicleImage = $vehicleGallery[0]['thumb'] ?? $vehicleGallery[0]['desktop'];
+                        // Galeri boşsa placeholder
+                        if (empty($vehicleGallery)) {
+                            $placeholder    = ImageHelper::normalize(null);
+                            $vehicleGallery = [$placeholder];
                         }
 
+                        // Sepet için tek görsel (ilk eleman, thumb)
+                        $vehicleImage = $vehicleGallery[0]['thumb'] ?? null;
+
                         $transferOffer = [
+                            // ...
                             'route_id'               => $route->id,
                             'from_location_id'       => $fromId,
                             'to_location_id'         => $toId,
@@ -102,12 +100,11 @@ class TransferController extends Controller
                             'price_total'            => $pricing['total'],
                             'currency'               => $pricing['currency'],
 
-                            // Yeni alanlar
                             'vehicle_gallery'        => $vehicleGallery,
                             'vehicle_image'          => $vehicleImage,
                         ];
-
                     }
+
                 }
             }
         }

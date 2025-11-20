@@ -64,7 +64,7 @@ class HotelForm
                                             return Tab::make(strtoupper($loc))->schema([
                                                 TextInput::make("name.$loc")
                                                     ->label(__('admin.hotels.form.name'))
-                                                    ->required($loc === $base)
+                                                    ->required()
                                                     ->live(debounce: 350)
                                                     ->afterStateUpdated(function (?string $state, callable $set) use ($loc) {
                                                         if (! filled($state)) {
@@ -78,7 +78,7 @@ class HotelForm
                                                     ->schema([
                                                         TextInput::make($loc)
                                                             ->label(__('admin.hotels.form.slug'))
-                                                            ->required($loc === $base),
+                                                            ->required()
                                                     ]),
 
                                                 Textarea::make("description.$loc")
@@ -217,15 +217,21 @@ class HotelForm
                                             TextInput::make('email')->label(__('admin.hotels.form.email'))->email(),
                                         ]),
 
-                                    // Galeri en alta taşındı
+                                    // Galeri
                                     Section::make(__('admin.hotels.sections.gallery'))
-                                        ->columns(12)
+                                        ->columns(1)
                                         ->schema([
+                                            TextInput::make('promo_video_id')
+                                                ->label(__('admin.hotels.form.promo_video_id'))
+                                                ->maxLength(64)
+                                                ->placeholder(__('admin.hotels.form.promo_video_id_placeholder')),
+
                                             SpatieMediaLibraryFileUpload::make('gallery')
                                                 ->hiddenLabel()
                                                 ->collection('gallery')
                                                 ->image()
                                                 ->multiple()
+                                                ->preserveFilenames()
                                                 ->reorderable()
                                                 ->panelLayout('grid')
                                                 ->columnSpan(12),
@@ -252,6 +258,7 @@ class HotelForm
                                             SpatieMediaLibraryFileUpload::make('cover')
                                                 ->hiddenLabel()
                                                 ->collection('cover')
+                                                ->preserveFilenames()
                                                 ->image()
                                                 ->maxFiles(1),
                                         ]),

@@ -247,6 +247,11 @@
     $toLabel   = collect($locations)->firstWhere('id', $transferOffer['to_location_id'])['label'] ?? '';
 
     $gallery = $transferOffer['vehicle_gallery'] ?? [];
+    if (empty($gallery)) {
+    $placeholder = \App\Support\Helpers\ImageHelper::normalize(null);
+    $placeholder['alt'] = $transferOffer['vehicle_name'] ?? 'Araç görseli';
+    $gallery = [$placeholder];
+    }
     @endphp
 
     <div class="bg-white p-4 rounded shadow-sm mb-4 mt-3">

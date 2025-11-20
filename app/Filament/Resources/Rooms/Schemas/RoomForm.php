@@ -408,6 +408,7 @@ class RoomForm
                                     ->collection('gallery')
                                     ->image()
                                     ->multiple()
+                                    ->preserveFilenames()
                                     ->panelLayout('grid')
                                     ->columnSpan(12),
                             ]),

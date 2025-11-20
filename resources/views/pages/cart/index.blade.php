@@ -115,20 +115,25 @@
 
             @if (!empty($cartItems))
             @foreach ($cartItems as $key => $ci)
+
             @php
             $type = $ci['product_type'] ?? 'unknown';
             @endphp
 
             @if ($type === 'transfer')
-            {{-- TRANSFER --}}
             @include('pages.cart.item-transfer', [
             'key' => $key,
             'ci'  => $ci,
             ])
 
             @elseif ($type === 'tour' || $type === 'excursion')
-            {{-- GÜNLÜK TUR --}}
             @include('pages.cart.item-tour', [
+            'key' => $key,
+            'ci'  => $ci,
+            ])
+
+            @elseif ($type === 'hotel' || $type === 'hotel_room')
+            @include('pages.cart.item-hotel', [
             'key' => $key,
             'ci'  => $ci,
             ])
@@ -178,32 +183,6 @@
             {{-- <<< DİNAMİK BİTİŞ --}}
 
             {{-- DEMO öğeleri (bir süre kalsın) --}}
-            <div class="card shadow-sm mb-3 position-relative">
-                <button type="button" class="btn btn-sm btn-light text-danger position-absolute top-0 end-0 m-2" title="Sil">
-                    <i class="fi fi-rr-trash"></i>
-                </button>
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-4 col-md-3">
-                            <img src="{{ asset('/images/samples/hotel-1.jpg') }}" class="img-fluid rounded object-fit-cover" alt="Otel görseli">
-                        </div>
-                        <div class="col-8 col-md-6">
-                            <div class="small text-uppercase text-muted mb-1">Otel</div>
-                            <h5 class="mb-1">Grand Icmeler Resort</h5>
-                            <div class="text-muted small">
-                                <div><i class="fi fi-rr-calendar"></i> 20 Aug → 24 Aug (4 Gece)</div>
-                                <div><i class="fi fi-rr-users"></i> 2 Yetişkin, 1 Çocuk</div>
-                                <div><i class="fi fi-rr-bed"></i> Standart Oda</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-3 text-md-end">
-                            <div class="text-muted text-decoration-line-through small">₺14.000</div>
-                            <div class="fw-bold fs-5 text-primary">₺12.450</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card shadow-sm mb-4 position-relative">
                 <button type="button" class="btn btn-sm btn-light text-danger position-absolute top-0 end-0 m-2" title="Sil">
                     <i class="fi fi-rr-trash"></i>

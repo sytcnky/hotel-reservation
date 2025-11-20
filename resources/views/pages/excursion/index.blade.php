@@ -74,10 +74,8 @@
         $currency      = $firstCurrency;
         }
 
-        $cover = $tour['cover'] ?? null;
-        $imgSmall   = $cover['small']   ?? null;
-        $imgSmall2x = $cover['small2x'] ?? null;
-        $imgAlt     = $cover['alt']     ?? '';
+        // Cover normalize (yoksa placeholder)
+        $cover = $tour['cover'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
         @endphp
 
         <div class="col-sm-6 col-lg-4">
@@ -85,14 +83,12 @@
 
                 {{-- Görsel --}}
                 <a href="{{ localized_route('excursions.detail', ['slug' => $tour['slug']]) }}">
-                    @if ($imgSmall)
-                    <img
-                        src="{{ $imgSmall }}"
-                        srcset="{{ $imgSmall }} 1x, {{ $imgSmall2x }} 2x"
+                    <x-responsive-image
+                        :image="$cover"
+                        preset="listing-card"
                         class="card-img-top object-fit-cover"
-                        alt="{{ $imgAlt }}"
-                        style="height: 200px;">
-                    @endif
+                        style="height: 200px;"
+                    />
                 </a>
 
                 {{-- Kategori Badge --}}
