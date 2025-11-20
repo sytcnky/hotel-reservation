@@ -8,6 +8,9 @@ use App\Models\Hotel;
 
 class CheckoutController extends Controller
 {
+    /**
+     * Transfer booking -> sepete ekleme
+     */
     public function bookTransfer(TransferBookingRequest $request)
     {
         // Önce validasyon
@@ -28,18 +31,24 @@ class CheckoutController extends Controller
         // Yeni transfer öğesini ekle
         $cart['items'][] = [
             'product_type' => 'transfer',
-            'amount'       => (float) ($data['price_total'] ?? 0),
-            'currency'     => $data['currency'] ?? 'TRY',
+            // Satılabilir birim: rota
+            'product_id'   => (int) $data['route_id'],
+            'amount'       => (float) $data['price_total'],
+            'currency'     => strtoupper($data['currency'] ?? 'TRY'),
             'snapshot'     => $data,
         ];
 
         session()->put('cart', $cart);
 
         // Sepete yönlendir + başarı mesajı
-        return redirect()->to(localized_route('cart'))
+        return redirect()
+            ->to(localized_route('cart'))
             ->with('ok', 'validated');
     }
 
+    /**
+     * Excursion (tour) booking -> sepete ekleme
+     */
     public function bookTour(Request $request)
     {
         $data = $request->validate([
@@ -60,7 +69,7 @@ class CheckoutController extends Controller
             }
         }
 
-        // Null children/infants yerine 0
+        // Null children/infants yerine 0 yazarak snapshot'ı normalize et
         $data['children'] = $data['children'] ?? 0;
         $data['infants']  = $data['infants'] ?? 0;
 
@@ -70,6 +79,8 @@ class CheckoutController extends Controller
 
         $cart['items'][] = [
             'product_type' => 'tour',
+            // Satılabilir birim: tur kaydı
+            'product_id'   => (int) $data['tour_id'],
             'amount'       => (float) $data['price_total'],
             'currency'     => strtoupper($data['currency']),
             'snapshot'     => $data,
@@ -77,36 +88,40 @@ class CheckoutController extends Controller
 
         session()->put('cart', $cart);
 
-        return redirect()->to(localized_route('cart'))
+        return redirect()
+            ->to(localized_route('cart'))
             ->with('ok', 'validated');
     }
 
+    /**
+     * Hotel room booking -> sepete ekleme
+     */
     public function bookHotel(Request $request)
     {
         $data = $request->validate([
-            'hotel_id'    => ['required', 'integer'],
-            'hotel_name'  => ['required', 'string'],
-            'room_id'     => ['required', 'integer'],
-            'room_name'   => ['required', 'string'],
-            'checkin'     => ['required', 'date'],
-            'checkout'    => ['required', 'date', 'after:checkin'],
-            'nights'      => ['required', 'integer', 'min:1'],
-            'adults'      => ['required', 'integer', 'min:1'],
-            'children'    => ['nullable', 'integer', 'min:0'],
-            'currency'    => ['required', 'string', 'size:3'],
-            'price_total' => ['required', 'numeric', 'min:0'],
+            'hotel_id'        => ['required', 'integer'],
+            'hotel_name'      => ['required', 'string'],
+            'room_id'         => ['required', 'integer'],
+            'room_name'       => ['required', 'string'],
+            'checkin'         => ['required', 'date'],
+            'checkout'        => ['required', 'date', 'after:checkin'],
+            'nights'          => ['required', 'integer', 'min:1'],
+            'adults'          => ['required', 'integer', 'min:1'],
+            'children'        => ['nullable', 'integer', 'min:0'],
+            'currency'        => ['required', 'string', 'size:3'],
+            'price_total'     => ['required', 'numeric', 'min:0'],
             'board_type_name' => ['required', 'string'],
         ]);
 
         // Null children yerine 0
         $data['children'] = $data['children'] ?? 0;
 
-        // Opsiyonel metin alanları (pansiyon tipi, lokasyon)
+        // Snapshot temel olarak valid alanlar
         $snapshot = $data;
-        foreach (['board_type_name', 'location_label'] as $extraKey) {
-            if ($request->filled($extraKey)) {
-                $snapshot[$extraKey] = $request->input($extraKey);
-            }
+
+        // Opsiyonel metin alanı (ör: lokasyon etiketi)
+        if ($request->filled('location_label')) {
+            $snapshot['location_label'] = $request->input('location_label');
         }
 
         // Otel cover görselini çek → yoksa galeriden al
@@ -131,6 +146,8 @@ class CheckoutController extends Controller
 
         $cart['items'][] = [
             'product_type' => 'hotel_room',
+            // Satılabilir birim: oda kaydı
+            'product_id'   => (int) $data['room_id'],
             'amount'       => (float) $data['price_total'],
             'currency'     => strtoupper($data['currency']),
             'snapshot'     => $snapshot,
@@ -138,9 +155,8 @@ class CheckoutController extends Controller
 
         session()->put('cart', $cart);
 
-        return redirect()->to(localized_route('cart'))
+        return redirect()
+            ->to(localized_route('cart'))
             ->with('ok', 'validated');
     }
-
-
 }

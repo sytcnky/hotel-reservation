@@ -23,13 +23,13 @@ class TransferBookingRequest extends FormRequest
             'departure_date'    => ['required','date'],
             'return_date'       => ['required_if:direction,roundtrip','date','nullable'],
 
-            // Çift kuralı: OUTBOUND
-            'pickup_time_outbound'     => ['nullable','date_format:H:i','required_without:flight_number_outbound'],
-            'flight_number_outbound'   => ['nullable','string','max:20','required_without:pickup_time_outbound'],
+            // OUTBOUND: Saat ve uçuş numarası opsiyonel, ama en az bir tanesi dolu olmalı
+            'pickup_time_outbound'   => ['nullable','date_format:H:i'],
+            'flight_number_outbound' => ['nullable','string','max:20'],
 
-            // Çift kuralı: RETURN (sadece roundtrip’te)
-            'pickup_time_return'       => ['nullable','date_format:H:i','required_with:flight_number_return','required_if:direction,roundtrip','prohibited_unless:direction,roundtrip'],
-            'flight_number_return'     => ['nullable','string','max:20','required_with:pickup_time_return','required_if:direction,roundtrip','prohibited_unless:direction,roundtrip'],
+            // RETURN: Sadece roundtrip ise kullanılabilir, en az bir tanesi dolu olmalı
+            'pickup_time_return'   => ['nullable','date_format:H:i','prohibited_unless:direction,roundtrip'],
+            'flight_number_return' => ['nullable','string','max:20','prohibited_unless:direction,roundtrip'],
 
             'adults'    => ['required','integer','min:1'],
             'children'  => ['nullable','integer','min:0'],
@@ -45,7 +45,43 @@ class TransferBookingRequest extends FormRequest
         return [
             'to_location_id.different' => 'Nereye alanı Nereden ile aynı olamaz.',
             'return_date.required_if'  => 'Gidiş–Dönüş seçildiğinde dönüş tarihi zorunludur.',
-            'pickup_time_return.required_if' => 'Gidiş–Dönüş seçildiğinde dönüş saati zorunludur.',
         ];
+    }
+
+    /**
+     * Ek kurallar:
+     * - Gidiş için (outbound) saat VEYA uçuş numarasından en az biri zorunlu
+     * - direction=roundtrip ise dönüş için (return) de saat VEYA uçuş numarasından en az biri zorunlu
+     * - direction=oneway ise dönüş alanları zaten prohibited_unless ile kapatılıyor
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $direction = $this->input('direction');
+
+            // OUTBOUND: en az biri dolu olmalı
+            $pickupOutbound  = $this->input('pickup_time_outbound');
+            $flightOutbound  = $this->input('flight_number_outbound');
+
+            if (empty($pickupOutbound) && empty($flightOutbound)) {
+                $validator->errors()->add(
+                    'pickup_time_outbound',
+                    'Gidiş için saat veya uçuş numarasından en az biri zorunludur.'
+                );
+            }
+
+            // RETURN: sadece roundtrip’te kontrol et
+            if ($direction === 'roundtrip') {
+                $pickupReturn = $this->input('pickup_time_return');
+                $flightReturn = $this->input('flight_number_return');
+
+                if (empty($pickupReturn) && empty($flightReturn)) {
+                    $validator->errors()->add(
+                        'pickup_time_return',
+                        'Gidiş–Dönüş seçildiğinde dönüş için saat veya uçuş numarasından en az biri zorunludur.'
+                    );
+                }
+            }
+        });
     }
 }

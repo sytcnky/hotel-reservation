@@ -157,7 +157,8 @@ class RoomForm
                             ->compact(),
 
                         Select::make('board_type_id')->label(__('admin.ent.board_type.singular'))
-                            ->options($boardOptions)->native(false)->searchable()->preload()->columnSpan(6),
+                            ->options($boardOptions)->required()->native(false)->searchable()->preload()
+                            ->columnSpan(6),
 
                         Radio::make('price_type')->label(__('admin.rooms.form.prices.price_type'))->options([
                             'room_per_night' => __('admin.rooms.form.prices.room_per_night'),

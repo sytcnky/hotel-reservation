@@ -138,7 +138,6 @@
                                     <input type="text"
                                            class="form-control text-center"
                                            data-type="adult"
-                                           name="adults"
                                            value="1"
                                            readonly>
                                     <button type="button"
@@ -158,7 +157,6 @@
                                     <input type="text"
                                            class="form-control text-center"
                                            data-type="child"
-                                           name="children"
                                            value="0"
                                            readonly>
                                     <button type="button"
@@ -179,7 +177,6 @@
                                     <input type="text"
                                            class="form-control text-center"
                                            data-type="infant"
-                                           name="infants"
                                            value="0"
                                            readonly>
                                     <button type="button"

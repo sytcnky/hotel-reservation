@@ -16,7 +16,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
 
-/** Excursion (tour) booking -> sepete ekleme */
+/** Hotel booking -> sepete ekleme */
 LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
 
 /** Transfer booking -> sepete ekleme */
