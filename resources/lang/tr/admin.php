@@ -77,6 +77,14 @@ return [
         'tour_category' => [
             'singular' => 'Tur Kategorisi',
             'plural' => 'Tur Kategorileri',
+        ],
+        'villa_amenity' => [
+            'singular' => 'Villa Özelliği',
+            'plural' => 'Villa Özellikleri',
+        ],
+        'villa_category' => [
+            'singular' => 'Villa Kategorisi',
+            'plural' => 'Villa Kategorileri',
         ]
     ],
     'field' => [
