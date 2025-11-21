@@ -8,6 +8,7 @@ return [
         'hotel_group' => 'Otel',
         'transfer_group' => 'Transfer',
         'tour_group' => 'Günlük Tur',
+        'villa_group' => 'Villa'
     ],
     'ent' => [
         'language' => [
@@ -294,6 +295,68 @@ return [
             'code'              => 'Kod',
             'code_help'         => 'Otomatik üretilir.',
             'category'          => 'Tur Kategorisi',
+        ],
+    ],
+    'villas' => [
+        'singular' => 'Villa',
+        'plural'   => 'Villalar',
+
+        'form' => [
+            'name'               => 'Villa Adı',
+            'slug'               => 'Slug',
+            'description'        => 'Açıklama',
+
+            'highlights'         => 'Öne Çıkan Özellikler',
+            'highlight_item'     => 'Özellik',
+            'add_highlight'      => 'Özellik Ekle',
+
+            'stay_info'          => 'Konaklama Hakkında',
+            'stay_info_item'     => 'Bilgi',
+            'add_stay_info'      => 'Bilgi Ekle',
+
+            'feature_group_title'    => 'Grup Başlığı',
+            'feature_group_untitled' => 'Başlıksız Grup',
+            'amenities'              => 'Olanaklar',
+            'add_feature_group'      => 'Özellik Grubu Ekle',
+
+            'max_guests'         => 'Maksimum Kişi',
+            'bedroom_count'      => 'Yatak Odası',
+            'bathroom_count'     => 'Banyo',
+
+            'address'            => 'Adres',
+            'latitude'           => 'Enlem',
+            'longitude'          => 'Boylam',
+
+            'nearby_icon'        => 'İkon',
+            'nearby_label'       => 'Yer Adı',
+            'nearby_distance'    => 'Mesafe',
+            'add_nearby'         => 'Yakın Yer Ekle',
+
+            'phone'              => 'Telefon',
+            'email'              => 'E-posta',
+
+            'promo_video_id'     => 'Video ID',
+            'promo_video_id_placeholder' => 'YouTube video ID (opsiyonel)',
+
+            'is_active'          => 'Aktif',
+            'sort_order'         => 'Sıra',
+            'code'               => 'Kod',
+
+            'cover'              => 'Kapak Görseli',
+
+            'category'           => 'Villa Kategorisi',
+            'cancellation_policy'=> 'İptal Politikası',
+        ],
+
+        'sections' => [
+            'features'      => 'Özellik Grupları',
+            'capacities'    => 'Kapasiteler',
+            'location'      => 'Konum',
+            'nearby'        => 'Yakındaki Yerler',
+            'contact'       => 'İletişim',
+            'gallery'       => 'Galeri',
+            'status'        => 'Durum',
+            'classification'=> 'Sınıflandırma',
         ],
     ],
     'routes' => [
