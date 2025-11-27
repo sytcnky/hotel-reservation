@@ -41,6 +41,8 @@
 
                 <div class="coupon-viewport overflow-hidden">
                     <div class="coupon-track d-flex gap-3">
+                        {{-- ... dummy kupon kartları ... --}}
+                        {{-- (Burayı değiştirmiyorum) --}}
                         <div class="coupon-card border border-2 border-dashed rounded p-2 bg-white d-flex align-items-center">
                             <div class="coupon-badge border me-2 text-center">
                                 <div class="h4 fw-bolder text-primary mb-0">%5</div>
@@ -94,9 +96,7 @@
 
             {{-- >>> DİNAMİK: Session’daki sepet öğeleri (yeni eklenenler en üstte) --}}
             @php
-            $cartItems = session('cart.items', []);
-
-            // Dinamik sepet toplamı
+            $cartItems    = session('cart.items', []);
             $cartSubtotal = 0;
             $cartCurrency = null;
 
@@ -108,14 +108,10 @@
             $cartCurrency = $ci['currency'];
             }
             }
-
-            // Hiç ürün yoksa varsayılan
-            $cartCurrency = $cartCurrency ?? 'TRY';
             @endphp
 
             @if (!empty($cartItems))
             @foreach ($cartItems as $key => $ci)
-
             @php
             $type = $ci['product_type'] ?? 'unknown';
             @endphp
@@ -146,6 +142,11 @@
 
             @else
             {{-- DİĞER / GEÇİCİ ÜRÜNLER --}}
+            @php
+            $amount   = (float)($ci['amount'] ?? 0);
+            $currency = $ci['currency'] ?? $cartCurrency;
+            @endphp
+
             <div class="card shadow-sm mb-3 position-relative">
                 <form method="POST"
                       action="{{ route('cart.remove', ['key' => $key]) }}"
@@ -176,8 +177,10 @@
                         </div>
                         <div class="col-12 col-md-3 text-md-end">
                             <div class="fw-bold fs-5 text-primary">
-                                {{ number_format((float)($ci['amount'] ?? 0), 0, ',', '.') }}
-                                {{ $ci['currency'] ?? 'TRY' }}
+                                {{ number_format($amount, 0, ',', '.') }}
+                                @if ($currency)
+                                {{ $currency }}
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -218,18 +221,41 @@
                     <div class="card-body">
                         <h2 class="h5 mb-3">Sipariş Özeti</h2>
                         <div class="d-flex justify-content-between small mb-2">
-                            <span>Ara toplam</span><span>{{ number_format($cartSubtotal, 0, ',', '.') }} {{ $cartCurrency }}</span>
+                            <span>Ara toplam</span>
+                            <span>
+                                {{ number_format($cartSubtotal, 0, ',', '.') }}
+                                @if ($cartCurrency)
+                                    {{ $cartCurrency }}
+                                @endif
+                            </span>
                         </div>
                         <div class="d-flex justify-content-between small mb-2">
-                            <span>Vergiler</span><span>₺0</span>
+                            <span>Vergiler</span>
+                            <span>
+                                {{ number_format(0, 0, ',', '.') }}
+                                @if ($cartCurrency)
+                                    {{ $cartCurrency }}
+                                @endif
+                            </span>
                         </div>
                         <div class="d-flex justify-content-between small mb-2">
-                            <span>İndirimler</span><span>₺0</span>
+                            <span>İndirimler</span>
+                            <span>
+                                {{ number_format(0, 0, ',', '.') }}
+                                @if ($cartCurrency)
+                                    {{ $cartCurrency }}
+                                @endif
+                            </span>
                         </div>
                         <hr class="my-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-semibold">Ödenecek Toplam</span>
-                            <span class="fw-bold fs-5">{{ number_format($cartSubtotal, 0, ',', '.') }} {{ $cartCurrency }}</span>
+                            <span class="fw-bold fs-5">
+                                {{ number_format($cartSubtotal, 0, ',', '.') }}
+                                @if ($cartCurrency)
+                                    {{ $cartCurrency }}
+                                @endif
+                            </span>
                         </div>
 
                         <a href="{{ route('login', ['redirect' => '/payment', 'from_cart' => 1]) }}"

@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class TransferBookingRequest extends FormRequest
 {
@@ -15,28 +14,30 @@ class TransferBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'route_id'          => ['required','integer'],
-            'vehicle_id'        => ['required','integer'],
-            'direction'         => ['required','in:oneway,roundtrip'],
-            'from_location_id'  => ['required','integer','different:to_location_id'],
-            'to_location_id'    => ['required','integer','different:from_location_id'],
-            'departure_date'    => ['required','date'],
-            'return_date'       => ['required_if:direction,roundtrip','date','nullable'],
+            'route_id'         => ['required', 'integer', 'min:1'],
+            'vehicle_id'       => ['required', 'integer', 'min:1'],
+            'direction'        => ['required', 'in:oneway,roundtrip'],
+            'from_location_id' => ['required', 'integer', 'min:1', 'different:to_location_id'],
+            'to_location_id'   => ['required', 'integer', 'min:1', 'different:from_location_id'],
 
-            // OUTBOUND: Saat ve uçuş numarası opsiyonel, ama en az bir tanesi dolu olmalı
-            'pickup_time_outbound'   => ['nullable','date_format:H:i'],
-            'flight_number_outbound' => ['nullable','string','max:20'],
+            'departure_date'   => ['required', 'date'],
+            // roundtrip’te zorunlu, oneway’de boş olabilir → nullable önemli
+            'return_date'      => ['nullable', 'date', 'required_if:direction,roundtrip'],
 
-            // RETURN: Sadece roundtrip ise kullanılabilir, en az bir tanesi dolu olmalı
-            'pickup_time_return'   => ['nullable','date_format:H:i','prohibited_unless:direction,roundtrip'],
-            'flight_number_return' => ['nullable','string','max:20','prohibited_unless:direction,roundtrip'],
+            // OUTBOUND (tek yön veya gidiş)
+            'pickup_time_outbound'   => ['nullable', 'date_format:H:i'],
+            'flight_number_outbound' => ['nullable', 'string', 'max:20'],
 
-            'adults'    => ['required','integer','min:1'],
-            'children'  => ['nullable','integer','min:0'],
-            'infants'   => ['nullable','integer','min:0'],
+            // RETURN (sadece roundtrip ise)
+            'pickup_time_return'   => ['nullable', 'date_format:H:i', 'prohibited_unless:direction,roundtrip'],
+            'flight_number_return' => ['nullable', 'string', 'max:20', 'prohibited_unless:direction,roundtrip'],
 
-            'price_total' => ['required','numeric','min:0'],
-            'currency'    => ['required','string','size:3'],
+            'adults'   => ['required', 'integer', 'min:1'],
+            'children' => ['nullable', 'integer', 'min:0'],
+            'infants'  => ['nullable', 'integer', 'min:0'],
+
+            'price_total' => ['required', 'numeric', 'min:0'],
+            'currency'    => ['required', 'string', 'size:3'],
         ];
     }
 
@@ -50,9 +51,8 @@ class TransferBookingRequest extends FormRequest
 
     /**
      * Ek kurallar:
-     * - Gidiş için (outbound) saat VEYA uçuş numarasından en az biri zorunlu
-     * - direction=roundtrip ise dönüş için (return) de saat VEYA uçuş numarasından en az biri zorunlu
-     * - direction=oneway ise dönüş alanları zaten prohibited_unless ile kapatılıyor
+     * - Gidiş için (outbound) saat veya uçuş numarasından en az biri zorunlu
+     * - direction=roundtrip ise dönüş için de en az biri zorunlu
      */
     public function withValidator($validator): void
     {
@@ -60,8 +60,8 @@ class TransferBookingRequest extends FormRequest
             $direction = $this->input('direction');
 
             // OUTBOUND: en az biri dolu olmalı
-            $pickupOutbound  = $this->input('pickup_time_outbound');
-            $flightOutbound  = $this->input('flight_number_outbound');
+            $pickupOutbound = $this->input('pickup_time_outbound');
+            $flightOutbound = $this->input('flight_number_outbound');
 
             if (empty($pickupOutbound) && empty($flightOutbound)) {
                 $validator->errors()->add(
@@ -70,7 +70,7 @@ class TransferBookingRequest extends FormRequest
                 );
             }
 
-            // RETURN: sadece roundtrip’te kontrol et
+            // RETURN: sadece roundtrip ise kontrol et
             if ($direction === 'roundtrip') {
                 $pickupReturn = $this->input('pickup_time_return');
                 $flightReturn = $this->input('flight_number_return');

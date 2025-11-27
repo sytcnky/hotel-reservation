@@ -4,7 +4,7 @@
 $s = (array) ($ci['snapshot'] ?? []);
 
 $amount   = (float)($ci['amount'] ?? 0);
-$currency = $ci['currency'] ?? 'TRY';
+$currency = $ci['currency'] ?? null;
 
 // Görsel (villa_image snapshot alanı varsayımı)
 $img     = $s['villa_image'] ?? null;
@@ -102,11 +102,17 @@ $locationLabel = $s['location_label'] ?? null;
                 @if ($prepayment > 0)
                 <div class="fw-bold fs-5 text-primary">
                     <small>Ön ödeme:</small><br>
-                    {{ number_format($prepayment, 0, ',', '.') }} {{ $currency }}
+                    {{ number_format($prepayment, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                 </div>
                 <div class="small text-muted">
                     Kalan:
-                    {{ number_format($remaining, 0, ',', '.') }} {{ $currency }}
+                    {{ number_format($remaining, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                     <i class="fi fi-rr-info"
                        data-bs-toggle="tooltip"
                        data-bs-placement="top"
@@ -114,11 +120,17 @@ $locationLabel = $s['location_label'] ?? null;
                 </div>
                 <div class="small text-muted">
                     Toplam:
-                    {{ number_format($total, 0, ',', '.') }} {{ $currency }}
+                    {{ number_format($total, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                 </div>
                 @else
                 <div class="fw-bold fs-5 text-primary">
-                    {{ number_format($amount, 0, ',', '.') }} {{ $currency }}
+                    {{ number_format($amount, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                 </div>
                 @endif
             </div>

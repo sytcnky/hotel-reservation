@@ -168,7 +168,7 @@
                                         </div>
 
                                         <div class="mb-2">
-                                            <span class="text-muted small d-block">Başlayan fiyatlar</span>
+                                            <span class="text-muted small d-block">Fiyat için tarih ve kişi sayısı seçin</span>
                                             {{-- İleride from_price bağlanacak --}}
                                         </div>
 

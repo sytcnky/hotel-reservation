@@ -1,7 +1,30 @@
 // resources/js/pages/hotel-details.js
 
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.css';
+import { Turkish } from 'flatpickr/dist/l10n/tr.js';
+
 export function initHotelDetails() {
     initRoomToggles();
+    initDateRangePicker();
+}
+
+function initDateRangePicker() {
+    const input = document.getElementById('checkin');
+    if (!input) return;
+
+    // Locale
+    flatpickr.localize(Turkish);
+
+    flatpickr(input, {
+        mode: 'range',
+        dateFormat: 'd.m.Y',
+        minDate: 'today',
+        // Otel controller'daki parseDateRange ile uyumlu:
+        // "18.11.2025 - 22.11.2025"
+        allowInput: true,
+        // İleride gerekirse burada extra seçenekleri (disable, onChange vs.) ekleyebiliriz
+    });
 }
 
 function initRoomToggles() {
@@ -10,9 +33,9 @@ function initRoomToggles() {
 
     roomCards.forEach((card) => {
         const toggleBtn = card.querySelector('.room-toggle-details');
-        const wrapper = card.querySelector('.room-details-wrapper');
-        const content = card.querySelector('.room-details');
-        const gallery = card.querySelector('.gallery');
+        const wrapper   = card.querySelector('.room-details-wrapper');
+        const content   = card.querySelector('.room-details');
+        const gallery   = card.querySelector('.gallery');
 
         if (!toggleBtn || !wrapper || !content) return;
 

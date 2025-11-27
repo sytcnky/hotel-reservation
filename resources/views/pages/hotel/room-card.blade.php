@@ -44,9 +44,9 @@
 
                 @if($state === 'no_context')
                 {{-- Form boş: sadece "başlayan fiyatlar" placeholder --}}
-                <div class="fs-5 fw-bold">
-                    Başlayan fiyatlar
-                </div>
+                <small>
+                    Fiyat için tarih ve kişi sayısı seçin
+                </small>
 
                 @elseif($state === 'over_capacity')
                 <div class="text-danger small">
@@ -246,18 +246,6 @@
                 <input type="hidden" name="board_type_id" value="{{ $ctx['board_type_id'] }}">
                 @endif
 
-                {{-- Görsel ve yardımcı alanlar (snapshot için) --}}
-                @php
-                // Oda için: small > thumb
-                $roomCover  = $room['images'][0]['small']  ?? $room['images'][0]['thumb']  ?? null;
-
-                // Otel için fallback: small > thumb
-                $hotelCover = $hotel['images'][0]['small'] ?? $hotel['images'][0]['thumb'] ?? null;
-
-                $coverImage = $roomCover ?? $hotelCover ?? '';
-                @endphp
-
-                <input type="hidden" name="cover_image" value="{{ $coverImage }}">
                 <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
 
                 @if($pricing)

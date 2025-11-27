@@ -8,6 +8,9 @@ $children = (int)($s['children'] ?? 0);
 $infants  = (int)($s['infants']  ?? 0);
 
 $direction = $s['direction'] ?? null;
+
+$amount   = (float)($ci['amount'] ?? 0);
+$currency = $ci['currency'] ?? null;
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -80,8 +83,10 @@ $direction = $s['direction'] ?? null;
 
             <div class="col-12 col-md-3 text-md-end">
                 <div class="fw-bold fs-5 text-primary">
-                    {{ number_format((float)($ci['amount'] ?? 0), 0, ',', '.') }}
-                    {{ $ci['currency'] ?? 'TRY' }}
+                    {{ number_format($amount, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                 </div>
             </div>
         </div>

@@ -4,7 +4,7 @@
 $s = (array) ($ci['snapshot'] ?? []);
 
 $amount   = (float)($ci['amount'] ?? 0);
-$currency = $ci['currency'] ?? 'TRY';
+$currency = $ci['currency'] ?? null;
 
 $img     = $s['hotel_image'] ?? null;
 $thumb   = $img['thumb']   ?? null;
@@ -88,7 +88,10 @@ $boardTypeName = $s['board_type_name'] ?? null;
             {{-- Fiyat --}}
             <div class="col-12 col-md-3 text-md-end">
                 <div class="fw-bold fs-5 text-primary">
-                    {{ number_format($amount, 0, ',', '.') }} {{ $currency }}
+                    {{ number_format($amount, 0, ',', '.') }}
+                    @if ($currency)
+                    {{ $currency }}
+                    @endif
                 </div>
             </div>
 

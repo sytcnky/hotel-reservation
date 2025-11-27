@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\TransferBookingRequest;
+use App\Http\Requests\TourBookingRequest;
+use App\Http\Requests\HotelBookingRequest;
+use App\Http\Requests\VillaBookingRequest;
 use Illuminate\Http\Request;
 use App\Models\Hotel;
 use App\Models\Villa;
@@ -10,11 +13,31 @@ use App\Models\Villa;
 class CheckoutController extends Controller
 {
     /**
+     * Tüm sepet ekleme işlemleri için ortak helper.
+     */
+    private function addToCart(string $productType, int $productId, float $amount, string $currency, array $snapshot): void
+    {
+        $cart = session()->get('cart', [
+            'items' => [],
+        ]);
+
+        $cart['items'][] = [
+            'product_type' => $productType,
+            'product_id'   => $productId,
+            'amount'       => $amount,
+            'currency'     => strtoupper($currency),
+            'snapshot'     => $snapshot,
+        ];
+
+        session()->put('cart', $cart);
+    }
+
+    /**
      * Transfer booking -> sepete ekleme
      */
     public function bookTransfer(TransferBookingRequest $request)
     {
-        // Önce validasyon
+        // Validasyon
         $data = $request->validated();
 
         // Formdan gelen (validation dışında kalan) ek alanları da snapshot'a ekle
@@ -24,22 +47,19 @@ class CheckoutController extends Controller
             }
         }
 
-        // Mevcut sepeti al
-        $cart = session()->get('cart', [
-            'items' => [],
-        ]);
+        $snapshot = $data;
 
-        // Yeni transfer öğesini ekle
-        $cart['items'][] = [
-            'product_type' => 'transfer',
-            // Satılabilir birim: rota
-            'product_id'   => (int) $data['route_id'],
-            'amount'       => (float) $data['price_total'],
-            'currency'     => strtoupper($data['currency'] ?? 'TRY'),
-            'snapshot'     => $data,
-        ];
+        $amount   = (float) ($snapshot['price_total'] ?? 0);
+        $currency = $snapshot['currency'];
+        $routeId  = (int) ($snapshot['route_id'] ?? 0);
 
-        session()->put('cart', $cart);
+        $this->addToCart(
+            'transfer',
+            $routeId,
+            $amount,
+            $currency,
+            $snapshot,
+        );
 
         // Sepete yönlendir + başarı mesajı
         return redirect()
@@ -50,18 +70,9 @@ class CheckoutController extends Controller
     /**
      * Excursion (tour) booking -> sepete ekleme
      */
-    public function bookTour(Request $request)
+    public function bookTour(TourBookingRequest $request)
     {
-        $data = $request->validate([
-            'tour_id'     => ['required'],
-            'tour_name'   => ['required', 'string'],
-            'date'        => ['required', 'string'],
-            'adults'      => ['required', 'integer', 'min:1'],
-            'children'    => ['nullable', 'integer', 'min:0'],
-            'infants'     => ['nullable', 'integer', 'min:0'],
-            'currency'    => ['required', 'string', 'size:3'],
-            'price_total' => ['required', 'numeric', 'min:0'],
-        ]);
+        $data = $request->validated();
 
         // Opsiyonel alanları snapshot'a ekle (görsel + kategori)
         foreach (['cover_image', 'category_name'] as $extraKey) {
@@ -74,20 +85,13 @@ class CheckoutController extends Controller
         $data['children'] = $data['children'] ?? 0;
         $data['infants']  = $data['infants'] ?? 0;
 
-        $cart = session()->get('cart', [
-            'items' => [],
-        ]);
-
-        $cart['items'][] = [
-            'product_type' => 'tour',
-            // Satılabilir birim: tur kaydı
-            'product_id'   => (int) $data['tour_id'],
-            'amount'       => (float) $data['price_total'],
-            'currency'     => strtoupper($data['currency']),
-            'snapshot'     => $data,
-        ];
-
-        session()->put('cart', $cart);
+        $this->addToCart(
+            'tour',
+            (int) $data['tour_id'],
+            (float) $data['price_total'],
+            $data['currency'],
+            $data,
+        );
 
         return redirect()
             ->to(localized_route('cart'))
@@ -97,22 +101,9 @@ class CheckoutController extends Controller
     /**
      * Hotel room booking -> sepete ekleme
      */
-    public function bookHotel(Request $request)
+    public function bookHotel(HotelBookingRequest $request)
     {
-        $data = $request->validate([
-            'hotel_id'        => ['required', 'integer'],
-            'hotel_name'      => ['required', 'string'],
-            'room_id'         => ['required', 'integer'],
-            'room_name'       => ['required', 'string'],
-            'checkin'         => ['required', 'date'],
-            'checkout'        => ['required', 'date', 'after:checkin'],
-            'nights'          => ['required', 'integer', 'min:1'],
-            'adults'          => ['required', 'integer', 'min:1'],
-            'children'        => ['nullable', 'integer', 'min:0'],
-            'currency'        => ['required', 'string', 'size:3'],
-            'price_total'     => ['required', 'numeric', 'min:0'],
-            'board_type_name' => ['required', 'string'],
-        ]);
+        $data = $request->validated();
 
         // Null children yerine 0
         $data['children'] = $data['children'] ?? 0;
@@ -141,20 +132,13 @@ class CheckoutController extends Controller
             ];
         }
 
-        $cart = session()->get('cart', [
-            'items' => [],
-        ]);
-
-        $cart['items'][] = [
-            'product_type' => 'hotel_room',
-            // Satılabilir birim: oda kaydı
-            'product_id'   => (int) $data['room_id'],
-            'amount'       => (float) $data['price_total'],
-            'currency'     => strtoupper($data['currency']),
-            'snapshot'     => $snapshot,
-        ];
-
-        session()->put('cart', $cart);
+        $this->addToCart(
+            'hotel_room',
+            (int) $data['room_id'],
+            (float) $data['price_total'],
+            $data['currency'],
+            $snapshot,
+        );
 
         return redirect()
             ->to(localized_route('cart'))
@@ -164,21 +148,9 @@ class CheckoutController extends Controller
     /**
      * Villa booking -> sepete ekleme
      */
-    public function bookVilla(Request $request)
+    public function bookVilla(VillaBookingRequest $request)
     {
-        $data = $request->validate([
-            'villa_id'           => ['required', 'integer'],
-            'villa_name'         => ['required', 'string'],
-            'checkin'            => ['required', 'date'],
-            'checkout'           => ['required', 'date', 'after:checkin'],
-            'nights'             => ['required', 'integer', 'min:1'],
-            'adults'             => ['required', 'integer', 'min:1'],
-            'children'           => ['nullable', 'integer', 'min:0'],
-            'currency'           => ['required', 'string', 'size:3'],
-            'price_nightly'      => ['required', 'numeric', 'min:0'],
-            'price_prepayment'   => ['required', 'numeric', 'min:0'],
-            'price_total'        => ['required', 'numeric', 'min:0'],
-        ]);
+        $data = $request->validated();
 
         // Null children yerine 0
         $data['children'] = $data['children'] ?? 0;
@@ -204,22 +176,14 @@ class CheckoutController extends Controller
             ];
         }
 
-        // Mevcut sepet
-        $cart = session()->get('cart', [
-            'items' => [],
-        ]);
-
-        // Sepet item’i
-        $cart['items'][] = [
-            'product_type' => 'villa',
-            'product_id'   => (int) $data['villa_id'],
-            // Sepette “şimdi ödenecek” tutar olarak ön ödemeyi kullanıyoruz
-            'amount'       => (float) $data['price_prepayment'],
-            'currency'     => strtoupper($data['currency']),
-            'snapshot'     => $data,
-        ];
-
-        session()->put('cart', $cart);
+        // Sepette “şimdi ödenecek” tutar olarak ön ödemeyi kullanıyoruz
+        $this->addToCart(
+            'villa',
+            (int) $data['villa_id'],
+            (float) $data['price_prepayment'],
+            $data['currency'],
+            $data,
+        );
 
         return redirect()
             ->to(localized_route('cart'))
