@@ -21,10 +21,236 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
+use App\Models\Currency;
+use App\Models\Villa;
+use App\Models\VillaRateRule;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Utilities\Get;
+
 class VillaForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $currencies = Currency::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get();
+
+        // Hafta günleri (1=Mon ... 7=Sun)
+        $weekdayOptions = [
+            1 => __('admin.weekdays.mon') ?? 'Pzt',
+            2 => __('admin.weekdays.tue') ?? 'Sal',
+            3 => __('admin.weekdays.wed') ?? 'Çar',
+            4 => __('admin.weekdays.thu') ?? 'Per',
+            5 => __('admin.weekdays.fri') ?? 'Cum',
+            6 => __('admin.weekdays.sat') ?? 'Cmt',
+            7 => __('admin.weekdays.sun') ?? 'Paz',
+        ];
+
+        $currencyTabs = $currencies->map(function (Currency $c) use ($weekdayOptions) {
+            $title = trim($c->code . ' – ' . ($c->name_l ?: ''));
+
+            $rulesRepeater = Repeater::make('rates_' . $c->id)
+                ->hiddenLabel()
+                ->defaultItems(0)
+                ->collapsible()
+                ->collapsed()
+                ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                ->addActionLabel(__('admin.rooms.form.prices.add_price_rule'))
+                ->schema([
+                    Grid::make()->columns(12)->schema([
+
+                        Hidden::make('id'),
+                        Hidden::make('currency_id')->default($c->id),
+
+                        TextInput::make('label')
+                            ->label(__('admin.rooms.form.prices.rule_name'))
+                            ->columnSpan(9)
+                            ->required()
+                            ->live(onBlur: true),
+
+                        TextInput::make('priority')
+                            ->label(__('admin.rooms.form.prices.priority'))
+                            ->numeric()
+                            ->default(10)
+                            ->columnSpan(3),
+
+                        Section::make(__('admin.rooms.form.prices.dates'))
+                            ->columns(12)
+                            ->columnSpan(12)
+                            ->schema([
+                                DatePicker::make('date_start')
+                                    ->label(__('admin.rooms.form.prices.date_start'))
+                                    ->native(false)
+                                    ->displayFormat('Y-m-d')
+                                    ->columnSpan(6),
+
+                                DatePicker::make('date_end')
+                                    ->label(__('admin.rooms.form.prices.date_end'))
+                                    ->native(false)
+                                    ->displayFormat('Y-m-d')
+                                    ->minDate(fn ($get) => $get('date_start'))
+                                    ->columnSpan(6),
+
+                                CheckboxList::make('weekdays')
+                                    ->label(__('admin.rooms.form.prices.days'))
+                                    ->options($weekdayOptions)
+                                    ->default([1, 2, 3, 4, 5, 6, 7])
+                                    ->columns(7)
+                                    ->columnSpan(12),
+                            ])
+                            ->secondary()
+                            ->compact(),
+
+                        TextInput::make('amount')
+                            ->label(fn () => __('admin.rooms.form.prices.price', [
+                                'currency' => (string) $c->code,
+                            ]))
+                            ->numeric()
+                            ->minValue(0)
+                            ->required(false)
+                            ->disabled(fn (Get $get) => (bool) $get('closed'))
+                            ->columnSpan(12),
+
+                        // Min / max gece sayısı
+                        TextInput::make('min_nights')
+                            ->label(__('admin.villas.form.min_nights'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->columnSpan(6),
+
+                        TextInput::make('max_nights')
+                            ->label(__('admin.villas.form.max_nights'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->columnSpan(6),
+
+                        Toggle::make('closed')
+                            ->label('Kapalı')
+                            ->helperText(__('admin.rooms.form.prices.closed_helper'))
+                            ->live()
+                            ->columnSpan(4),
+
+                        Toggle::make('cta')
+                            ->label(__('admin.rooms.form.prices.cta'))
+                            ->helperText(__('admin.rooms.form.prices.cta_helper'))
+                            ->columnSpan(4),
+
+                        Toggle::make('ctd')
+                            ->label(__('admin.rooms.form.prices.ctd'))
+                            ->helperText(__('admin.rooms.form.prices.ctd_helper'))
+                            ->columnSpan(4),
+
+                        Textarea::make('note')
+                            ->label(__('admin.rooms.form.prices.note'))
+                            ->rows(2)
+                            ->columnSpan(12),
+                    ]),
+                ])
+                ->afterStateHydrated(function ($component, $state, ?Villa $record) use ($c) {
+                    if (! $record?->exists) {
+                        return;
+                    }
+
+                    $rows = $record->rateRules()
+                        ->where('currency_id', $c->id)
+                        ->orderBy('priority', 'desc')
+                        ->orderBy('date_start')
+                        ->get()
+                        ->map(function (VillaRateRule $r) {
+                            $days = [];
+                            for ($i = 1; $i <= 7; $i++) {
+                                if ($r->weekday_mask & (1 << ($i - 1))) {
+                                    $days[] = $i;
+                                }
+                            }
+
+                            return [
+                                'id'          => $r->id,
+                                'label'       => $r->label,
+                                'currency_id' => $r->currency_id,
+                                'date_start'  => $r->date_start?->format('Y-m-d'),
+                                'date_end'    => $r->date_end?->format('Y-m-d'),
+                                'weekdays'    => $days,
+                                'amount'      => $r->amount,
+                                'closed'      => $r->closed,
+                                'cta'         => $r->cta,
+                                'ctd'         => $r->ctd,
+                                'priority'    => $r->priority,
+                                'note'        => $r->note,
+                                'min_nights'  => $r->min_nights,
+                                'max_nights'  => $r->max_nights,
+                            ];
+                        })
+                        ->values()
+                        ->all();
+
+                    $component->state($rows);
+                })
+                ->saveRelationshipsUsing(function (Villa $record, array $state) use ($c) {
+                    $nullIfEmpty = fn ($v) => ($v === '' || $v === null) ? null : $v;
+
+                    $keepIds = [];
+
+                    foreach ($state as $row) {
+                        $start = $nullIfEmpty($row['date_start'] ?? null);
+                        $end   = $nullIfEmpty($row['date_end'] ?? null);
+
+                        $attrs = [
+                            'villa_id'     => $record->getKey(),
+                            'label'        => $row['label'] ?? null,
+                            'currency_id'  => $c->id,
+
+                            'date_start'   => $start,
+                            'date_end'     => $end,
+                            'weekday_mask' => VillaRateRule::weekdaysToMask($row['weekdays'] ?? []),
+
+                            'amount'       => ! empty($row['closed']) ? 0 : (float) ($row['amount'] ?? 0),
+
+                            'closed'       => (bool) ($row['closed'] ?? false),
+                            'cta'          => (bool) ($row['cta'] ?? false),
+                            'ctd'          => (bool) ($row['ctd'] ?? false),
+
+                            'priority'     => (int) ($row['priority'] ?? 10),
+                            'note'         => $nullIfEmpty($row['note'] ?? null),
+                            'is_active'    => true,
+
+                            'min_nights'   => $row['min_nights'] !== null && $row['min_nights'] !== ''
+                                ? (int) $row['min_nights']
+                                : null,
+
+                            'max_nights'   => $row['max_nights'] !== null && $row['max_nights'] !== ''
+                                ? (int) $row['max_nights']
+                                : null,
+                        ];
+
+                        $id = $row['id'] ?? null;
+
+                        if ($id) {
+                            $record->rateRules()->whereKey($id)->update($attrs);
+                            $keepIds[] = (int) $id;
+                        } else {
+                            $created   = $record->rateRules()->create($attrs);
+                            $keepIds[] = $created->getKey();
+                        }
+                    }
+
+                    $record->rateRules()
+                        ->where('currency_id', $c->id)
+                        ->when(! empty($keepIds), fn ($q) => $q->whereNotIn('id', $keepIds))
+                        ->delete();
+                });
+
+
+            return Tab::make($title)->schema([
+                $rulesRepeater,
+            ]);
+        })->all();
+
         $base     = config('app.locale', 'tr');
         $locales  = config('app.supported_locales', [$base]);
         $uiLocale = app()->getLocale();
@@ -59,13 +285,12 @@ class VillaForm
                                                     }),
 
                                                 // Slug (UI)
-                                                Group::make()
-                                                    ->statePath('slug_ui')
-                                                    ->schema([
-                                                        TextInput::make($loc)
-                                                            ->label(__('admin.villas.form.slug'))
-                                                            ->required(),
-                                                    ]),
+                                                TextInput::make("slug.$loc")
+                                                    ->label(__('admin.villas.form.slug'))
+                                                    ->required()
+                                                    ->dehydrateStateUsing(function (?string $state) {
+                                                        return $state ? \Illuminate\Support\Str::slug($state) : null;
+                                                    }),
 
                                                 // Açıklama
                                                 Textarea::make("description.$loc")
@@ -94,6 +319,22 @@ class VillaForm
                                             ]);
                                         })->all()
                                     ),
+
+                                    /*
+                                     * ÖNEMLİ: slug_ui → slug map’i
+                                     * - slug_ui boşsa mevcut slug değerini korur.
+                                     * - slug_ui doluysa tamamını slug kolonuna yazar (JSON).
+                                     */
+                                    Hidden::make('slug')
+                                        ->dehydrateStateUsing(function (Get $get, $state) {
+                                            $ui = $get('slug_ui');
+
+                                            if (is_array($ui) && array_filter($ui, fn ($v) => filled($v))) {
+                                                return $ui;
+                                            }
+
+                                            return $state;
+                                        }),
 
                                     // Özellik Grupları (VillaAmenity ile)
                                     Section::make(__('admin.villas.sections.features'))
@@ -247,7 +488,7 @@ class VillaForm
 
                                     // İletişim
                                     Section::make(__('admin.villas.sections.contact'))
-                                        ->columns(1)
+                                        ->columns(2)
                                         ->schema([
                                             TextInput::make('phone')
                                                 ->label(__('admin.villas.form.phone')),
@@ -275,6 +516,27 @@ class VillaForm
                                                 ->panelLayout('grid')
                                                 ->columnSpan(12),
                                         ]),
+
+                                    // Fiyatlar
+                                    Section::make(__('admin.rooms.sections.prices'))
+                                        ->columns(1)
+                                        ->schema([
+                                            // Her durumda görünen --> Ön ödeme oranı
+                                            TextInput::make('prepayment_rate')
+                                                ->label(__('admin.villas.form.prepayment_rate'))
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->maxValue(100)
+                                                ->suffix('%'),
+
+                                            // Currency var mı yok mu?
+                                            ! empty($currencyTabs)
+                                                ? Tabs::make('villa_prices')->columnSpan(12)->tabs($currencyTabs)
+                                                : TextEntry::make('no_currency_info')
+                                                ->label(' ')
+                                                ->state(__('admin.rooms.form.prices.no_active_price')),
+                                        ]),
+
                                 ]),
 
                             // SAĞ KOLON (4)

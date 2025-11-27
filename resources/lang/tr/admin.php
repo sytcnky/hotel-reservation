@@ -346,6 +346,11 @@ return [
 
             'category'           => 'Villa Kategorisi',
             'cancellation_policy'=> 'İptal Politikası',
+
+            'prepayment_rate'    => 'Ön Ödeme Yüzdesi',
+
+            'min_nights'         => 'Minimum Konaklama Süresi (Gün)',
+            'max_nights'         => 'Maksimum Konaklama Süresi (Gün)',
         ],
 
         'sections' => [

@@ -15,6 +15,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
+use App\Http\Controllers\VillaController;
 
 /** Hotel booking -> sepete ekleme */
 LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
@@ -24,6 +25,9 @@ LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::clas
 
 /** Excursion (tour) booking -> sepete ekleme */
 LocalizedRoute::post('tour.book', 'excursions/book', [CheckoutController::class, 'bookTour']);
+
+/** Villa booking -> sepete ekleme */
+LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'bookVilla']);
 
 /*
 |--------------------------------------------------------------------------
@@ -128,25 +132,10 @@ LocalizedRoute::get('hotel.detail', 'hotel/{slug}', [HotelController::class, 'sh
 LocalizedRoute::get('transfers', 'transfers', [TransferController::class, 'index']);
 
 /** Villas */
-LocalizedRoute::get('villa', 'villalar', function () {
-    $path = public_path('data/villas/villas.json');
-    abort_unless(File::exists($path), 404);
-
-    $villas = json_decode(File::get($path), true);
-    return view('pages.villa.index', compact('villas'));
-});
+LocalizedRoute::get('villa', 'villalar', [VillaController::class, 'index']);
 
 /** Villa detail */
-LocalizedRoute::get('villa.villa-detail', 'villa/{slug}', function ($slug) {
-    $path = public_path('data/villas/villas.json');
-    abort_unless(File::exists($path), 404);
-
-    $villas = json_decode(File::get($path), true);
-    $villa  = collect($villas)->firstWhere('slug', $slug);
-    abort_unless($villa, 404);
-
-    return view('pages.villa.villa-detail', compact('villa'));
-});
+LocalizedRoute::get('villa.villa-detail', 'villa/{slug}', [VillaController::class, 'show']);
 
 /** Excursions */
 LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']);

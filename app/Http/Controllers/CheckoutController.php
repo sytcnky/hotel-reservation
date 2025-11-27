@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TransferBookingRequest;
 use Illuminate\Http\Request;
 use App\Models\Hotel;
+use App\Models\Villa;
 
 class CheckoutController extends Controller
 {
@@ -151,6 +152,71 @@ class CheckoutController extends Controller
             'amount'       => (float) $data['price_total'],
             'currency'     => strtoupper($data['currency']),
             'snapshot'     => $snapshot,
+        ];
+
+        session()->put('cart', $cart);
+
+        return redirect()
+            ->to(localized_route('cart'))
+            ->with('ok', 'validated');
+    }
+
+    /**
+     * Villa booking -> sepete ekleme
+     */
+    public function bookVilla(Request $request)
+    {
+        $data = $request->validate([
+            'villa_id'           => ['required', 'integer'],
+            'villa_name'         => ['required', 'string'],
+            'checkin'            => ['required', 'date'],
+            'checkout'           => ['required', 'date', 'after:checkin'],
+            'nights'             => ['required', 'integer', 'min:1'],
+            'adults'             => ['required', 'integer', 'min:1'],
+            'children'           => ['nullable', 'integer', 'min:0'],
+            'currency'           => ['required', 'string', 'size:3'],
+            'price_nightly'      => ['required', 'numeric', 'min:0'],
+            'price_prepayment'   => ['required', 'numeric', 'min:0'],
+            'price_total'        => ['required', 'numeric', 'min:0'],
+        ]);
+
+        // Null children yerine 0
+        $data['children'] = $data['children'] ?? 0;
+
+        // Opsiyonel lokasyon etiketi
+        if ($request->filled('location_label')) {
+            $data['location_label'] = $request->input('location_label');
+        }
+
+        // Villa cover / gallery görseli → snapshot.villa_image
+        $villa = Villa::query()
+            ->with('media')
+            ->findOrFail($data['villa_id']);
+
+        $media = $villa->getFirstMedia('cover')
+            ?: $villa->getFirstMedia('gallery');
+
+        if ($media) {
+            $data['villa_image'] = [
+                'thumb'   => $media->getUrl('thumb'),
+                'thumb2x' => $media->getUrl('thumb2x'),
+                'alt'     => $data['villa_name'],
+            ];
+        }
+
+        // Mevcut sepet
+        $cart = session()->get('cart', [
+            'items' => [],
+        ]);
+
+        // Sepet item’i
+        $cart['items'][] = [
+            'product_type' => 'villa',
+            'product_id'   => (int) $data['villa_id'],
+            // Sepette “şimdi ödenecek” tutar olarak ön ödemeyi kullanıyoruz
+            'amount'       => (float) $data['price_prepayment'],
+            'currency'     => strtoupper($data['currency']),
+            'snapshot'     => $data,
         ];
 
         session()->put('cart', $cart);

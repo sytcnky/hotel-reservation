@@ -41,6 +41,7 @@ class Villa extends Model implements HasMedia
         'promo_video_id',
         'is_active',
         'sort_order',
+        'prepayment_rate',
     ];
 
     protected $casts = [
@@ -57,6 +58,7 @@ class Villa extends Model implements HasMedia
         'bedroom_count'     => 'integer',
         'bathroom_count'    => 'integer',
         'promo_video_id'    => 'string',
+        'prepayment_rate'   => 'decimal:2',
     ];
 
     /*
@@ -93,6 +95,14 @@ class Villa extends Model implements HasMedia
         return $raw[$loc] ?? $raw[$base] ?? reset($raw) ?: null;
     }
 
+    /**
+     * Kategori adını localized olarak döner (badge için).
+     */
+    public function getCategoryNameAttribute(): ?string
+    {
+        return $this->category?->name_l;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -117,6 +127,14 @@ class Villa extends Model implements HasMedia
     public function featureGroups(): HasMany
     {
         return $this->hasMany(VillaFeatureGroup::class);
+    }
+
+    /**
+     * Fiyat kuralları (sezon, min-night vs).
+     */
+    public function rateRules(): HasMany
+    {
+        return $this->hasMany(\App\Models\VillaRateRule::class);
     }
 
     /*
@@ -202,6 +220,39 @@ class Villa extends Model implements HasMedia
 
     /*
     |--------------------------------------------------------------------------
+    | Basit fiyat çözücü (listeleme için en düşük aktif kural)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getBasePrice(string $currencyCode): ?float
+    {
+        $currencyCode = strtoupper($currencyCode);
+
+        $rule = $this->rateRules()
+            ->whereHas('currency', function ($q) use ($currencyCode) {
+                $q->whereRaw('upper(code) = ?', [$currencyCode]);
+            })
+            // is_active = true **veya** NULL → eski kayıtlar da geçerli
+            ->where(function ($q) {
+                $q->where('is_active', true)
+                    ->orWhereNull('is_active');
+            })
+            // closed = false **veya** NULL → NULL olanlar da açık kabul edilir
+            ->where(function ($q) {
+                $q->where('closed', false)
+                    ->orWhereNull('closed');
+            })
+            ->orderBy('priority', 'asc')
+            ->orderBy('date_start', 'asc')
+            ->first();
+
+        return $rule && $rule->amount !== null
+            ? (float) $rule->amount
+            : null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Model Events
     |--------------------------------------------------------------------------
     */
@@ -211,7 +262,7 @@ class Villa extends Model implements HasMedia
         static::creating(function (Villa $villa) {
             // Kod
             if (empty($villa->code)) {
-                $nextId     = (int) static::max('id') + 1;
+                $nextId      = (int) static::max('id') + 1;
                 $villa->code = 'VIL-' . str_pad((string) $nextId, 6, '0', STR_PAD_LEFT);
             }
 

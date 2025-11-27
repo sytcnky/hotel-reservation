@@ -1,65 +1,137 @@
+// resources/js/pages/villa-details.js
 import flatpickr from 'flatpickr';
 import { Turkish } from 'flatpickr/dist/l10n/tr.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('checkin');
-    if (!input) return;
+export function initVillaDetails() {
+    const box       = document.getElementById('villa-price-box');
+    const dateInput = document.getElementById('checkin');
 
-    const price = parseInt(input.dataset.price);
-    const disabledDates = JSON.parse(input.dataset.unavailable || '[]');
+    if (!box || !dateInput) {
+        return;
+    }
 
-    flatpickr(input, {
-        mode: "range",
+    const basePrice  = parseFloat(box.dataset.price || '0');      // gecelik
+    const currency   = box.dataset.currency || 'TRY';
+    const prepayRate = parseFloat(box.dataset.prepayment || '0'); // yüzde
+
+    const minNightsAttr = box.dataset.minNights;
+    const maxNightsAttr = box.dataset.maxNights;
+
+    const MIN_NIGHTS = minNightsAttr ? parseInt(minNightsAttr, 10) : 0;
+    const MAX_NIGHTS = maxNightsAttr ? parseInt(maxNightsAttr, 10) : 0;
+
+    const elBefore     = document.getElementById('price-before-selection');
+    const elAfter      = document.getElementById('price-after-selection');
+    const elNightly    = document.getElementById('price-nightly');
+    const elNights     = document.getElementById('price-nights');
+    const elPrepayment = document.getElementById('price-prepayment');
+    const elTotal      = document.getElementById('price-total');
+    const elMinNights  = document.getElementById('min-nights-feedback');
+    const elMaxNights  = document.getElementById('max-nights-feedback');
+
+    const hiddenCheckin        = document.getElementById('hidden-checkin');
+    const hiddenCheckout       = document.getElementById('hidden-checkout');
+    const hiddenNights         = document.getElementById('villa-nights');
+    const hiddenPriceNightly   = document.getElementById('villa-price-nightly');
+    const hiddenPricePrepay    = document.getElementById('villa-price-prepayment');
+    const hiddenPriceTotal     = document.getElementById('villa-price-total');
+
+    function formatMoney(value) {
+        return new Intl.NumberFormat('tr-TR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(value) + ' ' + currency;
+    }
+
+    function resetState() {
+        if (elBefore) elBefore.classList.remove('d-none');
+        if (elAfter)  elAfter.classList.add('d-none');
+
+        if (elMinNights) elMinNights.classList.add('d-none');
+        if (elMaxNights) elMaxNights.classList.add('d-none');
+
+        if (hiddenCheckin)  hiddenCheckin.value = '';
+        if (hiddenCheckout) hiddenCheckout.value = '';
+        if (hiddenNights)   hiddenNights.value = '';
+        if (hiddenPriceNightly) hiddenPriceNightly.value = '';
+        if (hiddenPricePrepay)  hiddenPricePrepay.value  = '';
+        if (hiddenPriceTotal)   hiddenPriceTotal.value   = '';
+    }
+
+    flatpickr(dateInput, {
+        mode: 'range',
         locale: Turkish,
-        dateFormat: "d.m.Y",
-        disable: disabledDates,
-        minDate: "today",
-        onChange: function(selectedDates) {
-            const footer = document.querySelector('.card-footer');
-            const warning = document.getElementById('min-nights-feedback');
-
+        dateFormat: 'd.m.Y',
+        minDate: 'today',
+        onChange(selectedDates) {
             if (selectedDates.length < 2) {
-                // Tek tarih seçildiğinde her şeyi gizle
-                document.getElementById('price-before-selection').classList.remove('d-none');
-                document.getElementById('price-after-selection').classList.add('d-none');
-                footer.classList.remove('bg-primary');
-                footer.classList.add('bg-secondary-subtle');
-                warning.classList.add('d-none');
+                resetState();
                 return;
             }
 
             const [start, end] = selectedDates;
-            const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            const nights = Math.ceil((end - start) / 86400000);
 
-            if (nights < 3) {
-                // Minimum gece sayısı sağlanmadı → uyarı göster
-                document.getElementById('price-before-selection').classList.remove('d-none');
-                document.getElementById('price-after-selection').classList.add('d-none');
-                footer.classList.remove('bg-primary');
-                footer.classList.add('bg-secondary-subtle');
-                warning.classList.remove('d-none');
+            // Min / max kontrol
+            let invalid = false;
+
+            if (MIN_NIGHTS && nights < MIN_NIGHTS) {
+                invalid = true;
+                if (elMinNights) elMinNights.classList.remove('d-none');
+            } else if (elMinNights) {
+                elMinNights.classList.add('d-none');
+            }
+
+            if (MAX_NIGHTS && nights > MAX_NIGHTS) {
+                invalid = true;
+                if (elMaxNights) elMaxNights.classList.remove('d-none');
+            } else if (elMaxNights) {
+                elMaxNights.classList.add('d-none');
+            }
+
+            if (invalid) {
+                // Koşullar sağlanmadı → state’i sıfırla ama tarihleri bırak
+                if (elBefore) elBefore.classList.remove('d-none');
+                if (elAfter)  elAfter.classList.add('d-none');
+
+                if (hiddenCheckin)  hiddenCheckin.value = '';
+                if (hiddenCheckout) hiddenCheckout.value = '';
+                if (hiddenNights)   hiddenNights.value = '';
+                if (hiddenPriceNightly) hiddenPriceNightly.value = '';
+                if (hiddenPricePrepay)  hiddenPricePrepay.value  = '';
+                if (hiddenPriceTotal)   hiddenPriceTotal.value   = '';
                 return;
             }
 
-            // ✅ Geçerli seçim → uyarıyı gizle, fiyatları hesapla
-            warning.classList.add('d-none');
+            const total      = basePrice * nights;
+            const prepayment = Math.round(total * (prepayRate / 100));
 
-            const discounted = price * nights;
-            const full = Math.round(discounted / 0.85);
+            if (elNightly)    elNightly.textContent    = formatMoney(basePrice);
+            if (elNights)     elNights.textContent     = String(nights);
+            if (elPrepayment) elPrepayment.textContent = formatMoney(prepayment);
+            if (elTotal)      elTotal.textContent      = formatMoney(total);
 
-            document.getElementById('price-multiplied').textContent = `${nights} × ${price.toLocaleString('tr-TR')}₺`;
-            document.getElementById('price-total-original').textContent = `Toplam: ${full.toLocaleString('tr-TR')}₺`;
-            document.getElementById('price-total-discounted').textContent = `Toplam: ${discounted.toLocaleString('tr-TR')}₺`;
+            if (elBefore) elBefore.classList.add('d-none');
+            if (elAfter)  elAfter.classList.remove('d-none');
 
-            document.getElementById('price-before-selection').classList.add('d-none');
-            document.getElementById('price-after-selection').classList.remove('d-none');
-
-            footer.classList.remove('bg-secondary-subtle');
-            footer.classList.add('bg-primary');
-
-            // 📩 Gizli inputlara yaz
-            document.getElementById('hidden-checkin').value = flatpickr.formatDate(start, 'Y-m-d');
-            document.getElementById('hidden-checkout').value = flatpickr.formatDate(end, 'Y-m-d');
-        }
+            if (hiddenCheckin) {
+                hiddenCheckin.value = start.toISOString().slice(0, 10);
+            }
+            if (hiddenCheckout) {
+                hiddenCheckout.value = end.toISOString().slice(0, 10);
+            }
+            if (hiddenNights) {
+                hiddenNights.value = String(nights);
+            }
+            if (hiddenPriceNightly) {
+                hiddenPriceNightly.value = basePrice.toFixed(2);
+            }
+            if (hiddenPricePrepay) {
+                hiddenPricePrepay.value = prepayment.toFixed(2);
+            }
+            if (hiddenPriceTotal) {
+                hiddenPriceTotal.value = total.toFixed(2);
+            }
+        },
     });
-});
+}

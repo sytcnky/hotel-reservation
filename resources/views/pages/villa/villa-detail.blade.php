@@ -1,29 +1,43 @@
 @extends('layouts.app')
 
-@section('title', $villa['name']['tr'])
+@section('title', $villa['name'])
 
 @section('content')
 <div class="container py-5">
     <div class="row">
         <div class="col">
             <!-- Başlık -->
-            <h1 class="mb-1">{{ $villa['name']['tr'] }}</h1>
+            <h1 class="mb-1">{{ $villa['name'] }}</h1>
 
             <!-- Temel Özellik -->
-            <div class="d-flex gap-3 mb-3 text-secondary">
+            <div class="d-flex gap-3 mb-3 text-secondary small">
+                @if(!empty($villa['max_guests']))
                 <div>
-                    <i class="fi fi-rs-user align-middle"></i> <span class="small">8 Kişi</span>
+                    <i class="fi fi-rs-user align-middle"></i>
+                    <span>{{ $villa['max_guests'] }} Kişi</span>
                 </div>
+                @endif
+                @if(!empty($villa['bedroom_count']))
                 <div>
-                    <i class="fi fi-rs-bed-alt align-middle"></i> <span class="small">3 Yatak Odası</span>
+                    <i class="fi fi-rs-bed-alt align-middle"></i>
+                    <span>{{ $villa['bedroom_count'] }} Yatak Odası</span>
                 </div>
+                @endif
+                @if(!empty($villa['bathroom_count']))
                 <div>
-                    <i class="fi fi-rs-shower align-middle"></i> <span class="small">2 Banyo</span>
+                    <i class="fi fi-rs-shower align-middle"></i>
+                    <span>{{ $villa['bathroom_count'] }} Banyo</span>
                 </div>
+                @endif
             </div>
 
             <!-- Konum -->
-            <p class="text-muted">{{ $villa['location']['city'] }}, {{ $villa['location']['region'] }}</p>
+            <p class="text-muted mb-0">
+                {{ $villa['location']['city'] ?? '' }}
+                @if(!empty($villa['location']['region']))
+                , {{ $villa['location']['region'] }}
+                @endif
+            </p>
         </div>
     </div>
 
@@ -31,130 +45,246 @@
         <div class="col-xl-8">
             <!-- Galeri -->
             <div class="gallery">
+                @php
+                $galleryImages = $villa['gallery'];
+                if (empty($galleryImages)) {
+                $galleryImages = [$villa['cover'] ?? '/images/default.jpg'];
+                }
+                @endphp
+
                 <div class="main-gallery position-relative mb-3 bg-black d-flex align-items-center justify-content-center rounded-3"
                      style="height: 420px;">
-                    @foreach ($villa['gallery'] as $index => $img)
-                    <img src="{{ asset($img) }}"
-                         class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index === 0 ? '' : 'd-none' }}"
-                         style="object-fit: contain;"
-                         data-index="{{ $index }}"
-                         alt="Görsel {{ $index + 1 }}">
+                    @foreach ($galleryImages as $index => $img)
+                    <x-responsive-image
+                        :image="$img"
+                        preset="gallery"
+                        class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index === 0 ? '' : 'd-none' }}"
+                        style="object-fit: contain;"
+                        :data-index="$index"
+                    />
                     @endforeach
                 </div>
 
-                <!-- Thumbnail -->
-                <div class="d-flex overflow-auto gap-2 pb-2 thumbnail-scroll data-gallery-thumbs">
-                    @foreach ($villa['gallery'] as $index => $img)
+                <!-- Thumbnails -->
+                <div class="d-flex overflow-auto gap-2 pb-2 thumbnail-scroll" data-gallery-thumbs>
+                    @foreach ($galleryImages as $index => $img)
                     <div class="flex-shrink-0 overflow-hidden bg-black rounded"
                          style="width: 92px; height: 92px; cursor: pointer;"
                          data-gallery-thumb>
-                        <img src="{{ asset($img) }}"
-                             class="w-100 h-100"
-                             style="object-fit: cover; object-position: center;"
-                             alt="Thumb {{ $index + 1 }}">
+                        <x-responsive-image
+                            :image="$img"
+                            preset="gallery-thumb"
+                            class="w-100 h-100"
+                            style="object-fit: cover; object-position: center;"
+                        />
                     </div>
                     @endforeach
                 </div>
             </div>
 
-            <!-- Rezervasyon Formu -->
+            {{-- Rezervasyon Formu (tarih + kişi + fiyat kutusu) --}}
             @php
-            $price = $villa['prices']['TRY'];
-            $discountedPrice = round($price * 0.85);
+            $price          = $villa['base_price'] ?? null;
+            $currency       = $villa['currency'] ?? \App\Support\Helpers\CurrencyHelper::currentCode();
+            $prepaymentRate = (float) ($villa['prepayment_rate'] ?? 0);
+            $hasPrice       = ! is_null($price);
+
+            $initialAdults   = (int) request('adults', 2);
+            $initialChildren = (int) request('children', 0);
             @endphp
 
             <div class="card shadow-sm my-4">
-                <!-- Header Kapmanya -->
-                <div class="card-header bg-danger text-white text-center small">
-                    <i class="fi fi-rs-user align-middle"></i> yeni üyelere 15% indirim!</span>
-                </div>
                 <div class="card-body">
-                    <form id="villa-booking-form">
+                    <form id="villa-booking-form"method="POST"
+                          action="{{ localized_route('villa.book') }}">
+                        @csrf
+
+                        <input type="hidden" name="villa_id" value="{{ $villa['id'] }}">
+                        <input type="hidden" name="checkin"  id="hidden-checkin">
+                        <input type="hidden" name="checkout" id="hidden-checkout">
+                        <input type="hidden" name="nights"   id="villa-nights">
+
+                        {{-- Fiyat alanları (server’a sayısal değerler gitsin) --}}
+                        <input type="hidden" name="currency"         value="{{ $currency }}">
+                        <input type="hidden" name="price_nightly"    id="villa-price-nightly">
+                        <input type="hidden" name="price_prepayment" id="villa-price-prepayment">
+                        <input type="hidden" name="price_total"      id="villa-price-total">
+
+                        {{-- Snapshot için isim --}}
+                        <input type="hidden" name="villa_name" value="{{ $villa['name'] }}">
+
+                        {{-- İstersen lokasyon etiketi de gönderebilirsin (opsiyonel) --}}
+                        @php
+                        $locationLabel = trim(($villa['location']['city'] ?? '') . ' ' . ($villa['location']['region'] ?? ''));
+                        @endphp
+                        @if($locationLabel !== '')
+                        <input type="hidden" name="location_label" value="{{ $locationLabel }}">
+                        @endif
+
                         <div class="row">
-                            <!-- Sol Sütun -->
-                            <div class="col-lg-8">
-                                <!-- Giriş Tarihi -->
+                            <!-- Sol Sütun: Tarih -->
+                            <div class="col-lg-4">
                                 <label for="checkin" class="form-label">Giriş ve Çıkış Tarihi</label>
                                 <div class="input-group">
                                     <input
                                         type="text"
                                         id="checkin"
-                                        name="checkin"
+                                        name="checkin_display"
                                         class="form-control date-input"
                                         placeholder="gg.aa.yyyy"
                                         autocomplete="off"
-                                        data-price="{{ $discountedPrice }}"
-                                        data-unavailable='@json($villa["unavailable_dates"] ?? [])'
+                                        data-price="{{ $hasPrice ? $price : 0 }}"
+                                        data-prepayment-rate="{{ $prepaymentRate }}"
+                                        data-unavailable="[]"
                                     >
                                     <div class="input-group-text bg-white">
-                                            <i class="fi fi-rr-calendar"></i>
-                                        </div>
+                                        <i class="fi fi-rr-calendar"></i>
+                                    </div>
                                     <div id="min-nights-feedback" class="invalid-feedback d-block d-none">
-                                        En az 3 gece seçmelisiniz.
+                                        En az {{ $villa['min_nights'] }} gece seçmelisiniz.
+                                    </div>
+                                    <div id="max-nights-feedback" class="invalid-feedback d-block d-none">
+                                        Bu villa maksimum {{ $villa['max_nights'] }} gece rezerve edilebilir.
                                     </div>
                                 </div>
-                                <input type="hidden" name="checkin" id="hidden-checkin">
-                                <input type="hidden" name="checkout" id="hidden-checkout">
-
                             </div>
 
-                            <!-- Sağ Sütun -->
-                            <div class="col-lg-4 mt-4 mt-lg-0 d-flex justify-content-end align-items-end text-end" id="villa-price-box"
-                                 data-price="{{ $price }}"
-                                 data-discount="{{ $discountedPrice }}">
+                            <!-- Orta Sütun: Kişi Sayısı (guestpicker) -->
+                            <div class="col-lg-4 position-relative">
+                                <label for="guestInput" class="form-label">Kişi Sayısı</label>
 
-                                {{-- Giriş öncesi görünüm --}}
+                                <div class="guest-picker-wrapper position-relative">
+                                    <div class="input-group">
+                                        <input type="text"
+                                               id="guestInput"
+                                               class="form-control guest-wrapper"
+                                               placeholder="Kişi sayısı seçin"
+                                               readonly>
+                                        <span class="input-group-text bg-white">
+                                <i class="fi fi-rr-user"></i>
+                            </span>
+                                    </div>
+
+                                    <!-- Dropdown -->
+                                    <div class="guest-dropdown border rounded shadow-sm bg-white p-3 position-absolute w-100"
+                                         style="z-index: 10; top: 100%; display: none;">
+
+                                        <!-- Yetişkin -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Yetişkin</span>
+                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary minus"
+                                                        data-type="adult">−</button>
+                                                <input type="text"
+                                                       class="form-control text-center"
+                                                       data-type="adult"
+                                                       value="{{ $initialAdults }}"
+                                                       readonly>
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary plus"
+                                                        data-type="adult">+</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Çocuk -->
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>Çocuk</span>
+                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary minus"
+                                                        data-type="child">−</button>
+                                                <input type="text"
+                                                       class="form-control text-center"
+                                                       data-type="child"
+                                                       value="{{ $initialChildren }}"
+                                                       readonly>
+                                                <button type="button"
+                                                        class="btn btn-outline-secondary plus"
+                                                        data-type="child">+</button>
+                                            </div>
+                                        </div>
+
+                                        <input type="hidden" name="adults" id="adultsInput" value="{{ $initialAdults }}">
+                                        <input type="hidden" name="children" id="childrenInput" value="{{ $initialChildren }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sağ Sütun: Fiyat Kutusu -->
+                            <div
+                                class="col-lg-4 mt-4 mt-lg-0 d-flex justify-content-end align-items-end text-end"
+                                id="villa-price-box"
+                                data-price="{{ $hasPrice ? $price : 0 }}"
+                                data-currency="{{ $currency }}"
+                                data-prepayment="{{ $villa['prepayment_rate'] ?? 0 }}"
+                                data-min-nights="{{ $villa['min_nights'] ?? '' }}"
+                                data-max-nights="{{ $villa['max_nights'] ?? '' }}"
+                            >
+                                {{-- Tarih seçilmemiş görünüm --}}
                                 <div id="price-before-selection">
-                                    <div class="text-muted text-decoration-line-through small" id="price-original">
-                                        {{ number_format($price, 0, ',', '.') }}₺
+                                    @if($hasPrice)
+                                    <div class="fs-5 fw-semibold text-primary">
+                                        {{ number_format($price, 0, ',', '.') }} {{ $currency }}
+                                        <small>/ Gece</small>
                                     </div>
-                                    <div class="fs-5 fw-semibold text-primary" id="price-discounted">
-                                            Gecelik: {{ number_format($discountedPrice, 0, ',', '.') }}₺
+                                    @else
+                                    <div class="text-muted small">
+                                        Fiyat bilgisi bulunamadı
                                     </div>
+                                    @endif
                                 </div>
 
-                                {{-- Giriş sonrası görünüm --}}
+                                {{-- Tarih seçilmiş görünüm (JS sadece sayıları doldurur) --}}
                                 <div id="price-after-selection" class="d-none">
-                                    <div class="small text-muted" id="price-multiplied">
-                                        <!-- örn: 6 x 8.500₺ -->
+                                    <div class="small text-muted">
+                                        Gecelik:
+                                        <span id="price-nightly"></span>
+                                        ×
+                                        <span id="price-nights"></span>
                                     </div>
-                                    <div class="small text-decoration-line-through" id="price-total-original">
-                                        <!-- örn: Toplam: 51.000₺ -->
+
+                                    <div class="small fw-semibold text-danger">
+                                        Ön ödeme:
+                                        <span id="price-prepayment"></span>
                                     </div>
-                                    <div class="fs-5 fw-bold text-primary" id="price-total-discounted">
-                                        <!-- örn: Toplam: 43.350₺ -->
+
+                                    <div class="fs-5 fw-bold text-primary mt-1">
+                                        Toplam:
+                                        <span id="price-total"></span>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
+
+                        <button type="submit"
+                                class="btn btn-primary w-100 mt-3">
+                            Sepete Ekle
+                        </button>
                     </form>
                 </div>
-
-                <!-- Footer Buton -->
-                <div class="card-footer bg-secondary-subtle text-white text-center">
-                    <strong>Rezervasyon Yap</strong>
-                </div>
             </div>
-
 
             <!-- Açıklama -->
+            @if (!empty($villa['description']))
             <div class="mb-4">
-                <p>{{ $villa['description']['tr'] }}</p>
+                <p>{{ $villa['description'] }}</p>
             </div>
+            @endif
 
-            <!-- Villa Tipi Badge'leri -->
+            <!-- Villa Tipi / Kategori Badge -->
+            @if (!empty($villa['category_name']))
             <div class="mb-3">
-                @foreach ($villa['types'] as $type)
-                <span class="badge bg-secondary me-1">{{ $type }}</span>
-                @endforeach
+                <span class="badge bg-secondary me-1">{{ $villa['category_name'] }}</span>
             </div>
+            @endif
 
-            @if (!empty($villa['highlights']['tr']))
+            <!-- Öne Çıkan Özellikler -->
+            @if (!empty($villa['highlights']))
             <div class="mb-4 bg-light p-4 rounded shadow-sm" id="highlight-section">
                 <h5 class="mb-3">Öne Çıkan Özellikler</h5>
                 <div class="row">
-                    @foreach ($villa['highlights']['tr'] as $item)
+                    @foreach ($villa['highlights'] as $item)
                     <div class="col-12 mb-2 d-flex align-items-baseline">
                         <i class="fi fi-ss-badge-check me-2 mt-2 text-success"></i>
                         <span>{{ $item }}</span>
@@ -164,25 +294,12 @@
             </div>
             @endif
 
-            @if (!empty($villa['facilities']['tr']))
-            <div class="mb-4 bg-light p-4 rounded shadow-sm" id="facility-section">
-                <h5 class="mb-3">Villa Olanakları</h5>
-                <div class="row">
-                    @foreach ($villa['facilities']['tr'] as $item)
-                    <div class="col-6 mb-2 d-flex align-items-baseline">
-                        <i class="fi fi-br-check me-2 text-success"></i>
-                        <span>{{ $item }}</span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            @if (!empty($villa['accommodation_info']['tr']))
+            <!-- Konaklama Hakkında -->
+            @if (!empty($villa['accommodation_info']))
             <div class="mb-4 bg-light p-4 rounded shadow-sm" id="accommodation-info-section">
                 <h5 class="mb-3">Konaklama Hakkında</h5>
                 <ul class="list-unstyled mb-0">
-                    @foreach ($villa['accommodation_info']['tr'] as $item)
+                    @foreach ($villa['accommodation_info'] as $item)
                     <li class="mb-2 d-flex align-items-baseline">
                         <i class="fi fi-rr-info me-2 mt-2 text-info"></i>
                         <span>{{ $item }}</span>
@@ -191,7 +308,6 @@
                 </ul>
             </div>
             @endif
-
         </div>
 
         <!-- Sağ Sütun -->
@@ -205,7 +321,9 @@
                     <h6 class="fw-light mb-0">Hoş geldin hediyesi!</h6>
                     <h2 class="fw-bold mb-2" style="color: hotpink">%15 indirim</h2>
                     <p class="mb-3 text-shadow-transparent w-75 small">
-                        İlk rezervasyonunuzda geçerli <strong class="d-inline-block whitespace-nowrap">%15 indirim</strong> fırsatı!
+                        İlk rezervasyonunuzda geçerli
+                        <strong class="d-inline-block whitespace-nowrap">%15 indirim</strong>
+                        fırsatı!
                     </p>
                     <a href="#" class="btn btn-outline-light fw-semibold btn-sm">Hesap Oluştur</a>
                 </div>
@@ -219,37 +337,116 @@
                 <div class="position-relative p-4" style="z-index: 2;">
                     <h6 class="fw-light mb-0">7 Gece rezervasyonunuza</h6>
                     <h4 class="fw-bold mb-2">Ücretsiz Transfer</h4>
-                    <a href="#" class="btn btn-outline-light fw-semibold mt-3 btn-sm">Havaalanı Transferi</a>
+                    <a href="{{ localized_route('transfers') }}"
+                       class="btn btn-outline-light fw-semibold mt-3 btn-sm">
+                        Havaalanı Transferi
+                    </a>
                 </div>
             </div>
 
-            <!-- Google Maps -->
+            <!-- Google Maps + Yakındaki Yerler -->
             <div class="bg-light p-4 rounded shadow-sm">
-                <!-- Harita -->
                 <div class="ratio ratio-16x9 rounded shadow-sm overflow-hidden mb-4">
+                    @if (!empty($villa['latitude']) && !empty($villa['longitude']))
                     <iframe
-                        src="https://www.google.com/maps?q=41.061296,28.987531&hl=tr&z=16&output=embed"
+                        src="https://www.google.com/maps?q={{ $villa['latitude'] }},{{ $villa['longitude'] }}&hl={{ app()->getLocale() }}&z=16&output=embed"
                         width="100%"
                         height="100%"
                         style="border:0;"
-                        allowfullscreen=""
+                        allowfullscreen
                         loading="lazy"
                         referrerpolicy="no-referrer-when-downgrade">
                     </iframe>
+                    @else
+                    <div class="d-flex align-items-center justify-content-center h-100 text-muted small">
+                        Konum bilgisi yakında eklenecek.
+                    </div>
+                    @endif
                 </div>
+
                 @if (!empty($villa['nearby_places']))
                 <h5 class="mt-4 mb-3">Yakındaki Yerler</h5>
                 <ul class="list-unstyled mb-0 small">
                     @foreach ($villa['nearby_places'] as $place)
                     <li class="mb-2 d-flex align-items-start">
+                        @if (!empty($place['icon']))
                         <i class="fi {{ $place['icon'] }} me-2 text-primary fs-5"></i>
-                        {{ $place['label'] }} — <strong class="ms-1">{{ $place['value'] }}</strong>
+                        @endif
+                        {{ $place['label'] ?? '' }}
+                        @if (!empty($place['value']))
+                        — <strong class="ms-1">{{ $place['value'] }}</strong>
+                        @endif
                     </li>
                     @endforeach
                 </ul>
+                @endif
+
+                @if (!empty($villa['promo_video_id']))
+                <hr class="my-4">
+                <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm">
+                    <iframe
+                        src="https://www.youtube.com/embed/{{ $villa['promo_video_id'] }}?modestbranding=1&rel=0"
+                        title="Tanıtım videosu"
+                        allowfullscreen
+                        loading="lazy"
+                        style="border:0;">
+                    </iframe>
+                </div>
                 @endif
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('villa-booking-form');
+        if (!form) {
+            return;
+        }
+
+        const adultInput   = form.querySelector('input[data-type="adult"]');
+        const childInput   = form.querySelector('input[data-type="child"]');
+        const hiddenAdults = form.querySelector('#adultsInput');
+        const hiddenChilds = form.querySelector('#childrenInput');
+        const guestInput   = document.getElementById('guestInput');
+
+        const initialAdults   = {{ $initialAdults }};
+        const initialChildren = {{ $initialChildren }};
+
+        function updateGuestDisplay() {
+            if (!guestInput) return;
+
+            const a = parseInt(adultInput?.value || '0', 10);
+            const c = parseInt(childInput?.value || '0', 10);
+
+            const parts = [];
+            if (a > 0) parts.push(a + ' Yetişkin');
+            if (c > 0) parts.push(c + ' Çocuk');
+
+            guestInput.value = parts.join(', ');
+        }
+
+        function syncHidden() {
+            if (hiddenAdults && adultInput) {
+                hiddenAdults.value = adultInput.value || 0;
+            }
+            if (hiddenChilds && childInput) {
+                hiddenChilds.value = childInput.value || 0;
+            }
+        }
+
+        // İlk yüklemede server-side state'i inputlara bas
+        if (adultInput)   adultInput.value   = initialAdults;
+        if (childInput)   childInput.value   = initialChildren;
+        if (hiddenAdults) hiddenAdults.value = initialAdults;
+        if (hiddenChilds) hiddenChilds.value = initialChildren;
+        updateGuestDisplay();
+
+        // Form submit'te son değerleri gizli inputlara yaz
+        form.addEventListener('submit', function () {
+            syncHidden();
+        });
+    });
+</script>

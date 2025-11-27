@@ -138,6 +138,12 @@
             'ci'  => $ci,
             ])
 
+            @elseif ($type === 'villa')
+            @include('pages.cart.item-villa', [
+            'key' => $key,
+            'ci'  => $ci,
+            ])
+
             @else
             {{-- DİĞER / GEÇİCİ ÜRÜNLER --}}
             <div class="card shadow-sm mb-3 position-relative">
@@ -181,35 +187,6 @@
             @endforeach
             @endif
             {{-- <<< DİNAMİK BİTİŞ --}}
-
-            {{-- DEMO öğeleri (bir süre kalsın) --}}
-            <div class="card shadow-sm mb-4 position-relative">
-                <button type="button" class="btn btn-sm btn-light text-danger position-absolute top-0 end-0 m-2" title="Sil">
-                    <i class="fi fi-rr-trash"></i>
-                </button>
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-4 col-md-3">
-                            <img src="{{ asset('/images/samples/villa-sample-1.jpg') }}" class="img-fluid rounded object-fit-cover" alt="Villa görseli">
-                        </div>
-                        <div class="col-8 col-md-6">
-                            <div class="small text-uppercase text-muted mb-1">Villa</div>
-                            <h5 class="mb-1">Villa Sedef</h5>
-                            <div class="text-muted small">
-                                <div><i class="fi fi-rr-calendar"></i> 25 Aug → 30 Aug (5 Gece)</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-3 text-md-end">
-                            <div class="fw-bold fs-5 text-primary">Ön Ödeme: ₺3.000</div>
-                            <div class="small text-muted">
-                                Kalan: ₺15.750
-                                <i class="fi fi-rr-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Kalan ücret konaklama sırasında alınır."></i>
-                            </div>
-                            <div class="small text-muted">Toplam: ₺18.750</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             {{-- Kampanya Banner (dummy) --}}
             <div class="mb-4 position-relative text-white rounded shadow bg-secondary" style="min-height: 160px;">

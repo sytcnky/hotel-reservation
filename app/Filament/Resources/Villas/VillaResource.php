@@ -80,7 +80,7 @@ class VillaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Şimdilik villa tarafında relation manager yok (oda ilişkisi yok).
+            // villa tarafında relation manager yok (oda ilişkisi yok).
         ];
     }
 

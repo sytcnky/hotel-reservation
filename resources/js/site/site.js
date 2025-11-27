@@ -9,9 +9,9 @@ import { initHotelDetails } from './pages/hotel-details';
 import { initTransferForm } from './pages/transfer';
 import './pages/home.js';
 import './pages/hotel-listing';
-import './pages/villa-details.js';
 import './components/coupons.js'
 import { initExcursionDetails } from './pages/excursion-details';
+import { initVillaDetails } from './pages/villa-details.js';
 import { initHelpSearch } from './pages/help';
 import { initPayment } from './pages/payment';
 import { initPhoneInputs } from './ui/phone-input';
@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initExcursionDetails();
     initTransferForm();
     initHotelDetails();
+    initVillaDetails();
     initPayment();
     initHelpSearch();
     initPhoneInputs();
