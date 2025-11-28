@@ -29,6 +29,23 @@ LocalizedRoute::post('tour.book', 'excursions/book', [CheckoutController::class,
 /** Villa booking -> sepete ekleme */
 LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'bookVilla']);
 
+/** Checkout complete (sepet -> sipariş) */
+LocalizedRoute::post(
+    'checkout.complete',
+    'checkout/complete',
+    [CheckoutController::class, 'complete']
+);
+
+/** Sipariş teşekkür sayfası */
+LocalizedRoute::get(
+    'order.thankyou',
+    'order/thankyou/{code}',
+    function ($code) {
+        return view('pages.order.thankyou', ['code' => $code]);
+    }
+);
+
+
 /*
 |--------------------------------------------------------------------------
 | Locale switch

@@ -22,27 +22,10 @@ class VillaResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    public static function getNavigationGroup(): ?string
-    {
-        return __('admin.nav.villa_group');
-    }
-
-    public static function getNavigationLabel(): string
-    {
-        return __('admin.villas.plural');
-    }
-
-    public static function getModelLabel(): string
-    {
-        return __('admin.villas.singular');
-    }
-
-    public static function getPluralModelLabel(): string
-    {
-        return __('admin.villas.plural');
-    }
+    public static function getNavigationGroup(): ?string { return __('admin.nav.villa_group'); }
+    public static function getNavigationLabel(): string { return __('admin.villas.plural'); }
+    public static function getModelLabel(): string { return __('admin.villas.singular'); }
+    public static function getPluralModelLabel(): string { return __('admin.villas.plural'); }
 
     public static function getRecordTitle(?Model $record): string
     {

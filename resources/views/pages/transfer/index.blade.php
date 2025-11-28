@@ -392,6 +392,7 @@
                     <input type="hidden" name="from_label" value="{{ $fromLabel }}">
                     <input type="hidden" name="to_label" value="{{ $toLabel }}">
                     <input type="hidden" name="vehicle_image" value="{{ $transferOffer['vehicle_image'] ?? '' }}">
+                    <input type="hidden" name="vehicle_name" value="{{ $transferOffer['vehicle_name'] ?? '' }}">
 
                     <div class="bg-light p-3 mt-3 rounded">
                         <div class="row">

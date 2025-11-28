@@ -8,7 +8,8 @@ return [
         'hotel_group' => 'Otel',
         'transfer_group' => 'Transfer',
         'tour_group' => 'Günlük Tur',
-        'villa_group' => 'Villa'
+        'villa_group' => 'Villa',
+        'order_group' => 'Sipariş'
     ],
     'ent' => [
         'language' => [
@@ -412,5 +413,89 @@ return [
         'fri' => 'Cu',
         'sat' => 'Ct',
         'sun' => 'Pa'
-    ]
+    ],
+    'orders' => [
+        'singular' => 'Sipariş',
+        'plural'   => 'Siparişler',
+        'sections' => [
+            'order_info'   => 'Sipariş Bilgileri',
+            'payment_info' => 'Ödeme Bilgileri',
+            'items'        => 'Sipariş Kalemleri',
+            'operations'   => 'Operasyon Alanları',
+        ],
+
+        'form' => [
+            'code'            => 'Sipariş Kodu',
+            'created_at'      => 'Sipariş Tarihi',
+            'customer_name'   => 'Müşteri Adı',
+            'customer_email'  => 'E-posta',
+            'customer_phone'  => 'Telefon',
+            'status'          => 'Sipariş Durumu',
+            'payment_status'  => 'Ödeme Durumu',
+            'currency'        => 'Para Birimi',
+            'total_amount'    => 'Ödenen Toplam Tutar',
+            'coupon'          => 'Kupon',
+            'paid_at'         => 'Ödeme Zamanı',
+            'cancelled_at'    => 'İptal Zamanı',
+            'operation_note'  => 'Operasyon Notu',
+        ],
+
+        'table' => [
+            'code'            => 'Kod',
+            'status'          => 'Durum',
+            'payment_status'  => 'Ödeme',
+            'currency'        => 'Kur',
+            'total_amount'    => 'Toplam',
+            'discount_amount' => 'İndirim',
+            'customer_name'   => 'Müşteri',
+            'customer_email'  => 'E-posta',
+            'customer_phone'  => 'Telefon',
+            'paid_at'         => 'Ödendi',
+            'cancelled_at'    => 'İptal',
+            'created_at'      => 'Oluşturma',
+        ],
+
+        'status' => [
+            'pending'   => 'Beklemede',
+            'confirmed' => 'Onaylandı',
+            'cancelled' => 'İptal Edildi',
+        ],
+
+        'payment_status' => [
+            'paid'     => 'Ödendi',
+            'unpaid'   => 'Ödenmedi',
+            'refunded' => 'İade Edildi',
+        ],
+
+        'items' => [
+            'hotel_name'       => 'Otel Adı',
+            'room_name'        => 'Oda',
+            'board_type'       => 'Board Type',
+            'villa_name'       => 'Villa Adı',
+            'tour_name'        => 'Tur Adı',
+            'date'             => 'Tarih',
+            'route'            => 'Rota',
+            'vehicle'          => 'Araç',
+            'departure_date'   => 'Gidiş Tarihi',
+            'return_date'      => 'Dönüş Tarihi',
+            'departure_flight' => 'Gidiş Uçuş No',
+            'return_flight'    => 'Dönüş Uçuş No',
+            'checkin'          => 'Giriş Tarihi',
+            'checkout'         => 'Çıkış Tarihi',
+            'pax'              => 'Kişi Sayısı',
+            'paid'             => 'Alınan Ücret',
+            'remaining'        => 'Kalan Ücret',
+            'total'            => 'Toplam Ücret',
+        ],
+
+        'coupon' => [
+            'not_applied' => 'Kupon uygulanmadı',
+        ],
+
+        'pax' => [
+            'adult'  => '{1}:count Yetişkin|[2,*]:count Yetişkin',
+            'child'  => '{1}:count Çocuk|[2,*]:count Çocuk',
+            'infant' => '{1}:count Bebek|[2,*]:count Bebek',
+        ],
+    ],
 ];

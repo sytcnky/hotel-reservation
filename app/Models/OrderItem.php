@@ -2,40 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class OrderItem extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'order_id',
-        'product_type',
-        'product_id',
-        'title_snapshot',
-        'date_snapshot',
-        'guest_snapshot',
-        'amount',
-        'currency',
-        'meta',
-    ];
+    protected $table = 'order_items';
+
+    protected $guarded = [];
 
     protected $casts = [
-        'amount'        => 'decimal:2',
-        'date_snapshot' => 'array',
-        'guest_snapshot'=> 'array',
-        'meta'          => 'array',
+        'unit_price'  => 'float',
+        'total_price' => 'float',
+        'snapshot'    => 'array',
     ];
 
-    // İlişkiler
+    /*
+    |--------------------------------------------------------------------------
+    | Relations
+    |--------------------------------------------------------------------------
+    */
+
     public function order()
     {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function transferBooking()
-    {
-        return $this->hasOne(TransferBooking::class);
+        return $this->belongsTo(\App\Models\Order::class);
     }
 }

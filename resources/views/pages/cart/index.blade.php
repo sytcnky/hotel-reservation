@@ -25,6 +25,12 @@
             <div class="alert alert-success mt-3">Ürün sepetinize başarıyla eklendi.</div>
             @endif
 
+            @if (session('err'))
+            <div class="alert alert-danger mt-3">
+                {{ session('err') }}
+            </div>
+            @endif
+
             {{-- Kuponlarım (dummy / görsel amaçlı) --}}
             <div class="mb-4 p-4 bg-light rounded" id="couponCarousel1">
                 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -41,8 +47,6 @@
 
                 <div class="coupon-viewport overflow-hidden">
                     <div class="coupon-track d-flex gap-3">
-                        {{-- ... dummy kupon kartları ... --}}
-                        {{-- (Burayı değiştirmiyorum) --}}
                         <div class="coupon-card border border-2 border-dashed rounded p-2 bg-white d-flex align-items-center">
                             <div class="coupon-badge border me-2 text-center">
                                 <div class="h4 fw-bolder text-primary mb-0">%5</div>
@@ -141,7 +145,6 @@
             ])
 
             @else
-            {{-- DİĞER / GEÇİCİ ÜRÜNLER --}}
             @php
             $amount   = (float)($ci['amount'] ?? 0);
             $currency = $ci['currency'] ?? $cartCurrency;
@@ -205,7 +208,7 @@
                 </div>
             </div>
 
-            {{-- Not Alanı --}}
+            {{-- Not Alanı (şimdilik sadece görsel) --}}
             <div class="card shadow-sm">
                 <div class="card-body">
                     <label class="form-label fw-semibold">Not (opsiyonel)</label>
@@ -220,6 +223,7 @@
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">
                         <h2 class="h5 mb-3">Sipariş Özeti</h2>
+
                         <div class="d-flex justify-content-between small mb-2">
                             <span>Ara toplam</span>
                             <span>
@@ -258,10 +262,21 @@
                             </span>
                         </div>
 
+                        {{-- Şimdiki login/ödeme butonu (ileride gerçek ödeme sayfasına dönecek) --}}
                         <a href="{{ route('login', ['redirect' => '/payment', 'from_cart' => 1]) }}"
                            class="btn btn-primary w-100 mt-3">
                             Ödeme Yap
                         </a>
+
+                        {{-- Siparişi Tamamla -> checkout.complete --}}
+                        <form method="POST"
+                              action="{{ localized_route('checkout.complete') }}"
+                              class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-success w-100">
+                                Siparişi Tamamla
+                            </button>
+                        </form>
 
                         <div class="form-check mt-3">
                             <input class="form-check-input" type="checkbox" id="chkCorporate" data-bs-toggle="collapse" data-bs-target="#corporateFields" aria-expanded="false">

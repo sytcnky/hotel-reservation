@@ -63,9 +63,14 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 NavigationGroup::make()
+                    ->label(fn (): string => __('admin.nav.order_group'))
+                    ->icon('heroicon-o-rectangle-stack'),
+                NavigationGroup::make()
                     ->label(fn (): string => __('admin.nav.hotel_group'))
                     ->icon('heroicon-o-building-office'),
-
+                NavigationGroup::make()
+                    ->label(fn (): string => __('admin.nav.villa_group'))
+                    ->icon('heroicon-o-home-modern'),
                 NavigationGroup::make()
                     ->label(fn (): string => __('admin.nav.transfer_group'))
                     ->icon('heroicon-o-map-pin'),
