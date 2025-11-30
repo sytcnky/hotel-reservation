@@ -9,7 +9,8 @@ return [
         'transfer_group' => 'Transfer',
         'tour_group' => 'Günlük Tur',
         'villa_group' => 'Villa',
-        'order_group' => 'Sipariş'
+        'order_group' => 'Sipariş',
+        'coupon_group' => 'Kuponlar'
     ],
     'ent' => [
         'language' => [
@@ -498,4 +499,135 @@ return [
             'infant' => '{1}:count Bebek|[2,*]:count Bebek',
         ],
     ],
+
+    'coupons' => [
+        'singular' => 'Kupon',
+        'plural'   => 'Kuponlar',
+
+        'table' => [
+            'code'               => 'Kupon Kodu',
+            'title'              => 'Başlık',
+            'discount'           => 'İndirim',
+            'scope_type'         => 'Kapsam',
+            'active'             => 'Aktif',
+            'valid_from'         => 'Başlangıç',
+            'valid_until'        => 'Bitiş',
+            'is_exclusive'       => 'Tek Başına',
+            'max_uses_per_user'  => 'Kullanıcı başı limit',
+            'created_at'         => 'Oluşturma',
+
+            'filter_active'      => 'Aktif durum',
+        ],
+
+        'form' => [
+            'title'                   => 'Başlık',
+            'description'             => 'Açıklama',
+
+            'badge_main'              => 'Ana Rozet Metni',
+            'badge_main_help'         => 'Listelerde büyük görünen rozet metni.',
+
+            'badge_label'             => 'Alt Rozet Metni',
+            'badge_label_help'        => 'Küçük rozet etiketi (isteğe bağlı).',
+
+            'active'                  => 'Aktif mi?',
+
+            'code'                    => 'Kupon Kodu',
+            'code_help'               => 'Boş bırakılırsa sistem otomatik üretebilir.',
+
+            'discount_type'           => 'İndirim Tipi',
+            'discount_type_percent'   => '% Yüzdelik İndirim',
+            'discount_type_amount'    => 'Tutar İndirimi',
+
+            'percent_value'           => 'Yüzde Oranı (%)',
+
+            'amount'                  => 'İndirim Tutarı',
+            'min_booking_amount'      => 'Minimum Sepet Tutarı',
+            'max_discount_amount'     => 'Maksimum İndirim Tutarı',
+            'max_discount_amount_help'=> 'İndirimi maksimum değer ile sınırlar.',
+
+            'valid_from'              => 'Geçerlilik Başlangıcı',
+            'valid_until'             => 'Geçerlilik Bitişi',
+            'valid_until_help'        => 'Boş bırakılırsa açık uçlu devam eder.',
+
+            'scope_type'              => 'Kapsam Tipi',
+            'scope_type_order_total'  => 'Tüm Sepet',
+            'scope_type_product_type' => 'Ürün Tipi',
+            'scope_type_product'      => 'Belirli Ürün',
+
+            'product_types'           => 'Ürün Tipleri',
+            'product_type_hotel'      => 'Otel',
+            'product_type_villa'      => 'Villa',
+            'product_type_tour'       => 'Tur',
+            'product_type_transfer'   => 'Transfer',
+
+            'product_domain'          => 'Ürün Alanı',
+            'product_name'            => 'Ürün Adı',
+
+            'min_nights'              => 'Minimum Gece',
+            'min_nights_help'         => 'Bu koşul, siparişteki toplam gece sayısına göre çalışır. Ürün türünden bağımsız olarak kullanılabilir.',
+
+            'is_exclusive'            => 'Tek Başına Kullanılabilir',
+            'is_exclusive_help'       => 'Evet ise, bu kupon başka kuponlarla aynı sepette aktif olamaz.',
+
+            'max_uses_per_user'       => 'Kullanıcı Başına Kullanım Limiti',
+            'max_uses_per_user_help'  => 'Boş bırakılırsa sınırsızdır.',
+        ],
+
+        'sections' => [
+            'currencies' => 'Para Birimleri',
+            'status'     => 'Durum',
+            'scope'      => 'Kapsam',
+            'usage'      => 'Kullanım',
+        ],
+
+        'bulk' => [
+
+            // Navigasyon / Başlıklar
+            'navigation_label'          => 'Toplu Kupon İşlemleri',
+            'page_title'                => 'Toplu Kupon İşlemleri',
+
+            // Kupon seçimi
+            'coupon_section_title'      => 'Kupon seçimi',
+            'coupon_section_help'       => 'Atamak istediğiniz kuponu seçin.',
+            'coupon_field_label'        => 'Kupon',
+
+            // Segment / hedefleme
+            'segment_section_title'     => 'Hedefleme',
+            'segment_section_help'      => 'İşlemin uygulanacağı kullanıcı segmentini belirleyin.',
+            'segment_mode_label'        => 'Kullanıcı segmenti',
+            'segment_mode_all'          => 'Tüm müşteriler',
+            'segment_mode_filters'      => 'Filtre uygulayacağım',
+
+            // Mevcut kayıt stratejisi
+            'existing_strategy'         => 'Mevcut kayıt davranışı',
+            'strategy_skip'             => 'Var ise atla',
+            'strategy_update'           => 'Var ise güncelle',
+
+            // expires_at
+            'new_expires_at'            => 'Yeni geçerlilik tarihi',
+
+            // Önizleme / Sonuç
+            'preview_title'             => 'Önizleme / Sonuç',
+            'preview_empty'             => 'Henüz dry-run çalıştırılmadı.',
+            'preview_count'             => ':count kullanıcı etkilenecek.',
+            'preview_sample_label'      => 'Örnek kullanıcı listesi',
+            'sample_name'               => 'Ad Soyad',
+            'sample_email'              => 'E-posta',
+
+            // Sonuç özet alanları
+            'result_summary_title'      => 'İşlem Özeti',
+            'result_total'              => 'Toplam kullanıcı',
+            'result_inserted'           => 'Yeni atanan',
+            'result_updated'            => 'Güncellenen',
+            'result_skipped'            => 'Atlanan',
+
+            // Butonlar
+            'button_dry_run'            => 'Dry-run çalıştır',
+            'button_apply'              => 'Uygula',
+
+            // Bildirimler
+            'notification_done'         => 'İşlem başarıyla tamamlandı.',
+        ],
+    ],
+
 ];
