@@ -179,7 +179,7 @@
             <div class="mb-4 position-relative text-white rounded shadow bg-primary rounded"
                  style="min-height: 200px;">
                 <div class="position-absolute bottom-0"
-                     style="right:-100px; z-index: 1; overflow: hidden; width: 280px;">
+                     style="right:-15px; z-index: 1; overflow: hidden; width: 220px;">
                     <img src="/images/banner-woman.png" alt="Kampanya" class="img-fluid">
                 </div>
                 <div class="position-relative p-4" style="z-index: 2;">

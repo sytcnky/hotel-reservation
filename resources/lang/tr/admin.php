@@ -423,6 +423,7 @@ return [
             'payment_info' => 'Ödeme Bilgileri',
             'items'        => 'Sipariş Kalemleri',
             'operations'   => 'Operasyon Alanları',
+            'discounts'   => 'İndirimler',
         ],
 
         'form' => [
@@ -434,11 +435,15 @@ return [
             'status'          => 'Sipariş Durumu',
             'payment_status'  => 'Ödeme Durumu',
             'currency'        => 'Para Birimi',
-            'total_amount'    => 'Ödenen Toplam Tutar',
+            'total_amount'    => 'Toplam Tutar',
+            'payable_total'   => 'Tahsil Edilen Tutar',
             'coupon'          => 'Kupon',
             'paid_at'         => 'Ödeme Zamanı',
             'cancelled_at'    => 'İptal Zamanı',
             'operation_note'  => 'Operasyon Notu',
+            'discounts_none'  => 'Gerçekleşen indirim bulunmuyor',
+            'discount_total'  => 'Toplam İndirim',
+            'badge_coupon'    => 'Kupon',
         ],
 
         'table' => [
@@ -522,9 +527,6 @@ return [
         'form' => [
             'title'                   => 'Başlık',
             'description'             => 'Açıklama',
-
-            'badge_main'              => 'Ana Rozet Metni',
-            'badge_main_help'         => 'Listelerde büyük görünen rozet metni.',
 
             'badge_label'             => 'Alt Rozet Metni',
             'badge_label_help'        => 'Küçük rozet etiketi (isteğe bağlı).',

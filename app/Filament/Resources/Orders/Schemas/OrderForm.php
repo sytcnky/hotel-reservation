@@ -111,6 +111,7 @@ class OrderForm
                                                     ->state(fn (?Order $record) => $record?->currency ?? '-'),
                                             ]),
 
+                                            // Sipariş Toplamı (kuponsuz brüt)
                                             TextEntry::make('total_amount')
                                                 ->label(__('admin.orders.form.total_amount'))
                                                 ->state(function (?Order $record) {
@@ -124,25 +125,75 @@ class OrderForm
                                                     return trim($amount . ' ' . $currency);
                                                 }),
 
-                                            TextEntry::make('coupon_summary')
-                                                ->label(__('admin.orders.form.coupon'))
+                                            // İndirimler listesi
+                                            Section::make(__('admin.orders.sections.discounts')) // "İndirimler"
+                                            ->schema([
+                                                // Satır satır indirim kalemleri
+                                                RepeatableEntry::make('discounts_for_infolist')
+                                                    ->hiddenLabel()
+                                                    ->schema([
+                                                        Grid::make(['default' => 1, 'lg' => 12])
+                                                            ->schema([
+                                                                // Sol: Tutar
+                                                                TextEntry::make('amount')
+                                                                    ->hiddenLabel()
+                                                                    ->columnSpan(['default' => 12, 'lg' => 3]),
+
+                                                                // Orta: Açıklama (kupon başlığı vb.)
+                                                                TextEntry::make('label')
+                                                                    ->hiddenLabel()
+                                                                    ->columnSpan(['default' => 12, 'lg' => 7]),
+
+                                                                // Sağ: Badge (Kupon / Kampanya)
+                                                                TextEntry::make('badge')
+                                                                    ->hiddenLabel()
+                                                                    ->badge()
+                                                                    ->color('primary')
+                                                                    ->columnSpan(['default' => 12, 'lg' => 2]),
+                                                            ]),
+                                                    ])
+                                                    ->columns(1)
+                                                    // Hiç indirim yoksa tabloyu gizle
+                                                    ->hidden(fn ($record, $state) => empty($state)),
+
+                                                // Hiç indirim yoksa gösterilecek mesaj
+                                                TextEntry::make('discounts_empty')
+                                                    ->hiddenLabel()
+                                                    ->state(fn (?Order $record) => __('admin.orders.form.discounts_none')) // "İndirim uygulanmamıştır."
+                                                    ->hidden(fn (?Order $record) => ! empty($record?->discounts_for_infolist)),
+                                            ])
+                                                ->contained(false),
+
+                                            // Toplam indirim (tüm kupon/kampanya indirimlerinin toplamı)
+                                            TextEntry::make('discount_total')
+                                                ->label(__('admin.orders.form.discount_total')) // Örn: "Toplam İndirim"
                                                 ->state(function (?Order $record) {
-                                                    if (! $record) {
+                                                    if (! $record || ! $record->discount_amount) {
                                                         return '-';
                                                     }
 
-                                                    if (! $record->coupon_code) {
-                                                        return __('admin.orders.coupon.not_applied');
+                                                    $amount   = number_format((float) $record->discount_amount, 2, ',', '.');
+                                                    $currency = strtoupper($record->currency ?? '');
+
+                                                    return trim($amount . ' ' . $currency);
+                                                }),
+
+                                            // Tahsil Edilen Tutar (bugün için: total_amount - discount_amount)
+                                            TextEntry::make('payable_total')
+                                                ->label(__('admin.orders.form.payable_total'))
+                                                ->state(function (?Order $record) {
+                                                    if (! $record || $record->total_amount === null) {
+                                                        return '-';
                                                     }
 
-                                                    $amount = $record->discount_amount
-                                                        ? number_format((float) $record->discount_amount, 2, ',', '.') .
-                                                        ' ' . strtoupper($record->currency ?? '')
-                                                        : null;
+                                                    $gross    = (float) $record->total_amount;
+                                                    $discount = (float) ($record->discount_amount ?? 0);
+                                                    $payable  = max($gross - $discount, 0);
 
-                                                    return $amount
-                                                        ? $record->coupon_code . ' (−' . $amount . ')'
-                                                        : $record->coupon_code;
+                                                    $amount   = number_format($payable, 2, ',', '.');
+                                                    $currency = strtoupper($record->currency ?? '');
+
+                                                    return trim($amount . ' ' . $currency);
                                                 }),
 
                                             Grid::make()->columns(2)->schema([
@@ -163,6 +214,7 @@ class OrderForm
                                                     ),
                                             ]),
                                         ]),
+
 
                                     /*
                                      * SİPARİŞ KALEMLERİ

@@ -6,9 +6,12 @@ use App\Http\Requests\TransferBookingRequest;
 use App\Http\Requests\TourBookingRequest;
 use App\Http\Requests\HotelBookingRequest;
 use App\Http\Requests\VillaBookingRequest;
-use Illuminate\Http\Request;
 use App\Models\Hotel;
+use App\Models\UserCoupon;
 use App\Models\Villa;
+use App\Services\CouponViewModelService;
+use App\Support\Helpers\CurrencyHelper;
+use Illuminate\Http\Request;
 
 class CheckoutController extends Controller
 {
@@ -192,37 +195,53 @@ class CheckoutController extends Controller
 
     /**
      * Sepeti Order’a çevirir
+     *
+     * @param  array  $cart
+     * @param  array  $customerData
+     * @param  float  $couponDiscountTotal  Kuponlardan gelen toplam indirim (sepet bağlamında yeniden hesaplanmış)
+     * @param  array  $couponSnapshot       Kupon snapshot listesi
      */
-    private function createOrderFromCart(array $cart, array $customerData): \App\Models\Order
-    {
+    private function createOrderFromCart(
+        array $cart,
+        array $customerData,
+        float $couponDiscountTotal = 0.0,
+        array $couponSnapshot = []
+    ): \App\Models\Order {
         $items = $cart['items'] ?? [];
 
         if (empty($items)) {
-            throw new \RuntimeException('Sepet boş.');
+            throw new \RuntimeException('cart_empty');
         }
 
-        // Para birimi: tüm satırlar aynı olmalı (senin mimarinde böyle)
+        // Para birimi: tüm satırlar aynı olmalı
         $currency = $items[0]['currency'];
 
-        // Toplamlar
-        $totalAmount     = 0;
-        $totalPrepayment = 0;
+        // Toplam (kuponsuz raw toplam) → sepet satırlarındaki amount'ların toplamı
+        $totalAmount = 0.0;
 
         foreach ($items as $ci) {
-            $totalAmount     += (float) $ci['amount'];
-            $totalPrepayment += (float) $ci['amount']; // Şimdilik aynı; villa için ileride farklı handling yapılabilir
+            $lineAmount  = (float) ($ci['amount'] ?? 0);
+            $totalAmount += $lineAmount;
+        }
+
+        // Kupon indirimi: toplamdan fazla olamaz
+        $discountAmount = 0.0;
+        if ($couponDiscountTotal > 0 && $totalAmount > 0) {
+            $discountAmount = min($couponDiscountTotal, $totalAmount);
         }
 
         // Order oluştur
         $order = \App\Models\Order::create([
-            'user_id'          => auth()->id(),
-            'status'           => 'pending',
-            'payment_status'   => 'unpaid',
-            'currency'         => $currency,
-            'total_amount'     => $totalAmount,
-            'total_prepayment' => $totalPrepayment,
-            'discount_amount'  => 0,
-            'coupon_code'      => null,
+            'user_id'         => auth()->id(),
+            'status'          => 'pending',
+            'payment_status'  => 'unpaid',
+            'currency'        => $currency,
+            'total_amount'    => $totalAmount,
+            'discount_amount' => $discountAmount,
+
+            // Birden fazla kupon olsa bile admin listesinde ilk kodu gösterebiliriz
+            'coupon_code'     => $couponSnapshot[0]['code'] ?? null,
+            'coupon_snapshot' => $couponSnapshot ?: null,
 
             // Müşteri bilgileri (şimdilik basit)
             'customer_name'    => $customerData['name']  ?? null,
@@ -236,23 +255,23 @@ class CheckoutController extends Controller
         // Order items
         foreach ($items as $ci) {
             \App\Models\OrderItem::create([
-                'order_id'    => $order->id,
-                'product_type'=> $ci['product_type'],
-                'product_id'  => $ci['product_id'],
+                'order_id'     => $order->id,
+                'product_type' => $ci['product_type'],
+                'product_id'   => $ci['product_id'],
 
                 // snapshot içinden title seçimi
-                'title'       => $ci['snapshot']['tour_name']
+                'title'        => $ci['snapshot']['tour_name']
                     ?? $ci['snapshot']['room_name']
                         ?? $ci['snapshot']['villa_name']
                         ?? $ci['snapshot']['hotel_name']
                         ?? 'Ürün',
 
-                'quantity'    => 1,
-                'currency'    => $ci['currency'],
-                'unit_price'  => (float) $ci['amount'],
-                'total_price' => (float) $ci['amount'],
+                'quantity'     => 1,
+                'currency'     => $ci['currency'],
+                'unit_price'   => (float) $ci['amount'],
+                'total_price'  => (float) $ci['amount'],
 
-                'snapshot'    => $ci['snapshot'],
+                'snapshot'     => $ci['snapshot'],
             ]);
         }
 
@@ -262,23 +281,80 @@ class CheckoutController extends Controller
     /**
      * Sepeti siparişe çevirir ve sepeti temizler
      */
-    public function complete()
+    public function complete(CouponViewModelService $couponVm)
     {
         $cart = session('cart');
 
         if (!$cart || empty($cart['items'])) {
-            return redirect()->to(localized_route('cart'))
-                ->with('err', 'Sepetiniz boş.');
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_empty');
+        }
+
+        $items = $cart['items'];
+
+        // Sepet toplamı + currency (Order ve kupon hesabı için)
+        $cartSubtotal = 0.0;
+        $cartCurrency = null;
+
+        foreach ($items as $ci) {
+            $amount = (float) ($ci['amount'] ?? 0);
+            $cartSubtotal += $amount;
+
+            if ($cartCurrency === null && !empty($ci['currency'])) {
+                $cartCurrency = $ci['currency'];
+            }
+        }
+
+        $couponDiscountTotal = 0.0;
+        $couponSnapshot      = [];
+
+        $user = auth()->user();
+
+        if ($user && $cartSubtotal > 0 && $cartCurrency) {
+            $userCurrency = CurrencyHelper::currentCode();
+
+            $cartCoupons = $couponVm->buildCartCouponsForUser(
+                $user,
+                $userCurrency,
+                $cartSubtotal,
+                $cartCurrency
+            );
+
+            $appliedIds = (array) session('cart.applied_coupons', []);
+
+            foreach ($cartCoupons as $vm) {
+                $id = $vm['id'] ?? null;
+
+                $isApplied    = $id !== null && in_array($id, $appliedIds, true);
+                $isApplicable = !empty($vm['is_applicable']);
+                $discount     = (float) ($vm['calculated_discount'] ?? 0);
+
+                if ($isApplied && $isApplicable && $discount > 0) {
+                    $couponDiscountTotal += $discount;
+
+                    $couponSnapshot[] = [
+                        'user_coupon_id' => $id,
+                        // buildViewModel içinde henüz yoksa ileride ekleyebiliriz
+                        'coupon_id'      => $vm['coupon_id'] ?? null,
+                        'code'           => $vm['code'] ?? null,
+                        'discount'       => $discount,
+                        'title'          => $vm['title'] ?? null,
+                        'badge_label'    => $vm['badge_label'] ?? null,
+                        'type'           => 'coupon',
+                    ];
+                }
+            }
         }
 
         $customerData = [
-            'name'  => auth()->user()->name  ?? null,
-            'email' => auth()->user()->email ?? null,
-            'phone' => auth()->user()->phone ?? null,
+            'name'  => $user->name  ?? null,
+            'email' => $user->email ?? null,
+            'phone' => $user->phone ?? null,
         ];
 
         try {
-            $order = $this->createOrderFromCart($cart, $customerData);
+            $order = $this->createOrderFromCart($cart, $customerData, $couponDiscountTotal, $couponSnapshot);
         } catch (\Throwable $e) {
             // GEÇİCİ DEBUG
             dd(
@@ -287,10 +363,36 @@ class CheckoutController extends Controller
             );
         }
 
+        /**
+         * Kupon kullanım sayısını güncelle
+         * Not: Şu anda sipariş oluşturma anında artırıyoruz.
+         * İleride ödeme başarılı olduğunda artırmak istersen,
+         * bu blok payment akışına taşınabilir.
+         */
+        if ($user && !empty($couponSnapshot)) {
+            foreach ($couponSnapshot as $cSnap) {
+                $userCouponId = $cSnap['user_coupon_id'] ?? null;
+                if (!$userCouponId) {
+                    continue;
+                }
+
+                $userCoupon = UserCoupon::where('id', $userCouponId)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if ($userCoupon) {
+                    $userCoupon->used_count   = (int) $userCoupon->used_count + 1;
+                    $userCoupon->last_used_at = now();
+                    $userCoupon->save();
+                }
+            }
+        }
+
+        // Sepeti ve kupon seçimlerini temizle
         session()->forget('cart');
+        session()->forget('cart.applied_coupons');
 
-        return redirect()->to(localized_route('order.thankyou', ['code' => $order->code]));
+        return redirect()
+            ->to(localized_route('order.thankyou', ['code' => $order->code]));
     }
-
-
 }

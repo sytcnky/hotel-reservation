@@ -15,13 +15,13 @@ class Order extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'total_amount'     => 'float',
-        'total_prepayment' => 'float',
-        'discount_amount'  => 'float',
-        'billing_address'  => 'array',
-        'metadata'         => 'array',
-        'paid_at'          => 'datetime',
-        'cancelled_at'     => 'datetime',
+        'total_amount'      => 'float',
+        'discount_amount'   => 'float',
+        'billing_address'   => 'array',
+        'metadata'          => 'array',
+        'coupon_snapshot'   => 'array',
+        'paid_at'           => 'datetime',
+        'cancelled_at'      => 'datetime',
     ];
 
     protected static function booted(): void
@@ -292,4 +292,39 @@ class Order extends Model
     {
         return $this->hasMany(\App\Models\OrderItem::class);
     }
+
+    public function getDiscountsForInfolistAttribute(): array
+    {
+        $rows     = (array) ($this->coupon_snapshot ?? []);
+        $currency = strtoupper($this->currency ?? '');
+
+        return collect($rows)
+            ->map(function ($row) use ($currency) {
+                $amount = (float) ($row['discount'] ?? 0);
+                if ($amount <= 0) {
+                    return null;
+                }
+
+                $amountFormatted = number_format($amount, 2, ',', '.') . ' ' . $currency;
+
+                $label = $row['title']
+                    ?? $row['code']
+                    ?? '-';
+
+                // Şimdilik sadece kupon; ileride 'campaign' için de genişletilebilir
+                $badge = $row['type'] === 'coupon'
+                    ? __('admin.orders.form.badge_coupon')    // Örn: "Kupon"
+                    : __('admin.orders.discounts.badge_campaign'); // Örn: "Kampanya"
+
+                return [
+                    'amount' => $amountFormatted,
+                    'label'  => $label,          // "15% Tur İndirim Kuponu" vb.
+                    'badge'  => $badge,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
 }

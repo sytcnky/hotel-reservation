@@ -6,13 +6,17 @@ use Illuminate\Http\Request;
 use App\Support\UIconRegistry;
 use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
-use App\Http\Controllers\TransferController;
 use App\Support\Helpers\CurrencyHelper;
+
+use App\Http\Controllers\TransferController;
 
 use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
+use App\Http\Controllers\Account\CouponsController;
+
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
+
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\VillaController;
@@ -165,9 +169,11 @@ LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
 LocalizedRoute::view('help', 'help', 'pages.help.index');
 LocalizedRoute::view('payment', 'payment', 'pages.payment.index');
 LocalizedRoute::view('success', 'success', 'pages.payment.success');
-LocalizedRoute::view('cart', 'cart', 'pages.cart.index');
-Route::delete('/cart/item/{key}', [CartController::class, 'remove'])
-    ->name('cart.remove');
+LocalizedRoute::get('cart', 'cart', [CartController::class, 'index']);
+Route::delete('/cart/item/{key}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
+Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
+
 
 /** Guides list */
 LocalizedRoute::get('guides', 'gezi-rehberi', function () {
@@ -258,7 +264,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     LocalizedRoute::view('account.bookings', 'account/bookings', 'pages.account.bookings');
 
-    LocalizedRoute::view('account.coupons', 'account/coupons', 'pages.account.coupons');
+    LocalizedRoute::get(
+        'account.coupons',
+        'account/coupons',      // fallback path
+        [CouponsController::class, 'index']   // action
+    );
 
     LocalizedRoute::view('account.tickets', 'account/tickets', 'pages.account.tickets');
 

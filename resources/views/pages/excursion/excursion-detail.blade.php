@@ -308,7 +308,7 @@
 
         {{-- Sağ sütun: kampanya / transfer banner’ları aynen kalsın --}}
         <div class="col-xl-4">
-            <div class="mb-4 position-relative text-white rounded shadow bg-primary" style="min-height: 200px;">
+            <div class="mb-4 position-relative text-white rounded shadow bg-primary" style="min-height: 220px;">
                 <div class="position-absolute bottom-0" style="right:-100px; z-index: 1; overflow: hidden; width: 280px;">
                     <img src="/images/banner-woman.png" alt="Kampanya" class="img-fluid">
                 </div>

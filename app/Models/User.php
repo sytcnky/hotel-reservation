@@ -6,6 +6,8 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -99,5 +101,37 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | İlişkiler
+     |--------------------------------------------------------------------------
+     */
+
+    /**
+     * Kullanıcının kupon atamaları (pivot model).
+     */
+    public function userCoupons(): HasMany
+    {
+        return $this->hasMany(UserCoupon::class);
+    }
+
+    /**
+     * Kullanıcının kuponları (belongsToMany üzerinden).
+     * İleride FE tarafında doğrudan kupon listesi gerekir ise kullanılabilir.
+     */
+    public function coupons(): BelongsToMany
+    {
+        return $this->belongsToMany(Coupon::class, 'user_coupons')
+            ->using(UserCoupon::class)
+            ->withPivot([
+                'assigned_at',
+                'expires_at',
+                'used_count',
+                'last_used_at',
+                'source',
+            ])
+            ->withTimestamps();
     }
 }

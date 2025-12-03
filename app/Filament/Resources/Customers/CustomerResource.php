@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Customers;
 
+use App\Filament\Resources\Customers\RelationManagers\UserCouponsRelationManager;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
@@ -49,6 +50,17 @@ class CustomerResource extends Resource
     public static function table(Table $table): Table
     {
         return CustomersTable::configure($table);
+    }
+
+    /**
+     * Müşteri detay sayfasında görünecek ilişkiler.
+     * Buraya UserCouponsRelationManager eklendi.
+     */
+    public static function getRelations(): array
+    {
+        return [
+            UserCouponsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

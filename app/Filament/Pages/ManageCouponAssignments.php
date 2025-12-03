@@ -443,6 +443,10 @@ class ManageCouponAssignments extends Page
                     'coupon_id'   => $coupon->id,
                     'assigned_at' => $now,
                     'expires_at'  => $newExpiresAt,
+                    'used_count'  => 0,
+                    'last_used_at'=> null,
+                    'source'      => 'bulk',
+                    'created_by'  => auth()->id(),
                     'created_at'  => $now,
                     'updated_at'  => $now,
                 ]);

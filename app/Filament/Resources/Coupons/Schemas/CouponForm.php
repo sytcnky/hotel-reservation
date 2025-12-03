@@ -70,10 +70,6 @@ class CouponForm
                                                 ->label(__('admin.coupons.form.description'))
                                                 ->rows(3),
 
-                                            TextInput::make("badge_main.$loc")
-                                                ->label(__('admin.coupons.form.badge_main'))
-                                                ->helperText(__('admin.coupons.form.badge_main_help')),
-
                                             TextInput::make("badge_label.$loc")
                                                 ->label(__('admin.coupons.form.badge_label'))
                                                 ->helperText(__('admin.coupons.form.badge_label_help')),

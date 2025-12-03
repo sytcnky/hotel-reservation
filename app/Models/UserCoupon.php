@@ -24,6 +24,7 @@ class UserCoupon extends Model
         'last_used_at',
 
         'source',
+        'created_by',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class UserCoupon extends Model
         'last_used_at'=> 'datetime',
 
         'used_count'  => 'integer',
+        'created_by'   => 'integer',
     ];
 
     /*
@@ -48,5 +50,10 @@ class UserCoupon extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

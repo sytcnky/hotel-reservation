@@ -18,7 +18,6 @@ class Coupon extends Model
 
         'title',
         'description',
-        'badge_main',
         'badge_label',
 
         'valid_from',
@@ -46,7 +45,6 @@ class Coupon extends Model
 
         'title'              => 'array',
         'description'        => 'array',
-        'badge_main'         => 'array',
         'badge_label'        => 'array',
 
         'valid_from'         => 'datetime',

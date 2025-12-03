@@ -7,8 +7,8 @@ $info: #3498DB; // Temiz mavi – bilgilendirme
 $light: #F8F9FA; // Açık gri – arka planlar
 $dark: #2C3E50; // Derin koyu gri – başlıklar/footer
 
-$tooltip-bg: $warning;
-$tooltip-color: $primary;
+$tooltip-bg: $primary;
+$tooltip-color: $light;
 $breadcrumb-divider: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><path d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='#{$secondary}'/></svg>");
 $breadcrumb-active-color: $primary;
 $enable-negative-margins: true;
@@ -298,40 +298,73 @@ footer .list-unstyled a {
 .coupon-viewport .coupon-track .coupon-card { flex: 0 0 100%; }
 @media (min-width: 768px) { /* md: 2 kolon */
     .coupon-viewport .coupon-track .coupon-card { flex-basis: calc(50% - 0px); }
+    /* Sol rozet kutucuğu */
+    .coupon-badge {
+        min-width: 86px;
+        border: 1px dashed var(--bs-border-color);
+        border-radius: .5rem;
+        padding: .25rem .25rem;
+        line-height: 1.1;
+        background: #fff;
+        height: 100%;
+        align-content: center;
+    }
+    .coupon-viewport {
+        position: relative;
+        overflow-x: auto; /* kuponlar yatay kayıyorsa */
+        padding-right: 1rem; /* degrade alanın altında içerik gizlenmesin */
+    }
+    .coupon-card {
+        min-width:320px;
+    }
+    /* Sağ tarafta degrade */
+    .coupon-viewport::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 60px;   /* genişlik degrade ne kadar uzasın */
+        height: 100%;
+        pointer-events: none; /* tıklamayı engellemesin */
+        background: linear-gradient(to right, rgba(255,255,255,0), var(--bs-light));
+    }
 }
 @media (min-width: 992px) { /* lg: 3 kolon */
     .coupon-viewport .coupon-track .coupon-card { flex-basis: calc(33.333% - 0px); }
-}
-
-/* Sol rozet kutucuğu */
-.coupon-badge {
-    min-width: 86px;
-    border: 1px dashed var(--bs-border-color);
-    border-radius: .5rem;
-    padding: .25rem .25rem;
-    line-height: 1.1;
-    background: #fff;
-    height: 100%;
-    align-content: center;
+    /* Sol rozet kutucuğu */
+    .coupon-badge {
+        min-width: 86px;
+        border: 1px dashed var(--bs-border-color);
+        border-radius: .5rem;
+        padding: .25rem .25rem;
+        line-height: 1.1;
+        background: #fff;
+        height: 100%;
+        align-content: center;
+    }
+    .coupon-viewport {
+        position: relative;
+        overflow-x: auto; /* kuponlar yatay kayıyorsa */
+        padding-right: 1rem; /* degrade alanın altında içerik gizlenmesin */
+    }
 }
 
 .coupon-viewport {
     position: relative;
     overflow-x: auto; /* kuponlar yatay kayıyorsa */
-    padding-right: 1rem; /* degrade alanın altında içerik gizlenmesin */
+    padding-right: 0rem; /* degrade alanın altında içerik gizlenmesin */
 }
 
-/* Sağ tarafta degrade */
-.coupon-viewport::after {
-    content: "";
+.coupon-info {
+    top: 2px;
+    right: 3px;
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 60px;   /* genişlik degrade ne kadar uzasın */
-    height: 100%;
-    pointer-events: none; /* tıklamayı engellemesin */
-    background: linear-gradient(to right, rgba(255,255,255,0), var(--bs-light));
 }
+
+.coupon-badge{
+    position: relative;
+}
+
 
 @include media-breakpoint-down(lg){
     .container, .container-fluid, .container-sm, .container-md, .container-lg, .container-xl, .container-xxl{
@@ -405,4 +438,12 @@ $bottom-nav-height: 64px;
 .iti__search-input {
     padding-top: 10px;
     padding-bottom: 10px;
+}
+
+/* örneğin app.css içine */
+.tooltip.coupon-tooltip .tooltip-inner {
+    max-width: 260px;
+    text-align: left !important;
+    padding: 10px 12px;
+    line-height: 1.4;
 }
