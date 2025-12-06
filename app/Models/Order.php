@@ -311,14 +311,21 @@ class Order extends Model
                     ?? $row['code']
                     ?? '-';
 
-                // Şimdilik sadece kupon; ileride 'campaign' için de genişletilebilir
-                $badge = $row['type'] === 'coupon'
-                    ? __('admin.orders.form.badge_coupon')    // Örn: "Kupon"
-                    : __('admin.orders.discounts.badge_campaign'); // Örn: "Kampanya"
+                $type = $row['type'] ?? null;
+
+                // Sadece iki net tip var: coupon | campaign
+                if ($type === 'coupon') {
+                    $badge = __('admin.orders.form.badge_coupon');           // "Kupon"
+                } elseif ($type === 'campaign') {
+                    $badge = __('admin.orders.form.badge_campaign');    // "Kampanya"
+                } else {
+                    // Domain gereği başka type yok; bilinmeyen değer gelirse badge boş kalsın
+                    $badge = null;
+                }
 
                 return [
                     'amount' => $amountFormatted,
-                    'label'  => $label,          // "15% Tur İndirim Kuponu" vb.
+                    'label'  => $label,   // "15% Tur İndirim Kuponu" vb.
                     'badge'  => $badge,
                 ];
             })
@@ -326,5 +333,4 @@ class Order extends Model
             ->values()
             ->all();
     }
-
 }

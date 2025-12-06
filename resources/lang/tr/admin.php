@@ -444,6 +444,7 @@ return [
             'discounts_none'  => 'Gerçekleşen indirim bulunmuyor',
             'discount_total'  => 'Toplam İndirim',
             'badge_coupon'    => 'Kupon',
+            'badge_campaign'  => 'Kampanya',
         ],
 
         'table' => [
@@ -631,5 +632,174 @@ return [
             'notification_done'         => 'İşlem başarıyla tamamlandı.',
         ],
     ],
+
+    'campaigns' => [
+
+        // -------------------------------------------------
+        // Tablolar
+        // -------------------------------------------------
+        'table' => [
+            'title'              => 'Başlık',
+            'active'             => 'Aktif',
+            'start_date'         => 'Başlangıç',
+            'end_date'           => 'Bitiş',
+            'priority'           => 'Öncelik',
+            'discount'           => 'İndirim',
+            'placements'         => 'Yerleşim',
+            'global_usage_limit' => 'Toplam Kullanım Limiti',
+            'user_usage_limit'   => 'Kullanıcı Limit',
+            'visible_on_web'     => 'Web',
+            'visible_on_mobile'  => 'Mobil',
+            'created_at'         => 'Oluşturma',
+            'updated_at'         => 'Güncelleme',
+            'deleted_at'         => 'Silinme',
+            'filter_active'      => 'Aktif durum',
+        ],
+
+        // -------------------------------------------------
+        // Form — Genel alanlar
+        // -------------------------------------------------
+        'form' => [
+            'active'             => 'Aktif',
+            'start_date'         => 'Başlangıç Tarihi',
+            'end_date'           => 'Bitiş Tarihi',
+            'priority'           => 'Öncelik',
+            'visible_on_web'     => 'Web’de Göster',
+            'visible_on_mobile'  => 'Mobilde Göster',
+
+            // i18n alanları
+            'title'              => 'Başlık',
+            'subtitle'           => 'Alt Başlık',
+            'description'        => 'Açıklama',
+            'cta_text'           => 'Buton Metni',
+            'cta_link'           => 'Buton Linki',
+            'cta_link_help'      => 'Tam URL veya internal route kullanılabilir.',
+
+            // Görseller
+            'background_image'        => 'Arka Plan Görseli',
+            'background_image_help'   => 'Opsiyonel. Kampanyanın arka planı.',
+            'transparent_image'       => 'Şeffaf Görsel',
+            'transparent_image_help'  => 'Opsiyonel. Kaplama/önde duran görsel.',
+
+            // Discount
+            'discount_type'               => 'İndirim Tipi',
+            'discount_type_percent'       => 'Yüzde (%)',
+            'discount_type_fixed'         => 'Sabit Tutar',
+            'discount_value'              => 'İndirim Oranı (%)',
+            'max_discount_amount'         => 'Tavan İndirim',
+            'max_discount_amount_help'    => 'Yüzde indirimde uygulanır. Opsiyonel.',
+
+            // Conditions
+            'conditions_rules'            => 'Kurallar',
+            'conditions_add_rule'         => 'Kural Ekle',
+
+            // Background Color
+            'bg-primary'          => 'Birincil (Primary)',
+            'bg-primary-subtle'   => 'Birincil – Açık Ton',
+            'bg-secondary'        => 'İkincil (Secondary)',
+            'bg-secondary-subtle' => 'İkincil – Açık Ton',
+            'bg-success'          => 'Başarılı (Success)',
+            'bg-success-subtle'   => 'Başarılı – Açık Ton',
+            'bg-danger'           => 'Hata (Danger)',
+            'bg-danger-subtle'    => 'Hata – Açık Ton',
+            'bg-warning'          => 'Uyarı (Warning)',
+            'bg-warning-subtle'   => 'Uyarı – Açık Ton',
+            'bg-info'             => 'Bilgi (Info)',
+            'bg-info-subtle'      => 'Bilgi – Açık Ton',
+            'bg-light'            => 'Açık (Light)',
+            'bg-light-subtle'     => 'Açık – Yumuşak',
+            'bg-dark'             => 'Koyu (Dark)',
+            'bg-dark-subtle'      => 'Koyu – Yumuşak',
+
+            // Usage limits
+            'global_usage_limit'         => 'Toplam Kullanım Limiti',
+            'global_usage_limit_help'    => 'Opsiyonel. Tüm kullanıcılar için toplam.',
+            'user_usage_limit'           => 'Kullanıcı Başına Limit',
+            'user_usage_limit_help'      => 'Opsiyonel. Bir kullanıcı en fazla kaç kez kullanabilir.',
+
+        ],
+
+        // -------------------------------------------------
+        // Sections
+        // -------------------------------------------------
+        'sections' => [
+            'images'            => 'Görseller',
+            'background_class'  => 'Arka Plan Rengi',
+            'discount'          => 'İndirim Tanımı',
+            'conditions'        => 'Kampanya Kuralları',
+            'status'            => 'Durum',
+            'placement'         => 'Gösterim Konumları',
+            'usage'             => 'Kullanım Limitleri',
+        ],
+
+        // -------------------------------------------------
+        // Placement Labels
+        // -------------------------------------------------
+        'placements' => [
+            'homepage_hero'        => 'Anasayfa Hero',
+            'homepage_banner'      => 'Anasayfa Banner',
+            'listing_top'          => 'Listeleme Üstü',
+            'product_detail_top'   => 'Ürün Detay Üstü',
+            'checkout_banner'      => 'Ödeme Adımı Banner',
+        ],
+
+        // -------------------------------------------------
+        // Rule Types — dropdown list
+        // -------------------------------------------------
+        'rules' => [
+            'rule_type' => 'Kural Tipi',
+
+            'scope_product_types'           => 'Ürün Tipine Göre Kısıtlama',
+            'scope_products'                => 'Belirli Ürün Kısıtlama',
+            'basket_required_product_types' => 'Sepette Zorunlu Ürün Tipleri',
+            'product_min_nights'            => 'Minimum Gece Sayısı',
+            'product_min_guests'            => 'Minimum Misafir Sayısı',
+            'dates_booking_between'         => 'Rezervasyon Tarihi Aralığı',
+            'dates_stay_between'            => 'Konaklama Tarihi Aralığı',
+            'user_registered_date'          => 'Kullanıcı Kayıt Tarihi',
+            'user_order_count'              => 'Kullanıcı Sipariş Adedi',
+            'device_allowed'                => 'Cihaz Tipi',
+            'discount_target_product_types' => 'İndirimin Uygulanacağı Ürün Tipleri',
+
+            'scope_product_types_product_types' => 'Ürün Tipleri',
+
+            'scope_products_domain'            => 'Ürün Tipi',
+            'scope_products_id'                => 'Ürün',
+
+            'basket_required_product_types_required' => 'Zorunlu Ürün Tipleri',
+
+            'product_min_nights_product_types' => 'Hangi Ürün Tipleri İçin',
+            'product_min_nights_value'         => 'Minimum Gece',
+
+            'product_min_guests_value'         => 'Minimum Misafir',
+
+            'dates_booking_from'               => 'Rezervasyon Başlangıç',
+            'dates_booking_to'                 => 'Rezervasyon Bitiş',
+
+            'dates_stay_from'                  => 'Konaklama Başlangıç',
+            'dates_stay_to'                    => 'Konaklama Bitiş',
+
+            'user_registered_operator'         => 'Kriter',
+            'user_registered_before'           => 'Önce',
+            'user_registered_after'            => 'Sonra',
+
+            'user_order_operator'              => 'Karşılaştırma',
+            'user_order_eq'                    => 'Eşittir',
+            'user_order_gte'                   => 'En Az',
+            'user_order_lte'                   => 'En Çok',
+            'user_order_value'                 => 'Sipariş Sayısı',
+
+            'device_allowed_allowed'           => 'İzin Verilen Cihazlar',
+            'device_desktop'                   => 'Masaüstü',
+            'device_mobile'                    => 'Mobil',
+
+            'product_locations'               => 'Lokasyona Göre Kısıtlama',
+            'product_locations_product_types' => 'Hangi Ürün Tipleri İçin',
+            'product_locations_locations'     => 'Lokasyonlar',
+
+            'discount_target_product_types_product_types' => 'İndirim Uygulanacak Ürün Tipleri',
+        ],
+
+    ]
 
 ];

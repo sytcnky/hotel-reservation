@@ -10,6 +10,7 @@ use App\Models\Hotel;
 use App\Models\UserCoupon;
 use App\Models\Villa;
 use App\Services\CouponViewModelService;
+use App\Services\CampaignViewModelService;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 
@@ -198,14 +199,18 @@ class CheckoutController extends Controller
      *
      * @param  array  $cart
      * @param  array  $customerData
-     * @param  float  $couponDiscountTotal  Kuponlardan gelen toplam indirim (sepet bağlamında yeniden hesaplanmış)
-     * @param  array  $couponSnapshot       Kupon snapshot listesi
+     * @param  float  $couponDiscountTotal     Kuponlardan gelen toplam indirim
+     * @param  array  $couponSnapshot          Kupon snapshot listesi
+     * @param  float  $campaignDiscountTotal   Kampanyalardan gelen toplam indirim
+     * @param  array  $campaignSnapshot        Kampanya snapshot listesi
      */
     private function createOrderFromCart(
         array $cart,
         array $customerData,
         float $couponDiscountTotal = 0.0,
-        array $couponSnapshot = []
+        array $couponSnapshot = [],
+        float $campaignDiscountTotal = 0.0,
+        array $campaignSnapshot = []
     ): \App\Models\Order {
         $items = $cart['items'] ?? [];
 
@@ -224,11 +229,20 @@ class CheckoutController extends Controller
             $totalAmount += $lineAmount;
         }
 
-        // Kupon indirimi: toplamdan fazla olamaz
+        // Toplam indirim: kupon + kampanya
+        $rawDiscount = max(0.0, $couponDiscountTotal + $campaignDiscountTotal);
+
+        // Toplamdan fazla olamaz
         $discountAmount = 0.0;
-        if ($couponDiscountTotal > 0 && $totalAmount > 0) {
-            $discountAmount = min($couponDiscountTotal, $totalAmount);
+        if ($rawDiscount > 0 && $totalAmount > 0) {
+            $discountAmount = min($rawDiscount, $totalAmount);
         }
+
+        // Kupon + Kampanya snapshot’larını tek JSON’da tutuyoruz
+        $allDiscountsSnapshot = array_values(array_merge(
+            $couponSnapshot,
+            $campaignSnapshot
+        ));
 
         // Order oluştur
         $order = \App\Models\Order::create([
@@ -239,9 +253,10 @@ class CheckoutController extends Controller
             'total_amount'    => $totalAmount,
             'discount_amount' => $discountAmount,
 
-            // Birden fazla kupon olsa bile admin listesinde ilk kodu gösterebiliriz
-            'coupon_code'     => $couponSnapshot[0]['code'] ?? null,
-            'coupon_snapshot' => $couponSnapshot ?: null,
+            // Kupon ve kampanya detayları artık sadece coupon_snapshot içinde tutuluyor.
+            // coupon_code kolonunu bilinçli olarak boş bırakıyoruz (ileride gerekirse kullanırız).
+            'coupon_code'     => null,
+            'coupon_snapshot' => $allDiscountsSnapshot ?: null,
 
             // Müşteri bilgileri (şimdilik basit)
             'customer_name'    => $customerData['name']  ?? null,
@@ -281,8 +296,10 @@ class CheckoutController extends Controller
     /**
      * Sepeti siparişe çevirir ve sepeti temizler
      */
-    public function complete(CouponViewModelService $couponVm)
-    {
+    public function complete(
+        CouponViewModelService $couponVm,
+        CampaignViewModelService $campaignVm
+    ) {
         $cart = session('cart');
 
         if (!$cart || empty($cart['items'])) {
@@ -309,11 +326,17 @@ class CheckoutController extends Controller
         $couponDiscountTotal = 0.0;
         $couponSnapshot      = [];
 
+        $campaignDiscountTotal = 0.0;
+        $campaignSnapshot      = [];
+
         $user = auth()->user();
 
         if ($user && $cartSubtotal > 0 && $cartCurrency) {
             $userCurrency = CurrencyHelper::currentCode();
 
+            // -----------------------------
+            // Kuponlar
+            // -----------------------------
             $cartCoupons = $couponVm->buildCartCouponsForUser(
                 $user,
                 $userCurrency,
@@ -345,6 +368,31 @@ class CheckoutController extends Controller
                     ];
                 }
             }
+
+            // -----------------------------
+            // Kampanyalar
+            // -----------------------------
+            $cartCampaigns = $campaignVm->buildCartCampaignsForUser(
+                $user,
+                $items,
+                $cartCurrency,
+                $cartSubtotal
+            );
+
+            foreach ($cartCampaigns as $cvm) {
+                $discount = (float) ($cvm['calculated_discount'] ?? 0);
+
+                if (! empty($cvm['is_applicable']) && $discount > 0) {
+                    $campaignDiscountTotal += $discount;
+
+                    $campaignSnapshot[] = [
+                        'campaign_id' => $cvm['id'],
+                        'discount'    => $discount,
+                        'title'       => $cvm['title'] ?? null,
+                        'type'        => 'campaign',
+                    ];
+                }
+            }
         }
 
         $customerData = [
@@ -354,7 +402,14 @@ class CheckoutController extends Controller
         ];
 
         try {
-            $order = $this->createOrderFromCart($cart, $customerData, $couponDiscountTotal, $couponSnapshot);
+            $order = $this->createOrderFromCart(
+                $cart,
+                $customerData,
+                $couponDiscountTotal,
+                $couponSnapshot,
+                $campaignDiscountTotal,
+                $campaignSnapshot
+            );
         } catch (\Throwable $e) {
             // GEÇİCİ DEBUG
             dd(

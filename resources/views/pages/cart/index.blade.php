@@ -349,14 +349,41 @@
                                 </span>
                             </div>
 
-                            @if ($couponDiscountTotal > 0)
-                                <div class="d-flex justify-content-between small mb-2">
-                                    <span>{{ $txt['summary_discount'] }}</span>
-                                    <span>
-                                        -{{ number_format($couponDiscountTotal,0,',','.') }}
-                                        @if($cartCurrency) {{ $cartCurrency }} @endif
-                                    </span>
+                            @if ($couponDiscountTotal > 0 || !empty($cartCampaigns))
+                                <div class="small fw-semibold mt-2 mb-1">
+                                    {{ $txt['summary_discounts'] ?? 'İndirimler' }}
                                 </div>
+
+                                {{-- Kupon indirim satırı --}}
+                                @if ($couponDiscountTotal > 0)
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>{{ $txt['summary_discount_coupon'] ?? 'Kupon İndirimi' }}</span>
+                                        <span>
+                                            -{{ number_format($couponDiscountTotal, 0, ',', '.') }}
+                                            @if($cartCurrency) {{ $cartCurrency }} @endif
+                                        </span>
+                                    </div>
+                                @endif
+
+                                {{-- Kampanya indirim satırları (ileride dolduracağız) --}}
+                                @foreach ($cartCampaigns as $campaign)
+                                    @php
+                                        $amount = (float) ($campaign['calculated_discount'] ?? 0);
+                                        if ($amount <= 0) {
+                                            continue;
+                                        }
+                                        $label = $campaign['title']
+                                            ?? ($txt['summary_discount_campaign'] ?? 'Kampanya İndirimi');
+                                    @endphp
+
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span>{{ $label }}</span>
+                                        <span>
+                                            -{{ number_format($amount, 0, ',', '.') }}
+                                            @if($cartCurrency) {{ $cartCurrency }} @endif
+                                        </span>
+                                    </div>
+                                @endforeach
                             @endif
 
                             <hr class="my-3">

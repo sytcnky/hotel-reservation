@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Services\CouponViewModelService;
+use App\Services\CampaignViewModelService;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    public function index(Request $request, CouponViewModelService $couponVm)
-    {
+    public function index(
+        Request $request,
+        CouponViewModelService $couponVm,
+        CampaignViewModelService $campaignVm
+    ) {
         $cart = session('cart', [
             'items' => [],
         ]);
@@ -33,10 +37,17 @@ class CartController extends Controller
         $appliedCouponIds    = (array) session('cart.applied_coupons', []);
         $couponDiscountTotal = 0.0;
 
+        // Kampanyalar için sepet değişkenleri
+        $cartCampaigns         = [];
+        $campaignDiscountTotal = 0.0;
+
         $user = $request->user();
         if ($user && $cartSubtotal > 0 && $cartCurrency) {
             $userCurrency = CurrencyHelper::currentCode();
 
+            // -----------------------------
+            // Kuponlar
+            // -----------------------------
             $cartCoupons = $couponVm->buildCartCouponsForUser(
                 $user,
                 $userCurrency,
@@ -65,9 +76,25 @@ class CartController extends Controller
                 }
             }
             unset($vm);
+
+            // -----------------------------
+            // Kampanyalar
+            // -----------------------------
+            $cartCampaigns = $campaignVm->buildCartCampaignsForUser(
+                $user,
+                $cartItems,
+                $cartCurrency,
+                $cartSubtotal
+            );
+
+            foreach ($cartCampaigns as $cvm) {
+                if (! empty($cvm['is_applicable'])) {
+                    $campaignDiscountTotal += (float) ($cvm['calculated_discount'] ?? 0);
+                }
+            }
         }
 
-        $finalTotal = max(0, $cartSubtotal - $couponDiscountTotal);
+        $finalTotal = max(0, $cartSubtotal - $couponDiscountTotal - $campaignDiscountTotal);
 
         return view('pages.cart.index', [
             'cartItems'           => $cartItems,
@@ -76,6 +103,9 @@ class CartController extends Controller
             'cartCoupons'         => $cartCoupons,
             'couponDiscountTotal' => $couponDiscountTotal,
             'finalTotal'          => $finalTotal,
+
+            'cartCampaigns'         => $cartCampaigns,
+            'campaignDiscountTotal' => $campaignDiscountTotal,
         ]);
     }
 
