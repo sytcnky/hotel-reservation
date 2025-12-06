@@ -20,7 +20,10 @@ class CampaignResource extends Resource
 {
     protected static ?string $model = Campaign::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    public static function getNavigationGroup(): ?string { return __('admin.nav.sales_group'); }
+    public static function getNavigationLabel(): string { return __('admin.campaigns.plural'); }
+    public static function getModelLabel(): string { return __('admin.campaigns.singular'); }
+    public static function getPluralModelLabel(): string { return __('admin.campaigns.plural'); }
 
     public static function form(Schema $schema): Schema
     {

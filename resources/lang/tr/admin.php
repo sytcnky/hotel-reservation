@@ -10,7 +10,7 @@ return [
         'tour_group' => 'Günlük Tur',
         'villa_group' => 'Villa',
         'order_group' => 'Sipariş',
-        'coupon_group' => 'Kuponlar'
+        'sales_group' => 'İndirimler'
     ],
     'ent' => [
         'language' => [
@@ -418,12 +418,14 @@ return [
     'orders' => [
         'singular' => 'Sipariş',
         'plural'   => 'Siparişler',
+
         'sections' => [
             'order_info'   => 'Sipariş Bilgileri',
             'payment_info' => 'Ödeme Bilgileri',
             'items'        => 'Sipariş Kalemleri',
             'operations'   => 'Operasyon Alanları',
             'discounts'   => 'İndirimler',
+            'invoice_info' => 'Fatura Bilgileri',
         ],
 
         'form' => [
@@ -432,6 +434,7 @@ return [
             'customer_name'   => 'Müşteri Adı',
             'customer_email'  => 'E-posta',
             'customer_phone'  => 'Telefon',
+            'customer_note'   => 'Müşteri Notu',
             'status'          => 'Sipariş Durumu',
             'payment_status'  => 'Ödeme Durumu',
             'currency'        => 'Para Birimi',
@@ -445,6 +448,10 @@ return [
             'discount_total'  => 'Toplam İndirim',
             'badge_coupon'    => 'Kupon',
             'badge_campaign'  => 'Kampanya',
+            'invoice_company'     => 'Firma Adı',
+            'invoice_tax_office'  => 'Vergi Dairesi',
+            'invoice_tax_no'      => 'Vergi No',
+            'invoice_address'     => 'Fatura Adresi',
         ],
 
         'table' => [
@@ -634,6 +641,8 @@ return [
     ],
 
     'campaigns' => [
+        'singular' => 'Kampanya',
+        'plural'   => 'Kampanyalar',
 
         // -------------------------------------------------
         // Tablolar

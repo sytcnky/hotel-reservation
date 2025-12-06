@@ -84,6 +84,43 @@ class OrderForm
                                                         };
                                                     }),
                                             ]),
+                                            TextEntry::make('metadata.customer_note')
+                                                ->label(__('admin.orders.form.customer_note'))
+                                                ->state(function (?Order $record) {
+                                                    if (! $record) {
+                                                        return '-';
+                                                    }
+
+                                                    $meta = $record->metadata ?? [];
+                                                    $note = is_array($meta) ? ($meta['customer_note'] ?? null) : null;
+
+                                                    return $note ?: '-';
+                                                }),
+
+                                            // Kurumsal fatura bilgileri
+                                            Section::make(__('admin.orders.sections.invoice_info'))
+                                                ->schema([
+                                                    TextEntry::make('invoice_company')
+                                                        ->label(__('admin.orders.form.invoice_company'))
+                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['company'] ?? '-'),
+
+                                                    TextEntry::make('invoice_tax_office')
+                                                        ->label(__('admin.orders.form.invoice_tax_office'))
+                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['tax_office'] ?? '-'),
+
+                                                    TextEntry::make('invoice_tax_no')
+                                                        ->label(__('admin.orders.form.invoice_tax_no'))
+                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['tax_no'] ?? '-'),
+
+                                                    TextEntry::make('invoice_address')
+                                                        ->label(__('admin.orders.form.invoice_address'))
+                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['address'] ?? '-'),
+                                                ])
+                                                ->hidden(function (?Order $record) {
+                                                    // Eğer checkbox işaretlenmemişse (is_corporate=false) → gizle
+                                                    $inv = $record->metadata['invoice'] ?? [];
+                                                    return empty($inv['is_corporate']);
+                                                }),
                                         ]),
 
                                     /*

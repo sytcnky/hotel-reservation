@@ -100,7 +100,7 @@
                 <div class="row g-3">
                     {{-- Gidiş --}}
                     <div class="col">
-                        <label for="departure_date" class="form-label">Gidiş Tarihi</label>
+                        <label for="departure_date" class="form-label">Geliş Tarihi</label>
                         <div class="input-group has-validation">
                             <input type="text"
                                    class="form-control date-input"
@@ -327,7 +327,7 @@
                         <div class="col-lg-6">
                             <div class="border rounded p-3">
                                 <div class="d-block text-muted small mb-1">
-                                    <i class="fi fi-rr-calendar me-1 align-middle"></i>Gidiş Tarihi
+                                    <i class="fi fi-rr-calendar me-1 align-middle"></i>Geliş Tarihi
                                 </div>
                                 <h6 class="mb-0">
                                     {{ \Carbon\Carbon::parse($transferOffer['departure_date'])
@@ -398,7 +398,7 @@
                         <div class="row">
                             {{-- Gidiş Saati --}}
                             <div class="col-lg-6 mb-3">
-                                <label for="pickup_time_outbound" class="form-label">Gidiş Saati</label>
+                                <label for="pickup_time_outbound" class="form-label">Geliş Saati</label>
                                 <div class="input-group">
                                     <input type="time"
                                            id="pickup_time_outbound"
@@ -410,10 +410,10 @@
                                 </div>
                             </div>
 
-                            {{-- Gidiş Uçuş No (opsiyonel) --}}
+                            {{-- Alınış Uçuş No (opsiyonel) --}}
                             <div class="col-lg-6 mb-3">
                                 <label for="flight_number_outbound" class="form-label">
-                                    Gidiş Uçuş Numarası
+                                    Alınış Uçuş Numarası
                                 </label>
                                 <input type="text"
                                        id="flight_number_outbound"
@@ -724,7 +724,7 @@
             bookForm.addEventListener('submit', function (e) {
                 let ok = true;
 
-                // Gidiş çifti zorunlu
+                // Alınış çifti zorunlu
                 if (!pairValid(outTime, outFlight)) { markPairInvalid(outTime, outFlight); ok = false; }
 
                 // Dönüş çifti, dönüş varsa zorunlu

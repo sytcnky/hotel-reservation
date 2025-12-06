@@ -264,7 +264,16 @@ class CheckoutController extends Controller
             'customer_phone'   => $customerData['phone'] ?? null,
 
             'billing_address'  => null,
-            'metadata'         => [],
+            'metadata'         => [
+                'customer_note' => $customerData['note'] ?? null,
+                'invoice'       => [
+                    'is_corporate' => (bool) ($customerData['is_corporate'] ?? false),
+                    'company'      => $customerData['corp_company'] ?? null,
+                    'tax_office'   => $customerData['corp_tax_office'] ?? null,
+                    'tax_no'       => $customerData['corp_tax_no'] ?? null,
+                    'address'      => $customerData['corp_address'] ?? null,
+                ],
+            ],
         ]);
 
         // Order items
@@ -399,6 +408,16 @@ class CheckoutController extends Controller
             'name'  => $user->name  ?? null,
             'email' => $user->email ?? null,
             'phone' => $user->phone ?? null,
+
+            // Müşteri sipariş notu
+            'note'  => mb_substr(trim((string) request()->input('order_note')), 0, 400),
+
+            // Kurumsal fatura bilgileri
+            'is_corporate'   => (bool) request()->input('is_corporate'),
+            'corp_company'   => mb_substr(trim((string) request()->input('corp_company')), 0, 150),
+            'corp_tax_office'=> mb_substr(trim((string) request()->input('corp_tax_office')), 0, 100),
+            'corp_tax_no'    => mb_substr(trim((string) request()->input('corp_tax_no')), 0, 50),
+            'corp_address'   => mb_substr(trim((string) request()->input('corp_address')), 0, 500),
         ];
 
         try {
@@ -448,6 +467,6 @@ class CheckoutController extends Controller
         session()->forget('cart.applied_coupons');
 
         return redirect()
-            ->to(localized_route('order.thankyou', ['code' => $order->code]));
+            ->to(localized_route('payment.show', ['code' => $order->code]));
     }
 }

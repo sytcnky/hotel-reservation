@@ -18,7 +18,7 @@ class CouponResource extends Resource
 {
     protected static ?string $model = Coupon::class;
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.coupon_group'); }
+    public static function getNavigationGroup(): ?string { return __('admin.nav.sales_group'); }
     public static function getNavigationLabel(): string { return __('admin.coupons.plural'); }
     public static function getModelLabel(): string { return __('admin.coupons.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.coupons.plural'); }

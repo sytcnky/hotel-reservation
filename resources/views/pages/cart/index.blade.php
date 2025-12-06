@@ -109,33 +109,31 @@
                 @endif
 
                 {{-- Kuponlar --}}
-                <div class="mb-4 p-3 bg-light rounded" id="couponCarousel" data-coupon-carousel>
+                @php
+                    $cartCoupons         = $cartCoupons ?? [];
+                    $couponDiscountTotal = $couponDiscountTotal ?? 0;
+                    $finalTotal          = $finalTotal ?? $cartSubtotal;
+                @endphp
 
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h6 class="fw-bold mb-0">{{ $txt['coupons_title'] }}</h6>
+                @if (!empty($cartCoupons))
+                    <div class="mb-4 p-3 bg-light rounded" id="couponCarousel" data-coupon-carousel>
 
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-secondary coupon-prev" type="button" aria-label="Önceki">
-                                <i class="fi fi-rr-angle-left"></i>
-                            </button>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0">{{ $txt['coupons_title'] }}</h6>
 
-                            <button class="btn btn-sm btn-outline-secondary coupon-next" type="button" aria-label="Sonraki">
-                                <i class="fi fi-rr-angle-right"></i>
-                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-secondary coupon-prev" type="button" aria-label="Önceki">
+                                    <i class="fi fi-rr-angle-left"></i>
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-secondary coupon-next" type="button" aria-label="Sonraki">
+                                    <i class="fi fi-rr-angle-right"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    @include('partials.coupons.helpers')
+                        @include('partials.coupons.helpers')
 
-                    @php
-                        $cartCoupons         = $cartCoupons ?? [];
-                        $couponDiscountTotal = $couponDiscountTotal ?? 0;
-                        $finalTotal          = $finalTotal ?? $cartSubtotal;
-                    @endphp
-
-                    @if (empty($cartCoupons))
-                        <div class="small text-muted">{{ $txt['coupons_none'] }}</div>
-                    @else
                         <div class="coupon-viewport overflow-hidden">
                             <div class="coupon-track d-flex gap-3">
 
@@ -165,8 +163,8 @@
                                                 <div class="badge text-bg-primary mt-1">{{ $badgeLabel }}</div>
                                             @endif
                                             <span class="coupon-info text-secondary">
-                                                <i class="fi fi-rr-info"></i>
-                                            </span>
+                                <i class="fi fi-rr-info"></i>
+                            </span>
                                         </div>
 
                                         <div class="flex-grow-1 align-self-end">
@@ -222,7 +220,6 @@
                                                 </button>
                                             @endif
 
-
                                         </div>
                                     </div>
 
@@ -230,8 +227,8 @@
 
                             </div>
                         </div>
-                    @endif
-                </div>
+                    </div>
+                @endif
 
 
                 {{-- DİNAMİK ÜRÜNLER --}}
@@ -247,63 +244,29 @@
                             @include('pages.cart.item-hotel', ['key'=>$key,'ci'=>$ci])
                         @elseif ($type === 'villa')
                             @include('pages.cart.item-villa', ['key'=>$key,'ci'=>$ci])
-                        @else
-                            @php
-                                $amount   = (float)($ci['amount'] ?? 0);
-                                $currency = $ci['currency'] ?? $cartCurrency;
-                            @endphp
-
-                            <div class="card shadow-sm mb-3 position-relative">
-
-                                <form method="POST"
-                                      action="{{ route('cart.remove', ['key'=>$key]) }}"
-                                      class="position-absolute top-0 end-0 m-2">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="btn btn-sm btn-light text-danger">
-                                        <i class="fi fi-rr-trash"></i>
-                                    </button>
-                                </form>
-
-                                <div class="card-body">
-                                    <div class="row g-3 align-items-center">
-
-                                        <div class="col-4 col-md-3">
-                                            <img src="{{ asset('/images/samples/excursion-1b.jpg') }}"
-                                                 class="img-fluid rounded object-fit-cover"
-                                                 alt="urun">
-                                        </div>
-
-                                        <div class="col-8 col-md-6">
-                                            <div class="small text-uppercase text-muted mb-1">
-                                                {{ ucfirst($type) }}
-                                            </div>
-                                            <h5 class="mb-1">
-                                                {{ data_get($ci,'snapshot.tour_name','Ürün') }}
-                                            </h5>
-                                        </div>
-
-                                        <div class="col-12 col-md-3 text-md-end">
-                                            <div class="fw-bold fs-5 text-primary">
-                                                {{ number_format($amount,0,',','.') }}
-                                                @if ($currency) {{ $currency }} @endif
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
                         @endif
-
                     @endforeach
+                @else
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body text-center py-5 text-secondary">
+                            <div class="mb-3">
+                                <i class="fi fi-rr-basket-shopping-simple" style="font-size: 40px;"></i>
+                            </div>
+                            <h5 class="mb-2">{{ $txt['err_cart_empty'] }}</h5>
+                            <p class="text-muted small mb-3">
+                                Yeni bir rezervasyon eklemek için otel, villa, tur veya transfer arayabilirsiniz.
+                            </p>
+                            <a href="{{ localized_route('home') }}" class="btn btn-primary btn-sm">
+                                Ana sayfaya dön
+                            </a>
+                        </div>
+                    </div>
                 @endif
-
 
                 {{-- Banner --}}
                 <div class="mb-4 position-relative text-white rounded shadow bg-secondary" style="min-height:160px;">
                     <div class="position-absolute bottom-0" style="right:-15px;z-index:1;overflow:hidden;width:220px;">
-                        <img src="{{ asset('/images/vito.png') }}" class="img-fluid">
+                        <img src="{{ asset('/images/vito.png') }}" class="img-fluid" alt="Mercedes Vito">
                     </div>
                     <div class="position-relative p-4" style="z-index:2;">
                         <h6 class="fw-light mb-0">6 Gece otel rezervasyonunuza</h6>
@@ -316,12 +279,25 @@
                 </div>
 
                 {{-- Not Alanı --}}
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <label class="form-label fw-semibold">Not (opsiyonel)</label>
-                        <textarea class="form-control" rows="3" placeholder="Özel istekleriniz..."></textarea>
+                @if (!empty($cartItems))
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <label class="form-label fw-semibold">Sipariş Notunuz:</label>
+                            <textarea
+                                class="form-control"
+                                rows="3"
+                                placeholder="Özel istekleriniz..."
+                                id="cartOrderNote"
+                                data-order-note
+                                maxlength="400"
+                            ></textarea>
+
+                            <div class="text-end small text-muted mt-1">
+                                <span id="cartOrderNoteCount">0</span>/400
+                            </div>
+                        </div>
                     </div>
-                </div>
+                @endif
 
             </div>
 
@@ -403,8 +379,20 @@
 
                             <form method="POST"
                                   action="{{ localized_route('checkout.complete') }}"
-                                  class="mt-2">
+                                  class="mt-2"
+                                  data-checkout-complete>
                                 @csrf
+
+                                {{-- Sipariş notu --}}
+                                <input type="hidden" name="order_note" id="cartOrderNoteHidden">
+
+                                {{-- Kurumsal fatura alanları --}}
+                                <input type="hidden" name="is_corporate"   id="corpIsCorporate">
+                                <input type="hidden" name="corp_company"   id="corpCompanyHidden">
+                                <input type="hidden" name="corp_tax_office" id="corpTaxOfficeHidden">
+                                <input type="hidden" name="corp_tax_no"    id="corpTaxNoHidden">
+                                <input type="hidden" name="corp_address"   id="corpAddressHidden">
+
                                 <button type="submit" class="btn btn-success w-100">
                                     {{ $txt['btn_checkout'] }}
                                 </button>
@@ -422,26 +410,39 @@
 
                                 <div class="mb-2">
                                     <label class="form-label small">{{ $txt['corp_company'] }}</label>
-                                    <input type="text" class="form-control" placeholder="Örn. ABC Turizm A.Ş.">
+                                    <input type="text"
+                                           class="form-control"
+                                           id="corpCompanyInput"
+                                           placeholder="Örn. ABC Turizm A.Ş.">
                                 </div>
 
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <label class="form-label small">{{ $txt['corp_tax_office'] }}</label>
-                                        <input type="text" class="form-control" placeholder="Örn. Beyoğlu">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="corpTaxOfficeInput"
+                                               placeholder="Örn. Beyoğlu">
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label small">{{ $txt['corp_tax_no'] }}</label>
-                                        <input type="text" class="form-control" placeholder="##########">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="corpTaxNoInput"
+                                               placeholder="##########">
                                     </div>
                                 </div>
 
                                 <div class="mt-2">
                                     <label class="form-label small">{{ $txt['corp_address'] }}</label>
-                                    <textarea class="form-control" rows="2" placeholder="Adres"></textarea>
+                                    <textarea class="form-control"
+                                              rows="2"
+                                              id="corpAddressInput"
+                                              placeholder="Adres"></textarea>
                                 </div>
 
                             </div>
+
 
                         </div>
                     </div>
@@ -451,5 +452,70 @@
 
         </div>
     </section>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const noteEl   = document.querySelector('#cartOrderNote');
+            const counter  = document.querySelector('#cartOrderNoteCount');
+            const form     = document.querySelector('form[data-checkout-complete]');
+            const hidden   = document.querySelector('#cartOrderNoteHidden');
+
+            // Kurumsal fatura alanları
+            const chkCorp          = document.querySelector('#chkCorporate');
+            const corpCompanyInput = document.querySelector('#corpCompanyInput');
+            const corpTaxOfficeInput = document.querySelector('#corpTaxOfficeInput');
+            const corpTaxNoInput   = document.querySelector('#corpTaxNoInput');
+            const corpAddressInput = document.querySelector('#corpAddressInput');
+
+            const corpIsCorporate   = document.querySelector('#corpIsCorporate');
+            const corpCompanyHidden = document.querySelector('#corpCompanyHidden');
+            const corpTaxOfficeHidden = document.querySelector('#corpTaxOfficeHidden');
+            const corpTaxNoHidden   = document.querySelector('#corpTaxNoHidden');
+            const corpAddressHidden = document.querySelector('#corpAddressHidden');
+
+            // Karakter sayacı (sipariş notu)
+            if (noteEl && counter) {
+                counter.textContent = noteEl.value.length;
+
+                noteEl.addEventListener('input', function () {
+                    counter.textContent = noteEl.value.length;
+                });
+            }
+
+            // Form submit olurken notu ve kurumsal alanları hidden input'lara kopyala
+            if (form) {
+                form.addEventListener('submit', function () {
+                    // Sipariş notu
+                    if (noteEl && hidden) {
+                        hidden.value = noteEl.value || '';
+                    }
+
+                    // Kurumsal fatura alanları
+                    if (
+                        chkCorp &&
+                        corpIsCorporate &&
+                        corpCompanyHidden &&
+                        corpTaxOfficeHidden &&
+                        corpTaxNoHidden &&
+                        corpAddressHidden
+                    ) {
+                        if (chkCorp.checked) {
+                            corpIsCorporate.value    = '1';
+                            corpCompanyHidden.value  = corpCompanyInput ? corpCompanyInput.value.trim() : '';
+                            corpTaxOfficeHidden.value = corpTaxOfficeInput ? corpTaxOfficeInput.value.trim() : '';
+                            corpTaxNoHidden.value    = corpTaxNoInput ? corpTaxNoInput.value.trim() : '';
+                            corpAddressHidden.value  = corpAddressInput ? corpAddressInput.value.trim() : '';
+                        } else {
+                            // İşaretli değilse temizle
+                            corpIsCorporate.value    = '';
+                            corpCompanyHidden.value  = '';
+                            corpTaxOfficeHidden.value = '';
+                            corpTaxNoHidden.value    = '';
+                            corpAddressHidden.value  = '';
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 
 @endsection

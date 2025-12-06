@@ -61,10 +61,10 @@ class ManageCouponAssignments extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.coupons.navigation.group');
+        return __('admin.nav.sales_group');
     }
 
-    protected static ?string $navigationLabel = 'Toplu Kupon İşlemleri';
+    public static function getNavigationLabel(): string { return __('admin.coupons.bulk.navigation_label'); }
 
     public function getTitle(): string
     {
