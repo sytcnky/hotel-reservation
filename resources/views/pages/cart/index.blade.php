@@ -372,14 +372,9 @@
                                 </span>
                             </div>
 
-                            <a href="{{ route('login',['redirect'=>'/payment','from_cart'=>1]) }}"
-                               class="btn btn-primary w-100 mt-3">
-                                {{ $txt['btn_pay'] }}
-                            </a>
-
                             <form method="POST"
                                   action="{{ localized_route('checkout.complete') }}"
-                                  class="mt-2"
+                                  class="mt-3"
                                   data-checkout-complete>
                                 @csrf
 
@@ -387,16 +382,17 @@
                                 <input type="hidden" name="order_note" id="cartOrderNoteHidden">
 
                                 {{-- Kurumsal fatura alanları --}}
-                                <input type="hidden" name="is_corporate"   id="corpIsCorporate">
-                                <input type="hidden" name="corp_company"   id="corpCompanyHidden">
+                                <input type="hidden" name="is_corporate"    id="corpIsCorporate">
+                                <input type="hidden" name="corp_company"    id="corpCompanyHidden">
                                 <input type="hidden" name="corp_tax_office" id="corpTaxOfficeHidden">
-                                <input type="hidden" name="corp_tax_no"    id="corpTaxNoHidden">
-                                <input type="hidden" name="corp_address"   id="corpAddressHidden">
+                                <input type="hidden" name="corp_tax_no"     id="corpTaxNoHidden">
+                                <input type="hidden" name="corp_address"    id="corpAddressHidden">
 
-                                <button type="submit" class="btn btn-success w-100">
-                                    {{ $txt['btn_checkout'] }}
+                                <button type="submit" class="btn btn-primary w-100">
+                                    {{ $txt['btn_pay'] }}
                                 </button>
                             </form>
+
 
                             <div class="form-check mt-3">
                                 <input class="form-check-input" type="checkbox" id="chkCorporate"

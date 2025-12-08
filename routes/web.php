@@ -16,6 +16,7 @@ use App\Http\Controllers\Account\CouponsController;
 
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\PaymentController;
 
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
@@ -164,11 +165,15 @@ LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']
 /** Excursion detail */
 LocalizedRoute::get('excursions.detail', 'excursions/{slug}', [TourController::class, 'show']);
 
+/** Ödeme */
+LocalizedRoute::get('payment', 'payment/{code}', [PaymentController::class, 'show']);
+
+// Başarı
+LocalizedRoute::view('success', 'success', 'pages.payment.success');
+
 /** Statik sayfalar */
 LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
 LocalizedRoute::view('help', 'help', 'pages.help.index');
-LocalizedRoute::view('payment', 'payment', 'pages.payment.index');
-LocalizedRoute::view('success', 'success', 'pages.payment.success');
 LocalizedRoute::get('cart', 'cart', [CartController::class, 'index']);
 Route::delete('/cart/item/{key}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');

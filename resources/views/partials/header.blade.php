@@ -407,7 +407,6 @@ $initials = mb_strtoupper($initials);
         <a class="nav-link" href="{{ localized_route('villa') }}">Kiralık Villalar</a>
         <a class="nav-link" href="{{ localized_route('excursions') }}">Günlük Turlar</a>
         <a class="nav-link" href="{{ localized_route('guides') }}">Gezi Rehberi</a>
-        <a class="nav-link" href="{{ localized_route('payment') }}">{{ t('nav.payment') }}</a>
         <a class="nav-link" href="{{ localized_route('contact') }}">{{ t('nav.contact') }}</a>
     </div>
 </div>

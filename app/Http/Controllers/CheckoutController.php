@@ -467,6 +467,6 @@ class CheckoutController extends Controller
         session()->forget('cart.applied_coupons');
 
         return redirect()
-            ->to(localized_route('payment.show', ['code' => $order->code]));
+            ->to(localized_route('payment', ['code' => $order->code]));
     }
 }

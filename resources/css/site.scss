@@ -447,3 +447,37 @@ $bottom-nav-height: 64px;
     padding: 10px 12px;
     line-height: 1.4;
 }
+
+/* Kredi Kartı */
+.cc{ width:100%; max-width:420px; height:260px; perspective:1000px; margin:0 auto 1rem; }
+.cc-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s ease; }
+.cc-face {
+    position:absolute; inset:0; border-radius:16px; color:#fff; padding:20px;
+    backface-visibility:hidden; overflow:hidden;
+    /* üstte parlama, altta hafif gölge, en altta ana degrade */
+    background:
+        radial-gradient(120% 120% at 10% 0%, rgba(255,255,255,.18), rgba(255,255,255,0) 55%),
+        radial-gradient(120% 120% at 100% 100%, rgba(0,0,0,.18), rgba(0,0,0,0) 55%),
+        linear-gradient(150deg, #6a33c7 0%, #5b3ecc 28%, #4a4fd7 58%, #3e61e4 85%, #3867e9 100%),
+            /* ultra hafif grain */
+        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, rgba(0,0,0,0) 1px 2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+.cc-front .cc-top{ display:flex; justify-content:space-between; align-items:center; }
+.cc-chip{ width:44px; height:32px; border-radius:6px; background:linear-gradient(180deg,#f6d365,#fda085); box-shadow:inset 0 0 0 1px rgba(0,0,0,.1); }
+.cc-brand {height:48px;}
+.cc-brand-logo{ height:48px; width:auto; display:none; } /* unknown -> gizli */
+.cc-number{ font:600 26px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing:2px; margin:28px 0; }
+.cc-label{ font-size:11px; opacity:.85; letter-spacing:.6px; }
+.cc-value{ font-weight:600; font-size:14px; text-transform:uppercase; }
+.cc-bottom{ display:flex; justify-content:space-between; align-items:flex-end; }
+
+.cc-back{
+    transform: rotateY(180deg);
+    background:
+        radial-gradient(110% 110% at 100% 0%, rgba(255,255,255,.10), rgba(255,255,255,0) 50%),
+        linear-gradient(150deg, #2a2a3a 0%, #32324a 55%, #3a3a56 100%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, rgba(0,0,0,0) 1px 2px);
+}
+.cc-strip{ height:48px; background:#111; margin-top:18px; margin-bottom:28px; }
+.cc-cvv-box{ background:#fff; color:#111; padding:8px 10px; border-radius:6px; width:120px; text-align:right; margin-left:auto; }
