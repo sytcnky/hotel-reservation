@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Order extends Model
 {
@@ -15,14 +16,14 @@ class Order extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'total_amount'      => 'float',
-        'discount_amount'   => 'float',
-        'billing_address'   => 'array',
-        'metadata'          => 'array',
-        'coupon_snapshot'   => 'array',
-        'paid_at'           => 'datetime',
-        'payment_expires_at'=> 'datetime',
-        'cancelled_at'      => 'datetime',
+        'total_amount'       => 'float',
+        'discount_amount'    => 'float',
+        'billing_address'    => 'array',
+        'metadata'           => 'array',
+        'coupon_snapshot'    => 'array',
+        'paid_at'            => 'datetime',
+        'payment_expires_at' => 'datetime',
+        'cancelled_at'       => 'datetime',
     ];
 
     protected static function booted(): void
@@ -98,7 +99,6 @@ class Order extends Model
                     }
                 };
 
-
                 // Kişi sayısı — sadece sayısal ham veri
                 $pax = null;
 
@@ -109,17 +109,14 @@ class Order extends Model
                 $paxParts = [];
 
                 if ($a) {
-                    // admin.orders.pax.adult: ':count Yetişkin' | ':count Yetişkin'
                     $paxParts[] = trans_choice('admin.orders.pax.adult', $a, ['count' => $a]);
                 }
 
                 if ($c) {
-                    // admin.orders.pax.child: ':count Çocuk' | ':count Çocuk'
                     $paxParts[] = trans_choice('admin.orders.pax.child', $c, ['count' => $c]);
                 }
 
                 if ($i) {
-                    // admin.orders.pax.infant: ':count Bebek' | ':count Bebek'
                     $paxParts[] = trans_choice('admin.orders.pax.infant', $i, ['count' => $i]);
                 }
 
@@ -167,21 +164,19 @@ class Order extends Model
                             'villa_name' => $s['villa_name'] ?? $s['title'] ?? null,
                             'checkin'    => $formatDateOnly($s['checkin']  ?? null),
                             'checkout'   => $formatDateOnly($s['checkout'] ?? null),
-                            'paid'       => $pre        !== null ? $formatMoney($pre)         . $rateText : null,
-                            'remaining'  => $remaining  !== null ? $formatMoney($remaining)   : null,
-                            'total'      => $total      !== null ? $formatMoney($total)       : null,
+                            'paid'       => $pre       !== null ? $formatMoney($pre)       . $rateText : null,
+                            'remaining'  => $remaining !== null ? $formatMoney($remaining) : null,
+                            'total'      => $total     !== null ? $formatMoney($total)     : null,
                         ];
                 }
 
                 // Tur
                 if ($type === 'tour' || $type === 'excursion') {
-                    // Tarih + saat birleştir
                     $tourDateTime = null;
 
                     if (! empty($s['date'])) {
                         $tourDateTime = $s['date'];
 
-                        // Snapshot'ta hangi alan varsa onu ekle
                         if (! empty($s['pickup_time'])) {
                             $tourDateTime .= ' ' . $s['pickup_time'];
                         } elseif (! empty($s['time'])) {
@@ -191,8 +186,7 @@ class Order extends Model
 
                     return $base + [
                             'tour_name' => $s['tour_name'] ?? $s['title'] ?? null,
-                            // Saat varsa $formatDate ile (d.m.Y H:i), yoksa sadece tarihi göster
-                            'date' => $tourDateTime
+                            'date'      => $tourDateTime
                                 ? $formatDateTime($tourDateTime)
                                 : $formatDateOnly($s['date'] ?? null),
                             'paid'      => $formatMoney($item->total_price ?? $item->unit_price),
@@ -217,14 +211,12 @@ class Order extends Model
                     );
 
                     $returnDate = $formatDateTime(
-                        $s['return_date']         ?? null,
-                        $s['pickup_time_return'] ?? null,
+                        $s['return_date']          ?? null,
+                        $s['pickup_time_return']   ?? null,
                     );
 
                     return $base + [
                             'route'            => $route,
-                            // snapshot’ta şu an sadece vehicle_id ve vehicle_image var,
-                            // bu yüzden isim boş geliyor:
                             'vehicle'          => $s['vehicle_name'] ?? null,
                             'departure_date'   => $departureDate,
                             'return_date'      => $returnDate,
@@ -234,8 +226,7 @@ class Order extends Model
                         ];
                 }
 
-
-                // Fallback – tip tanımsızsa en azından tutarı göster
+                // Fallback
                 return $base + [
                         'paid' => $formatMoney($item->total_price ?? $item->unit_price),
                     ];
@@ -246,30 +237,20 @@ class Order extends Model
 
     /**
      * Snapshot içinden kart görselini çözer.
-     *
-     * Desteklenen anahtarlar:
-     * - hotel_image
-     * - villa_image
-     * - vehicle_image
-     * - cover_image
-     *
-     * Hem array (['thumb' => ...]) hem de direkt string URL durumunu destekler.
      */
     protected function resolveItemImageFromSnapshot(array $s): ?string
     {
         foreach (['hotel_image', 'villa_image', 'vehicle_image', 'cover_image'] as $key) {
-            if (!array_key_exists($key, $s) || blank($s[$key])) {
+            if (! array_key_exists($key, $s) || blank($s[$key])) {
                 continue;
             }
 
             $value = $s[$key];
 
-            // Spatie normalize edilmiş array: ['thumb' => '...', ...]
-            if (is_array($value) && !empty($value['thumb'])) {
+            if (is_array($value) && ! empty($value['thumb'])) {
                 return $value['thumb'];
             }
 
-            // Transfer özelinde olduğu gibi direkt string URL
             if (is_string($value)) {
                 return $value;
             }
@@ -294,6 +275,14 @@ class Order extends Model
         return $this->hasMany(\App\Models\OrderItem::class);
     }
 
+    public function successfulPaymentAttempt(): ?\App\Models\PaymentAttempt
+    {
+        return $this->paymentAttempts()
+            ->where('status', \App\Models\PaymentAttempt::STATUS_SUCCESS)
+            ->orderByDesc('id')
+            ->first();
+    }
+
     /**
      * Bu siparişe ait tüm ödeme girişimleri.
      */
@@ -308,6 +297,23 @@ class Order extends Model
     public function latestPaymentAttempt()
     {
         return $this->hasOne(\App\Models\PaymentAttempt::class)->latestOfMany();
+    }
+
+    /**
+     * Bu siparişe ait tüm geri ödeme girişimleri.
+     *
+     * Order -> PaymentAttempt (order_id) -> RefundAttempt (payment_attempt_id)
+     */
+    public function refundAttempts(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \App\Models\RefundAttempt::class,
+            \App\Models\PaymentAttempt::class,
+            'order_id',            // payment_attempts.order_id
+            'payment_attempt_id',  // refund_attempts.payment_attempt_id
+            'id',                  // orders.id
+            'id'                   // payment_attempts.id
+        );
     }
 
     public function getDiscountsForInfolistAttribute(): array
@@ -330,23 +336,49 @@ class Order extends Model
 
                 $type = $row['type'] ?? null;
 
-                // Sadece iki net tip var: coupon | campaign
                 if ($type === 'coupon') {
-                    $badge = __('admin.orders.form.badge_coupon');           // "Kupon"
+                    $badge = __('admin.orders.form.badge_coupon');
                 } elseif ($type === 'campaign') {
-                    $badge = __('admin.orders.form.badge_campaign');    // "Kampanya"
+                    $badge = __('admin.orders.form.badge_campaign');
                 } else {
-                    // Domain gereği başka type yok; bilinmeyen değer gelirse badge boş kalsın
                     $badge = null;
                 }
 
                 return [
                     'amount' => $amountFormatted,
-                    'label'  => $label,   // "15% Tur İndirim Kuponu" vb.
+                    'label'  => $label,
                     'badge'  => $badge,
                 ];
             })
             ->filter()
+            ->values()
+            ->all();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Refunds (Infolist için)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getRefundsForInfolistAttribute(): array
+    {
+        $currency = strtoupper((string) ($this->currency ?? ''));
+
+        return $this->refundAttempts()
+            ->select('refund_attempts.*')
+            ->where('refund_attempts.status', \App\Models\RefundAttempt::STATUS_SUCCESS)
+            ->orderByDesc('refund_attempts.id')
+            ->get()
+            ->map(function (\App\Models\RefundAttempt $r) use ($currency) {
+                return [
+                    'badge'  => $r->initiator_role ?? null,
+                    'name'   => $r->initiator_name ?? null,
+                    'reason' => $r->reason ?: null,
+                    'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $currency,
+                    'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+                ];
+            })
             ->values()
             ->all();
     }
@@ -359,7 +391,6 @@ class Order extends Model
 
     public function getCustomerNameAttribute(): ?string
     {
-        // Misafir ise metadata.guest içinde gelir
         $guest = $this->metadata['guest'] ?? null;
         if (is_array($guest)) {
             $first = $guest['first_name'] ?? null;
@@ -367,7 +398,6 @@ class Order extends Model
             return trim($first . ' ' . $last) ?: null;
         }
 
-        // Üye ise user üzerinden
         if ($this->user) {
             return $this->user->name ?? null;
         }
@@ -377,7 +407,7 @@ class Order extends Model
 
     public function getCustomerEmailAttribute(): ?string
     {
-        if (!empty($this->metadata['guest']['email'])) {
+        if (! empty($this->metadata['guest']['email'])) {
             return $this->metadata['guest']['email'];
         }
 
@@ -386,7 +416,7 @@ class Order extends Model
 
     public function getCustomerPhoneAttribute(): ?string
     {
-        if (!empty($this->metadata['guest']['phone'])) {
+        if (! empty($this->metadata['guest']['phone'])) {
             return $this->metadata['guest']['phone'];
         }
 
@@ -395,7 +425,6 @@ class Order extends Model
 
     public function getIsGuestAttribute(): bool
     {
-        return !empty($this->metadata['guest']);
+        return ! empty($this->metadata['guest']);
     }
-
 }

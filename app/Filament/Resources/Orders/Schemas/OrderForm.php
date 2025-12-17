@@ -3,16 +3,21 @@
 namespace App\Filament\Resources\Orders\Schemas;
 
 use App\Models\Order;
+use App\Models\RefundAttempt;
+use App\Services\RefundService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Infolists\Components\ImageEntry;
-use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\TextEntry;
-
+use Filament\Notifications\Notification;
 
 class OrderForm
 {
@@ -30,7 +35,7 @@ class OrderForm
                         ->gap(6)
                         ->schema([
 
-                            // SOL (8) — Sipariş & Ödeme bilgileri (read-only)
+                            // SOL (8)
                             Group::make()
                                 ->columnSpan([
                                     'default' => 12,
@@ -85,6 +90,7 @@ class OrderForm
                                                         };
                                                     }),
                                             ]),
+
                                             TextEntry::make('metadata.customer_note')
                                                 ->label(__('admin.orders.form.customer_note'))
                                                 ->state(function (?Order $record) {
@@ -118,7 +124,6 @@ class OrderForm
                                                         ->state(fn (?Order $record) => $record->metadata['invoice']['address'] ?? '-'),
                                                 ])
                                                 ->hidden(function (?Order $record) {
-                                                    // Eğer checkbox işaretlenmemişse (is_corporate=false) → gizle
                                                     $inv = $record->metadata['invoice'] ?? [];
                                                     return empty($inv['is_corporate']);
                                                 }),
@@ -150,7 +155,6 @@ class OrderForm
                                                     ->state(fn (?Order $record) => $record?->currency ?? '-'),
                                             ]),
 
-                                            // Sipariş Toplamı (kuponsuz brüt)
                                             TextEntry::make('total_amount')
                                                 ->label(__('admin.orders.form.total_amount'))
                                                 ->state(function (?Order $record) {
@@ -164,48 +168,40 @@ class OrderForm
                                                     return trim($amount . ' ' . $currency);
                                                 }),
 
-                                            // İndirimler listesi
-                                            Section::make(__('admin.orders.sections.discounts')) // "İndirimler"
-                                            ->schema([
-                                                // Satır satır indirim kalemleri
-                                                RepeatableEntry::make('discounts_for_infolist')
-                                                    ->hiddenLabel()
-                                                    ->schema([
-                                                        Grid::make(['default' => 1, 'lg' => 12])
-                                                            ->schema([
-                                                                // Sol: Tutar
-                                                                TextEntry::make('amount')
-                                                                    ->hiddenLabel()
-                                                                    ->columnSpan(['default' => 12, 'lg' => 3]),
+                                            Section::make(__('admin.orders.sections.discounts'))
+                                                ->schema([
+                                                    RepeatableEntry::make('discounts_for_infolist')
+                                                        ->hiddenLabel()
+                                                        ->schema([
+                                                            Grid::make(['default' => 1, 'lg' => 12])
+                                                                ->schema([
+                                                                    TextEntry::make('amount')
+                                                                        ->hiddenLabel()
+                                                                        ->columnSpan(['default' => 12, 'lg' => 3]),
 
-                                                                // Orta: Açıklama (kupon başlığı vb.)
-                                                                TextEntry::make('label')
-                                                                    ->hiddenLabel()
-                                                                    ->columnSpan(['default' => 12, 'lg' => 7]),
+                                                                    TextEntry::make('label')
+                                                                        ->hiddenLabel()
+                                                                        ->columnSpan(['default' => 12, 'lg' => 7]),
 
-                                                                // Sağ: Badge (Kupon / Kampanya)
-                                                                TextEntry::make('badge')
-                                                                    ->hiddenLabel()
-                                                                    ->badge()
-                                                                    ->color('primary')
-                                                                    ->columnSpan(['default' => 12, 'lg' => 2]),
-                                                            ]),
-                                                    ])
-                                                    ->columns(1)
-                                                    // Hiç indirim yoksa tabloyu gizle
-                                                    ->hidden(fn ($record, $state) => empty($state)),
+                                                                    TextEntry::make('badge')
+                                                                        ->hiddenLabel()
+                                                                        ->badge()
+                                                                        ->color('primary')
+                                                                        ->columnSpan(['default' => 12, 'lg' => 2]),
+                                                                ]),
+                                                        ])
+                                                        ->columns(1)
+                                                        ->hidden(fn ($record, $state) => empty($state)),
 
-                                                // Hiç indirim yoksa gösterilecek mesaj
-                                                TextEntry::make('discounts_empty')
-                                                    ->hiddenLabel()
-                                                    ->state(fn (?Order $record) => __('admin.orders.form.discounts_none')) // "İndirim uygulanmamıştır."
-                                                    ->hidden(fn (?Order $record) => ! empty($record?->discounts_for_infolist)),
-                                            ])
+                                                    TextEntry::make('discounts_empty')
+                                                        ->hiddenLabel()
+                                                        ->state(fn (?Order $record) => __('admin.orders.form.discounts_none'))
+                                                        ->hidden(fn (?Order $record) => ! empty($record?->discounts_for_infolist)),
+                                                ])
                                                 ->contained(false),
 
-                                            // Toplam indirim (tüm kupon/kampanya indirimlerinin toplamı)
                                             TextEntry::make('discount_total')
-                                                ->label(__('admin.orders.form.discount_total')) // Örn: "Toplam İndirim"
+                                                ->label(__('admin.orders.form.discount_total'))
                                                 ->state(function (?Order $record) {
                                                     if (! $record || ! $record->discount_amount) {
                                                         return '-';
@@ -217,7 +213,6 @@ class OrderForm
                                                     return trim($amount . ' ' . $currency);
                                                 }),
 
-                                            // Tahsil Edilen Tutar (bugün için: total_amount - discount_amount)
                                             TextEntry::make('payable_total')
                                                 ->label(__('admin.orders.form.payable_total'))
                                                 ->state(function (?Order $record) {
@@ -254,7 +249,6 @@ class OrderForm
                                             ]),
                                         ]),
 
-
                                     /*
                                      * SİPARİŞ KALEMLERİ
                                      */
@@ -265,7 +259,6 @@ class OrderForm
                                                 ->schema([
                                                     Grid::make(['default' => 1, 'lg' => 12])
                                                         ->schema([
-                                                            // Sol: Görsel
                                                             ImageEntry::make('image')
                                                                 ->hiddenLabel()
                                                                 ->circular()
@@ -273,13 +266,11 @@ class OrderForm
                                                                 ->columnSpan(['default' => 12, 'lg' => 2])
                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
 
-                                                            // Sağ: Bilgiler (label / value hizalı)
                                                             Section::make()
                                                                 ->schema([
                                                                     Section::make()
                                                                         ->inlineLabel()
                                                                         ->schema([
-                                                                            // OTEL
                                                                             TextEntry::make('hotel_name')
                                                                                 ->label(__('admin.orders.items.hotel_name'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
@@ -290,12 +281,10 @@ class OrderForm
                                                                                 ->label(__('admin.orders.items.board_type'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
 
-                                                                            // VİLLA
                                                                             TextEntry::make('villa_name')
                                                                                 ->label(__('admin.orders.items.villa_name'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
 
-                                                                            // TUR
                                                                             TextEntry::make('tour_name')
                                                                                 ->label(__('admin.orders.items.tour_name'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
@@ -303,7 +292,6 @@ class OrderForm
                                                                                 ->label(__('admin.orders.items.date'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
 
-                                                                            // TRANSFER
                                                                             TextEntry::make('route')
                                                                                 ->label(__('admin.orders.items.route'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
@@ -323,7 +311,6 @@ class OrderForm
                                                                                 ->label(__('admin.orders.items.return_flight'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
 
-                                                                            // ORTAK ALANLAR
                                                                             TextEntry::make('checkin')
                                                                                 ->label(__('admin.orders.items.checkin'))
                                                                                 ->hidden(fn ($record, ?string $state) => blank($state)),
@@ -354,9 +341,156 @@ class OrderForm
                                                 ->columns(1),
                                         ])
                                         ->contained(false),
+
+                                    /*
+                                     * GERİ ÖDEMELER (Order detayına eklenen eksik bölüm)
+                                     */
+                                    Section::make(__('admin.payment_attempts.sections.refunds'))
+                                        ->visible(function (?Order $record) {
+                                            if (! $record) {
+                                                return false;
+                                            }
+
+                                            return (bool) $record->successfulPaymentAttempt();
+                                        })
+                                        ->description(function (?Order $record) {
+                                            if (! $record) {
+                                                return null;
+                                            }
+
+                                            $attempt = $record->successfulPaymentAttempt();
+                                            if (! $attempt) {
+                                                return null;
+                                            }
+
+                                            $successSum = (float) RefundAttempt::query()
+                                                ->where('payment_attempt_id', $attempt->id)
+                                                ->where('status', RefundAttempt::STATUS_SUCCESS)
+                                                ->sum('amount');
+
+                                            if ($successSum <= 0) {
+                                                return null;
+                                            }
+
+                                            $remaining = max(((float) $attempt->amount) - $successSum, 0);
+                                            $cur = strtoupper((string) $attempt->currency);
+
+                                            return
+                                                'İade edilen: ' . number_format($successSum, 2, ',', '.') . ' ' . $cur .
+                                                '  Kalan: ' . number_format($remaining, 2, ',', '.') . ' ' . $cur;
+                                        })
+                                        ->afterHeader([
+                                            Action::make('refund')
+                                                ->label(__('admin.payment_attempts.actions.refund'))
+                                                ->color('danger')
+                                                ->icon('heroicon-o-arrow-uturn-left')
+                                                ->visible(function (?Order $record) {
+                                                    if (! $record) {
+                                                        return false;
+                                                    }
+
+                                                    $attempt = $record->successfulPaymentAttempt();
+                                                    if (! $attempt) {
+                                                        return false;
+                                                    }
+
+                                                    $refunded = (float) RefundAttempt::query()
+                                                        ->where('payment_attempt_id', $attempt->id)
+                                                        ->where('status', RefundAttempt::STATUS_SUCCESS)
+                                                        ->sum('amount');
+
+                                                    return ((float) $attempt->amount - $refunded) > 0;
+                                                })
+                                                ->schema([
+                                                    TextInput::make('amount')
+                                                        ->label(__('admin.payment_attempts.fields.refund_amount'))
+                                                        ->numeric()
+                                                        ->required()
+                                                        ->default(function (Order $record) {
+                                                            $attempt = $record->successfulPaymentAttempt();
+                                                            if (! $attempt) {
+                                                                return 0;
+                                                            }
+
+                                                            $refunded = (float) RefundAttempt::query()
+                                                                ->where('payment_attempt_id', $attempt->id)
+                                                                ->where('status', RefundAttempt::STATUS_SUCCESS)
+                                                                ->sum('amount');
+
+                                                            return max(((float) $attempt->amount) - $refunded, 0);
+                                                        }),
+
+                                                    Textarea::make('reason')
+                                                        ->label(__('admin.payment_attempts.fields.refund_reason'))
+                                                        ->rows(3),
+                                                ])
+                                                ->action(function (array $data, Order $record) {
+                                                    try {
+                                                        $attempt = $record->successfulPaymentAttempt();
+
+                                                        if (! $attempt) {
+                                                            throw new \RuntimeException('Bu sipariş için başarılı ödeme bulunamadı.');
+                                                        }
+
+                                                        $admin = auth()->user();
+
+                                                        $initiatorRole = null;
+                                                        if ($admin && method_exists($admin, 'getRoleNames')) {
+                                                            $roles = $admin->getRoleNames()->values()->all();
+                                                            $initiatorRole = $roles[0] ?? null;
+                                                        }
+
+                                                        $meta = [
+                                                            'initiator_user_id' => $admin?->id,
+                                                            'initiator_name'    => $admin?->name,
+                                                            'initiator_role'    => $initiatorRole,
+                                                        ];
+
+                                                        app(RefundService::class)->refundPayment(
+                                                            order: $record,
+                                                            paymentAttempt: $attempt,
+                                                            amount: (float) $data['amount'],
+                                                            reason: $data['reason'] ?? null,
+                                                            meta: $meta,
+                                                        );
+
+                                                        Notification::make()
+                                                            ->title(__('admin.payment_attempts.actions.refund_started'))
+                                                            ->success()
+                                                            ->send();
+                                                    } catch (\Throwable $e) {
+                                                        Notification::make()
+                                                            ->title(__('admin.payment_attempts.actions.refund_failed'))
+                                                            ->body($e->getMessage())
+                                                            ->danger()
+                                                            ->send();
+                                                    }
+                                                }),
+                                        ])
+                                        ->schema([
+                                            RepeatableEntry::make('refunds_for_infolist')
+                                                ->hiddenLabel()
+                                                ->table([
+                                                    TableColumn::make(__('admin.payment_attempts.fields.name')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.role')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.description')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.date')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.total')),
+                                                ])
+                                                ->schema([
+                                                    TextEntry::make('name')->hiddenLabel(),
+                                                    TextEntry::make('badge')->badge()->hiddenLabel(),
+                                                    TextEntry::make('reason')->placeholder('-')->hiddenLabel(),
+                                                    TextEntry::make('time')->hiddenLabel(),
+                                                    TextEntry::make('amount')->hiddenLabel(),
+                                                ])
+                                                ->hidden(fn ($record, $state) => empty($state)),
+                                        ])
+                                        ->contained(false),
+
                                 ]),
 
-                            // SAĞ (4) — Operasyon alanları (editlenebilir)
+                            // SAĞ (4)
                             Group::make()
                                 ->columnSpan([
                                     'default' => 12,
