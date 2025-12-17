@@ -46,6 +46,13 @@ class OrdersTable
                     ->numeric()
                     ->sortable(),
 
+                TextColumn::make('is_guest')
+                    ->label('Tip')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ? 'Misafir' : 'Üye')
+                    ->color(fn ($state) => $state ? 'warning' : 'success')
+                    ->sortable(),
+
                 TextColumn::make('customer_name')
                     ->label(__('admin.orders.table.customer_name'))
                     ->searchable(),

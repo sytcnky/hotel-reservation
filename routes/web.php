@@ -34,23 +34,6 @@ LocalizedRoute::post('tour.book', 'excursions/book', [CheckoutController::class,
 /** Villa booking -> sepete ekleme */
 LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'bookVilla']);
 
-/** Checkout complete (sepet -> sipariş) */
-LocalizedRoute::post(
-    'checkout.complete',
-    'checkout/complete',
-    [CheckoutController::class, 'complete']
-);
-
-/** Sipariş teşekkür sayfası */
-LocalizedRoute::get(
-    'order.thankyou',
-    'order/thankyou/{code}',
-    function ($code) {
-        return view('pages.order.thankyou', ['code' => $code]);
-    }
-);
-
-
 /*
 |--------------------------------------------------------------------------
 | Locale switch
@@ -165,19 +148,33 @@ LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']
 /** Excursion detail */
 LocalizedRoute::get('excursions.detail', 'excursions/{slug}', [TourController::class, 'show']);
 
-/** Ödeme */
+/** Ödeme sayfası (görüntüleme + işleme) */
 LocalizedRoute::get('payment', 'payment/{code}', [PaymentController::class, 'show']);
+
+LocalizedRoute::post('payment.process', 'payment/{code}', [PaymentController::class, 'process']);
+
+/** Sepetten ödeme başlangıcı (ÜYE kullanıcı) */
+LocalizedRoute::post('checkout.start', 'checkout/start', [PaymentController::class, 'start']);
+
+/** Login sayfasındaki misafir formu → ödeme başlangıcı (MİSAFİR) */
+Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])->name('checkout.start.guest');
+
+/** 3D Secure demo ekranı */
+LocalizedRoute::get('payment.3ds', 'payment/{code}/3ds', [PaymentController::class, 'show3ds']);
+LocalizedRoute::post('payment.3ds.complete', 'payment/{code}/3ds/complete', [PaymentController::class, 'complete3ds']);
 
 // Başarı
 LocalizedRoute::view('success', 'success', 'pages.payment.success');
 
-/** Statik sayfalar */
-LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
-LocalizedRoute::view('help', 'help', 'pages.help.index');
+/** Sepet */
 LocalizedRoute::get('cart', 'cart', [CartController::class, 'index']);
 Route::delete('/cart/item/{key}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
 Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
+
+/** Statik sayfalar */
+LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
+LocalizedRoute::view('help', 'help', 'pages.help.index');
 
 
 /** Guides list */

@@ -13,6 +13,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 
+
 class OrderForm
 {
     public static function configure(Schema $schema): Schema
@@ -136,10 +137,11 @@ class OrderForm
                                                         $status = $record?->payment_status;
 
                                                         return match ($status) {
-                                                            'paid'     => __('admin.orders.payment_status.paid'),
-                                                            'unpaid'   => __('admin.orders.payment_status.unpaid'),
-                                                            'refunded' => __('admin.orders.payment_status.refunded'),
-                                                            default    => $status ?? '-',
+                                                            'pending_payment' => __('admin.orders.payment_status.pending_payment'),
+                                                            'paid'            => __('admin.orders.payment_status.paid'),
+                                                            'cancelled'       => __('admin.orders.payment_status.cancelled'),
+                                                            'refunded'        => __('admin.orders.payment_status.refunded'),
+                                                            default           => $status ?? '-',
                                                         };
                                                     }),
 

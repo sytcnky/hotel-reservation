@@ -35,7 +35,17 @@ final class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        // Kullanıcının intended URL'si yoksa, aktif locale'in ana sayfasına yönlendir
+        // Önce redirect parametresine bak (örn. /cart, /checkout vs.)
+        $redirect = $request->input('redirect');
+
+        if (is_string($redirect) && $redirect !== '') {
+            // Basit güvenlik: sadece relative URL veya aynı domain’e izin ver
+            if (str_starts_with($redirect, '/') || str_starts_with($redirect, url('/'))) {
+                return redirect()->to($redirect);
+            }
+        }
+
+        // Aksi halde eski davranış: intended → yoksa home
         return redirect()->intended(localized_route('home'));
     }
 

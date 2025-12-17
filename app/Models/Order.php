@@ -21,6 +21,7 @@ class Order extends Model
         'metadata'          => 'array',
         'coupon_snapshot'   => 'array',
         'paid_at'           => 'datetime',
+        'payment_expires_at'=> 'datetime',
         'cancelled_at'      => 'datetime',
     ];
 
@@ -191,8 +192,8 @@ class Order extends Model
                     return $base + [
                             'tour_name' => $s['tour_name'] ?? $s['title'] ?? null,
                             // Saat varsa $formatDate ile (d.m.Y H:i), yoksa sadece tarihi göster
-                            'date'      => $tourDateTime
-                                ? $formatDateOnly($tourDateTime)
+                            'date' => $tourDateTime
+                                ? $formatDateTime($tourDateTime)
                                 : $formatDateOnly($s['date'] ?? null),
                             'paid'      => $formatMoney($item->total_price ?? $item->unit_price),
                         ];
@@ -293,6 +294,22 @@ class Order extends Model
         return $this->hasMany(\App\Models\OrderItem::class);
     }
 
+    /**
+     * Bu siparişe ait tüm ödeme girişimleri.
+     */
+    public function paymentAttempts()
+    {
+        return $this->hasMany(\App\Models\PaymentAttempt::class);
+    }
+
+    /**
+     * En son oluşturulmuş ödeme girişimi (ör. yeniden deneme senaryoları).
+     */
+    public function latestPaymentAttempt()
+    {
+        return $this->hasOne(\App\Models\PaymentAttempt::class)->latestOfMany();
+    }
+
     public function getDiscountsForInfolistAttribute(): array
     {
         $rows     = (array) ($this->coupon_snapshot ?? []);
@@ -333,4 +350,52 @@ class Order extends Model
             ->values()
             ->all();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CUSTOMER ACCESSORS (Üye + Misafir için birleşik API)
+    |--------------------------------------------------------------------------
+    */
+
+    public function getCustomerNameAttribute(): ?string
+    {
+        // Misafir ise metadata.guest içinde gelir
+        $guest = $this->metadata['guest'] ?? null;
+        if (is_array($guest)) {
+            $first = $guest['first_name'] ?? null;
+            $last  = $guest['last_name'] ?? null;
+            return trim($first . ' ' . $last) ?: null;
+        }
+
+        // Üye ise user üzerinden
+        if ($this->user) {
+            return $this->user->name ?? null;
+        }
+
+        return null;
+    }
+
+    public function getCustomerEmailAttribute(): ?string
+    {
+        if (!empty($this->metadata['guest']['email'])) {
+            return $this->metadata['guest']['email'];
+        }
+
+        return $this->user->email ?? null;
+    }
+
+    public function getCustomerPhoneAttribute(): ?string
+    {
+        if (!empty($this->metadata['guest']['phone'])) {
+            return $this->metadata['guest']['phone'];
+        }
+
+        return $this->user->phone ?? null;
+    }
+
+    public function getIsGuestAttribute(): bool
+    {
+        return !empty($this->metadata['guest']);
+    }
+
 }

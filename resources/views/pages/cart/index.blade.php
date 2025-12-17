@@ -50,6 +50,8 @@
             'corp_tax_no'        => 'Vergi No',
             'corp_address'       => 'Fatura Adresi',
 
+            'err_payment_session_expired' => 'Ödeme oturumunuzun süresi doldu. Lütfen tekrar ödeme başlatın.',
+
         ];
     @endphp
 
@@ -104,6 +106,8 @@
                     <div class="alert alert-danger mt-3">{{ $txt['err_not_applicable'] }}</div>
                 @elseif (session('err') === 'err_exclusive_block')
                     <div class="alert alert-danger mt-3">{{ $txt['err_exclusive_block'] }}</div>
+                @elseif (session('err') === 'payment_session_expired')
+                    <div class="alert alert-warning mt-3">{{ $txt['err_payment_session_expired'] }}</div>
                 @elseif (session('err'))
                     <div class="alert alert-danger mt-3">{{ session('err') }}</div>
                 @endif
@@ -373,9 +377,9 @@
                             </div>
 
                             <form method="POST"
-                                  action="{{ localized_route('checkout.complete') }}"
+                                  action="{{ localized_route('checkout.start') }}"
                                   class="mt-3"
-                                  data-checkout-complete>
+                                  data-checkout-start>
                                 @csrf
 
                                 {{-- Sipariş notu --}}
@@ -452,7 +456,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             const noteEl   = document.querySelector('#cartOrderNote');
             const counter  = document.querySelector('#cartOrderNoteCount');
-            const form     = document.querySelector('form[data-checkout-complete]');
+            const form     = document.querySelector('form[data-checkout-start]');
             const hidden   = document.querySelector('#cartOrderNoteHidden');
 
             // Kurumsal fatura alanları

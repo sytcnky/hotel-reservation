@@ -80,33 +80,58 @@ $prefGuest = request()->boolean('guest');       // misafir toggle başlangıç
                 </form>
             </div>
 
-            <!-- GUEST (ad, soyad, e-posta, telefon) -->
+            {{-- GUEST (ad, soyad, e-posta, telefon) --}}
             <div id="guestFields" class="d-none">
-                <form action="#" method="POST" class="needs-validation" novalidate>
-                    <input type="hidden" name="redirect" value="{{ $redirect }}">
+                <form action="{{ route('checkout.start.guest') }}"
+                      method="POST"
+                      class="needs-validation"
+                      novalidate>
+                    @csrf
+
+                    {{-- Şimdilik redirect’i tutuyoruz, gerekirse ileride kullanırız --}}
+                    <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+
                     <div class="row g-2">
                         <div class="col-12 col-md-6">
                             <label class="form-label">Ad</label>
-                            <input type="text" class="form-control" required>
+                            <input type="text"
+                                   name="guest_first_name"
+                                   class="form-control"
+                                   required>
                         </div>
                         <div class="col-12 col-md-6">
                             <label class="form-label">Soyad</label>
-                            <input type="text" class="form-control" required>
+                            <input type="text"
+                                   name="guest_last_name"
+                                   class="form-control"
+                                   required>
                         </div>
                     </div>
+
                     <div class="mt-3">
                         <label class="form-label">E-posta</label>
-                        <input type="email" class="form-control" placeholder="ornek@mail.com" required>
+                        <input type="email"
+                               name="guest_email"
+                               class="form-control"
+                               placeholder="ornek@mail.com"
+                               required>
                     </div>
+
                     <div class="mt-3">
                         <label class="form-label">Telefon</label>
-                        <input type="tel" class="form-control" placeholder="+90 5xx xxx xx xx" required>
+                        <input type="tel"
+                               name="guest_phone"
+                               class="form-control"
+                               placeholder="+90 5xx xxx xx xx"
+                               required>
                     </div>
+
                     <button type="submit" class="btn btn-success w-100 mt-3">
                         Devam Et
                     </button>
                 </form>
             </div>
+
 
             <!-- Üye olmadan devam et -->
             @if($fromCart)

@@ -102,17 +102,26 @@ export function initPayment() {
         if (!inputEl) return;
 
         const value = (inputEl.value || '').trim();
+        const feedback = inputEl.nextElementSibling;
 
-        // Hiç dokunulmamışsa veya boşsa hata göstermeyelim
+        // Kritik: feedback yoksa hiçbir işlem yapma (asla tahmin yok)
+        if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+            return;
+        }
+
+        // Dokunulmamış / boş → state gösterme
         if (!touched || !value) {
             inputEl.classList.remove('is-invalid');
+            feedback.classList.remove('d-block');
             return;
         }
 
         if (isValid) {
             inputEl.classList.remove('is-invalid');
+            feedback.classList.remove('d-block');
         } else {
             inputEl.classList.add('is-invalid');
+            feedback.classList.add('d-block');
         }
     }
 
