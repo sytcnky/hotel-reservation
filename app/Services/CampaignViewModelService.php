@@ -31,7 +31,7 @@ class CampaignViewModelService
      *                                ]
      */
     public function buildCartCampaignsForUser(
-        User $user,
+        ?User $user,
         array $cartItems,
         string $cartCurrency,
         float $cartSubtotal
@@ -194,7 +194,7 @@ class CampaignViewModelService
     protected function evaluateForCart(
         Campaign $campaign,
         array $vm,
-        User $user,
+        ?User $user,
         array $cartItems,
         string $cartCurrency,
         float $cartSubtotal
@@ -214,10 +214,8 @@ class CampaignViewModelService
         $rules      = (array) ($conditions['rules'] ?? []);
 
         // İndirim hangi satırlara uygulanacak?
-        $discountBaseAmount = $cartSubtotal;
-
-        // Hedef ürün tipleri
-        $targetProductTypes = null;
+        $discountBaseAmount   = $cartSubtotal;
+        $targetProductTypes   = null;
 
         foreach ($rules as $rule) {
             $type = $rule['type'] ?? null;
@@ -228,7 +226,6 @@ class CampaignViewModelService
 
             switch ($type) {
                 case 'basket_required_product_types':
-                    // required_types: ['hotel','tour',...]
                     $required = (array) ($rule['required_types'] ?? []);
 
                     foreach ($required as $reqType) {
@@ -243,12 +240,15 @@ class CampaignViewModelService
                     break;
 
                 case 'discount_target_product_types':
-                    // İndirim sadece bu ürün tiplerinin toplamı üzerinden hesaplanır
                     $targetProductTypes = array_values((array) ($rule['product_types'] ?? []));
                     break;
 
                 case 'user_order_count':
-                    // İlk sipariş / N. sipariş gibi durumlar için
+                    // Misafir için bu kurallı kampanya geçerli olmasın
+                    if (! $user) {
+                        return [false, 0.0, 'user_required'];
+                    }
+
                     $operator = $rule['operator'] ?? 'eq';
                     $value    = (int) ($rule['value'] ?? 0);
 
@@ -266,10 +266,8 @@ class CampaignViewModelService
                     }
                     break;
 
-                // Diğer kural tipleri (user_registered_date, product_min_nights vb.)
-                // ileride buraya eklenecek.
                 default:
-                    // Şimdilik bilinmeyen kuralları yok sayıyoruz.
+                    // şimdilik bilinmeyen kural tiplerini yok sayıyoruz
                     break;
             }
         }
@@ -281,7 +279,6 @@ class CampaignViewModelService
             foreach ($cartItems as $ci) {
                 $pt = $ci['product_type'] ?? null;
 
-                // küçük bir normalize adımı:
                 if ($pt === 'hotel_room') {
                     $normalized = 'hotel';
                 } else {

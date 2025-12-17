@@ -809,6 +809,83 @@ return [
             'discount_target_product_types_product_types' => 'İndirim Uygulanacak Ürün Tipleri',
         ],
 
-    ]
+    ],
+
+    'payment_attempts' => [
+        'singular' => 'Ödeme',
+        'plural'   => 'Ödemeler',
+
+        'sections' => [
+            'payment_info' => 'Ödeme Bilgileri',
+            'refunds'      => 'Geri Ödemeler',
+        ],
+
+        'fields' => [
+            'id'               => 'ID',
+            'order'            => 'Sipariş',
+            'status'           => 'Durum',
+            'gateway'          => 'Gateway',
+            'amount'           => 'Tutar',
+            'gateway_reference'=> 'Gateway Ref',
+            'started_at'       => 'Başladı',
+            'completed_at'     => 'Bitti',
+            'error_message'    => 'Hata Mesajı',
+
+            'refund_amount'    => 'İade Tutarı',
+            'refund_reason'    => 'Açıklama',
+
+            'checkout'        => 'Checkout',
+            'error_code'      => 'Hata Kodu',
+            'ip'              => 'IP',
+            'user_agent'      => 'User Agent',
+            'raw_request'     => 'Raw Request',
+            'raw_response'    => 'Raw Response',
+            'idempotency_key' => 'Idempotency Key',
+
+            // Refund geçmiş tablosu
+            'name'        => 'Ad Soyad',
+            'role'        => 'Rol',
+            'description' => 'Açıklama',
+            'date'        => 'Tarih',
+            'total'       => 'Tutar',
+        ],
+
+        'actions' => [
+            'refund'         => 'Geri Ödeme Başlat',
+            'refund_started' => 'Geri ödeme başlatıldı',
+            'refund_failed'  => 'Geri ödeme başarısız',
+        ],
+
+        'table' => [
+            'id'        => '#',
+            'order'     => 'Sipariş',
+            'status'    => 'Durum',
+            'amount'    => 'Tutar',
+            'gateway'   => 'Gateway',
+            'ref'       => 'Ref',
+            'started'   => 'Başladı',
+            'completed' => 'Bitti',
+            'err'       => 'Hata',
+            'ip'        => 'IP',
+            'created'   => 'Oluşturma',
+            'deleted'   => 'Silinme',
+            'refund' => 'Geri Ödeme Durmu',
+        ],
+
+        'filters' => [
+            'refunded'     => 'Var',
+            'not_refunded' => 'Yok',
+        ],
+
+        'status' => [
+            'pending'   => 'Beklemede',
+            'pending_3ds'   => '3D Bekleniyor',
+            'success'   => 'Başarılı',
+            'failed'    => 'Başarısız',
+            'cancelled' => 'İptal',
+            'expired'   => 'Süresi Doldu',
+            'refunded'  => 'İade',
+        ],
+    ],
 
 ];
