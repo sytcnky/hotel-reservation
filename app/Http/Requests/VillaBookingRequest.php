@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesBookingSnapshot;
 use Illuminate\Foundation\Http\FormRequest;
 
 class VillaBookingRequest extends FormRequest
 {
+    use NormalizesBookingSnapshot;
+
     public function authorize(): bool
     {
         return true;
@@ -26,5 +29,14 @@ class VillaBookingRequest extends FormRequest
             'price_prepayment' => ['required', 'numeric', 'min:0'],
             'price_total'      => ['required', 'numeric', 'min:0'],
         ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->merge([
+            'checkin'   => $this->normalizeDateToYmd($this->input('checkin')),
+            'checkout'  => $this->normalizeDateToYmd($this->input('checkout')),
+            'currency'  => $this->normalizeCurrency($this->input('currency')),
+        ]);
     }
 }

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesBookingSnapshot;
 use Illuminate\Foundation\Http\FormRequest;
 
 class HotelBookingRequest extends FormRequest
 {
+    use NormalizesBookingSnapshot;
+
     public function authorize(): bool
     {
         return true;
@@ -29,5 +32,14 @@ class HotelBookingRequest extends FormRequest
             // Board type bazı otellerde var, bazılarında yok → nullable
             'board_type_name' => ['nullable', 'string'],
         ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->merge([
+            'checkin'   => $this->normalizeDateToYmd($this->input('checkin')),
+            'checkout'  => $this->normalizeDateToYmd($this->input('checkout')),
+            'currency'  => $this->normalizeCurrency($this->input('currency')),
+        ]);
     }
 }

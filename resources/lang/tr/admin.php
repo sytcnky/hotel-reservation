@@ -455,9 +455,11 @@ return [
         ],
 
         'table' => [
-            'code'            => 'Kod',
+            'code'            => 'Sipariş No',
             'status'          => 'Durum',
-            'payment_status'  => 'Ödeme',
+            'guest'           => 'Misafir',
+            'member'          => 'Üye',
+            'type'            => 'Kullanıcı',
             'currency'        => 'Kur',
             'total_amount'    => 'Toplam',
             'discount_amount' => 'İndirim',
@@ -473,6 +475,7 @@ return [
             'pending'   => 'Beklemede',
             'confirmed' => 'Onaylandı',
             'cancelled' => 'İptal Edildi',
+            'completed' => 'Tamamlandı',
         ],
 
         'payment_status' => [

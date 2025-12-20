@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesBookingSnapshot;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TourBookingRequest extends FormRequest
 {
+    use NormalizesBookingSnapshot;
+
     public function authorize(): bool
     {
-        // Şimdilik herkese açık; ileride auth/role kontrolü eklenebilir
         return true;
     }
 
@@ -17,12 +19,20 @@ class TourBookingRequest extends FormRequest
         return [
             'tour_id'     => ['required'],
             'tour_name'   => ['required', 'string'],
-            'date'        => ['required', 'string'],
+            'date'        => ['required', 'date'], // normalize sonrası Y-m-d bekliyoruz
             'adults'      => ['required', 'integer', 'min:1'],
             'children'    => ['nullable', 'integer', 'min:0'],
             'infants'     => ['nullable', 'integer', 'min:0'],
             'currency'    => ['required', 'string', 'size:3'],
             'price_total' => ['required', 'numeric', 'min:0'],
         ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->merge([
+            'date'     => $this->normalizeDateToYmd($this->input('date')),
+            'currency' => $this->normalizeCurrency($this->input('currency')),
+        ]);
     }
 }

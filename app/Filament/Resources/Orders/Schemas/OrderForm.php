@@ -34,7 +34,6 @@ class OrderForm
                         ])
                         ->gap(6)
                         ->schema([
-
                             // SOL (8)
                             Group::make()
                                 ->columnSpan([
@@ -42,10 +41,6 @@ class OrderForm
                                     'lg'      => 8,
                                 ])
                                 ->schema([
-
-                                    /*
-                                     * SİPARİŞ BİLGİLERİ
-                                     */
                                     Section::make(__('admin.orders.sections.order_info'))
                                         ->schema([
                                             Grid::make()->columns(2)->schema([
@@ -67,6 +62,15 @@ class OrderForm
                                                     ->label(__('admin.orders.form.customer_name'))
                                                     ->state(fn (?Order $record) => $record?->customer_name ?? '-'),
 
+                                                TextEntry::make('customer_type')
+                                                    ->label(__('admin.orders.table.type'))
+                                                    ->badge()
+                                                    ->formatStateUsing(fn (?string $state) => $state === 'guest'
+                                                        ? __('admin.orders.table.guest')
+                                                        : __('admin.orders.table.member')
+                                                    )
+                                                    ->color(fn (?string $state) => $state === 'guest' ? 'gray' : 'primary'),
+
                                                 TextEntry::make('customer_email')
                                                     ->label(__('admin.orders.form.customer_email'))
                                                     ->state(fn (?Order $record) => $record?->customer_email ?? '-'),
@@ -79,15 +83,14 @@ class OrderForm
 
                                                 TextEntry::make('status_readonly')
                                                     ->label(__('admin.orders.form.status'))
+                                                    ->badge()
                                                     ->state(function (?Order $record) {
-                                                        $status = $record?->status;
-
-                                                        return match ($status) {
-                                                            'pending'   => __('admin.orders.status.pending'),
-                                                            'confirmed' => __('admin.orders.status.confirmed'),
-                                                            'cancelled' => __('admin.orders.status.cancelled'),
-                                                            default     => $status ?? '-',
-                                                        };
+                                                        $meta = Order::statusMeta($record?->status);
+                                                        return $meta['label_key'] ? __($meta['label_key']) : (string) ($meta['label'] ?? '-');
+                                                    })
+                                                    ->color(function (?Order $record) {
+                                                        $meta = Order::statusMeta($record?->status);
+                                                        return (string) ($meta['filament_color'] ?? 'gray');
                                                     }),
                                             ]),
 
@@ -104,7 +107,6 @@ class OrderForm
                                                     return $note ?: '-';
                                                 }),
 
-                                            // Kurumsal fatura bilgileri
                                             Section::make(__('admin.orders.sections.invoice_info'))
                                                 ->schema([
                                                     TextEntry::make('invoice_company')
@@ -129,12 +131,8 @@ class OrderForm
                                                 }),
                                         ]),
 
-                                    /*
-                                     * ÖDEME BİLGİLERİ
-                                     */
                                     Section::make(__('admin.orders.sections.payment_info'))
                                         ->schema([
-
                                             Grid::make()->columns(2)->schema([
                                                 TextEntry::make('payment_status')
                                                     ->label(__('admin.orders.form.payment_status'))
@@ -249,9 +247,6 @@ class OrderForm
                                             ]),
                                         ]),
 
-                                    /*
-                                     * SİPARİŞ KALEMLERİ
-                                     */
                                     Section::make(__('admin.orders.sections.items'))
                                         ->schema([
                                             RepeatableEntry::make('items_for_infolist')
@@ -342,9 +337,6 @@ class OrderForm
                                         ])
                                         ->contained(false),
 
-                                    /*
-                                     * GERİ ÖDEMELER (Order detayına eklenen eksik bölüm)
-                                     */
                                     Section::make(__('admin.payment_attempts.sections.refunds'))
                                         ->visible(function (?Order $record) {
                                             if (! $record) {
@@ -487,7 +479,6 @@ class OrderForm
                                                 ->hidden(fn ($record, $state) => empty($state)),
                                         ])
                                         ->contained(false),
-
                                 ]),
 
                             // SAĞ (4)
@@ -502,15 +493,8 @@ class OrderForm
                                             Select::make('status')
                                                 ->label(__('admin.orders.form.status'))
                                                 ->required()
-                                                ->options([
-                                                    'pending'   => __('admin.orders.status.pending'),
-                                                    'confirmed' => __('admin.orders.status.confirmed'),
-                                                    'cancelled' => __('admin.orders.status.cancelled'),
-                                                ]),
-
-                                            Textarea::make('note')
-                                                ->label(__('admin.orders.form.operation_note'))
-                                                ->rows(4),
+                                                ->options(Order::filamentStatusOptions())
+                                                ->disabled(fn (?Order $record) => $record?->status === Order::STATUS_COMPLETED),
                                         ]),
                                 ]),
                         ]),

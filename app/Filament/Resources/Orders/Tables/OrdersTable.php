@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Orders\Tables;
 
+use App\Models\Order;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
@@ -25,11 +25,14 @@ class OrdersTable
                 TextColumn::make('status')
                     ->label(__('admin.orders.table.status'))
                     ->badge()
-                    ->sortable(),
-
-                TextColumn::make('payment_status')
-                    ->label(__('admin.orders.table.payment_status'))
-                    ->badge()
+                    ->formatStateUsing(function (?string $state): string {
+                        $meta = Order::statusMeta($state);
+                        return $meta['label_key'] ? __($meta['label_key']) : (string) ($meta['label'] ?? $state ?? '-');
+                    })
+                    ->color(function (?string $state): string {
+                        $meta = Order::statusMeta($state);
+                        return (string) ($meta['filament_color'] ?? 'gray');
+                    })
                     ->sortable(),
 
                 TextColumn::make('currency')
@@ -46,12 +49,14 @@ class OrdersTable
                     ->numeric()
                     ->sortable(),
 
-                TextColumn::make('is_guest')
-                    ->label('Tip')
+                TextColumn::make('customer_type')
+                    ->label(__('admin.orders.table.type'))
                     ->badge()
-                    ->formatStateUsing(fn ($state) => $state ? 'Misafir' : 'Üye')
-                    ->color(fn ($state) => $state ? 'warning' : 'success')
-                    ->sortable(),
+                    ->formatStateUsing(fn (?string $state) => $state === 'guest'
+                        ? __('admin.orders.table.guest')
+                        : __('admin.orders.table.member')
+                    )
+                    ->color(fn (?string $state) => $state === 'guest' ? 'gray' : 'primary'),
 
                 TextColumn::make('customer_name')
                     ->label(__('admin.orders.table.customer_name'))
@@ -86,9 +91,6 @@ class OrdersTable
             ])
             ->filters([
                 TrashedFilter::make(),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

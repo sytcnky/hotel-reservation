@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 // Pending TTL: 10 dk
 Schedule::command('app:expire-pending-payment-attempts --minutes=10')
     ->everyMinute();
+
+// Completed işaretleme: saatlik
+Schedule::command('app:mark-completed-orders')
+    ->hourly();

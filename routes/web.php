@@ -13,6 +13,7 @@ use App\Http\Controllers\TransferController;
 use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
 use App\Http\Controllers\Account\CouponsController;
+use App\Http\Controllers\Account\BookingsController;
 
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
@@ -216,7 +217,7 @@ LocalizedRoute::get('guides.show', 'gezi-rehberi/{slug}', function ($slug) {
         ],
         'icmeler-gezi-rehberi' => [
             'title' => 'İçmeler Gezi Rehberi',
-            'cover' => '/images/samples/icmeler-1.jpg',
+            'cover' => '/images/samples/popular-marmaris.jpg',
             'intro' => 'İçmeler’in plajları, sakin koyları ve öneriler.',
         ],
     ]);
@@ -264,7 +265,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // View sayfalar
     LocalizedRoute::view('account.dashboard', 'account/dashboard', 'pages.account.index');
 
-    LocalizedRoute::view('account.bookings', 'account/bookings', 'pages.account.bookings');
+    LocalizedRoute::get('account.bookings', 'account/bookings', [BookingsController::class, 'index']);
 
     LocalizedRoute::get(
         'account.coupons',

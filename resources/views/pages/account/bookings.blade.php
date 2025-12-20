@@ -1,399 +1,421 @@
 @extends('layouts.account')
 
 @section('account_content')
-<h1 class="display-5 text-center text-secondary d-block d-lg-none">Rezervasyonlarım</h1>
 
-{{-- FİLTRE / SIRALA BAR --}}
-<div class="mb-3 border-bottom pb-3">
-    <div class="row g-2 align-items-center">
-        {{-- Solda: Sırala --}}
-        <div class="d-flex align-items-center justify-content-between gap-2 input-group-sm">
-            <select id="sortSelect" class="form-select w-auto">
-                <option value="all">Tümü</option>
-                <option value="date_desc">Hotel</option>
-                <option value="date_asc">Transfer</option>
-                <option value="price_asc">Villa</option>
-                <option value="price_desc">Tur</option>
-            </select>
+    @php
+        /** @var \Illuminate\Support\Collection|\App\Models\Order[] $orders */
+        $orders = $orders ?? collect();
 
-            <select id="statusFilter" class="form-select w-auto">
-                <option value="all">Tümü</option>
-                <option value="pending">Cevaplandı</option>
-                <option value="completed">Yanıt Bekliyor</option>
-                <option value="canceled">Kapandı</option>
-            </select>
+        $statusList = \App\Models\Order::statusList();
+
+        $statusFilterOptions = [
+            'all' => 'Tümü',
+        ];
+
+        foreach ($statusList as $st) {
+            $statusFilterOptions[$st] = \App\Models\Order::statusMeta($st)['label'] ?? strtoupper((string) $st);
+        }
+    @endphp
+
+    {{-- FİLTRE / SIRALA BAR --}}
+    <div class="mb-3 border-bottom pb-3">
+        <div class="row g-2 align-items-center">
+            <div class="d-flex align-items-center justify-content-between gap-2 input-group-sm flex-wrap">
+                {{-- Ortada: Status --}}
+                <select id="statusFilter" class="form-select w-auto">
+                    @foreach($statusFilterOptions as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+
+                {{-- Sağda: Sırala --}}
+                <select id="sortSelect" class="form-select w-auto">
+                    <option value="date_desc">Tarih (Yeni → Eski)</option>
+                    <option value="date_asc">Tarih (Eski → Yeni)</option>
+                    <option value="price_desc">Tutar (Yüksek → Düşük)</option>
+                    <option value="price_asc">Tutar (Düşük → Yüksek)</option>
+                </select>
+            </div>
         </div>
     </div>
-</div>
 
-{{-- UI DEMO: Rezervasyon Kartı (bağımsız, açılır) --}}
-<style>
-    .booking-thumb {
-        width: 96px;
-        height: 72px;
-        object-fit: cover;
-        object-position: left;
-        border-radius: .5rem
-    }
+    <style>
+        @media (min-width: 992px) {
+            .booking-thumb {
+                max-width: 160px;
+                height: 110px;
+                object-fit: cover;
+                object-position: left;
+                border-radius: .5rem
+            }
+        }
+        .booking-thumb {
+            min-width: 160px;
+            width: 100%;
+            max-height: 120px;
+            object-fit: cover;
+            object-position: left;
+            border-radius: .5rem
+        }
+        .booking-toggle { cursor: pointer; border-radius: .5rem }
+        .booking-toggle:hover { background: rgba(0, 0, 0, .03) }
+        .booking-meta { font-size: .925rem }
+    </style>
 
-    .booking-toggle {
-        cursor: pointer;
-        border-radius: .5rem
-    }
+    <div id="bookingList">
 
-    .booking-toggle:hover {
-        background: rgba(0, 0, 0, .03)
-    }
-
-    .booking-meta {
-        font-size: .925rem
-    }
-</style>
-
-<div id="bookingList">
-    {{-- HOTEL --}}
-    <div class="card booking-card mb-3"
-         data-when="2025-09-12"
-         data-price="18750"
-         data-status="pending">
-        <div class="card-body align-items-center g-3 booking-toggle p-3"
-             data-bs-toggle="collapse"
-             data-bs-target="#booking-101-A101"
-             role="button"
-             aria-expanded="false"
-             aria-controls="booking-101-A101">
-            {{-- ÜST SATIR (TIKLANABİLİR) --}}
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <img src="/images/samples/room-1.jpg" class="booking-thumb" alt="küçük görsel">
-                </div>
-                <div class="col p-0">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="fw-semibold">Grand Marina Hotel</span>
-                        <span class="text-muted">— 101-A101</span>
-                    </div>
-                    <div class="text-muted booking-meta">
-                        <span class="badge bg-secondary text-light align-middle my-1">Otel</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">2 Yetişkin</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">1 Çocuk</span>
-                    </div>
-                    <div class="text-muted booking-meta align-items-center d-flex">
-                        12 Eylül 2025 - 18 Eylül 2025
-                    </div>
-                </div>
-                <div class="col-auto text-end align-self-start">
-                    <span class="badge bg-warning">Onay Bekliyor...</span>
+        @if($orders->isEmpty())
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-muted">Henüz bir rezervasyonunuz yok.</div>
                 </div>
             </div>
+        @endif
 
-            {{-- ALT DETAY (AÇILAN ALAN) --}}
-            <div id="booking-101-A101" class="collapse">
-                <hr>
-                <div class="row">
-                    <div class="col-12">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Sipariş no</dt>
-                            <dd class="col-sm-8"><code>101-A101</code></dd>
+        @foreach($orders as $order)
+            @php
+                $items = collect($order->items_for_infolist ?? []);
 
-                            <dt class="col-sm-4">Oluşturulma tarihi</dt>
-                            <dd class="col-sm-8">12 Eylül 2025</dd>
+                $types = $items->pluck('type')
+                    ->filter()
+                    ->map(fn ($t) => (string) $t)
+                    ->unique()
+                    ->values();
 
-                            <dt class="col-sm-4">Misafir</dt>
-                            <dd class="col-sm-8">2 yetişkin, 1 çocuk</dd>
+                $status = strtolower((string) ($order->status ?? \App\Models\Order::STATUS_PENDING));
+                $meta = \App\Models\Order::statusMeta($status);
 
-                            <dt class="col-sm-4">Oda tipi</dt>
-                            <dd class="col-sm-8">Standart Oda</dd>
+                $statusLabel = (string) ($meta['label'] ?? $status);
+                $statusClass = (string) ($meta['bootstrap_class'] ?? 'bg-secondary');
 
-                            <dt class="col-sm-4">Ücret</dt>
-                            <dd class="col-sm-8">18.750 ₺</dd>
-                        </dl>
+                $currency = strtoupper((string) ($order->currency ?? ''));
+                $amountText = number_format((float) ($order->total_amount ?? 0), 0, ',', '.');
+                $totalText  = trim($amountText . ($currency !== '' ? (' ' . $currency) : ''));
+
+                $whenIso   = optional($order->created_at)->format('Y-m-d') ?? '';
+                $whenHuman = optional($order->created_at)->translatedFormat('d M Y') ?? '';
+
+                $collapseId = 'booking-' . $order->id;
+
+                $discounts = collect($order->discounts_for_infolist ?? []);
+
+                if ($order->relationLoaded('refundAttempts')) {
+                    $refundRows = collect($order->refundAttempts ?? [])->map(function ($r) use ($currency) {
+                        $amount = number_format((float) ($r->amount ?? 0), 2, ',', '.');
+                        $amountText = trim($amount . ($currency !== '' ? (' ' . $currency) : ''));
+
+                        return [
+                            'reason' => $r->reason ?: null,
+                            'amount' => $amountText,
+                            'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+                        ];
+                    });
+                } else {
+                    $refundRows = collect($order->refunds_for_infolist ?? [])->map(function ($r) {
+                        return [
+                            'reason' => $r['reason'] ?? null,
+                            'amount' => $r['amount'] ?? null,
+                            'time'   => $r['time'] ?? null,
+                        ];
+                    });
+                }
+            @endphp
+
+            <div class="card booking-card mb-3"
+                 data-when="{{ $whenIso }}"
+                 data-price="{{ (int) round((float) ($order->total_amount ?? 0)) }}"
+                 data-status="{{ $status }}">
+
+                <div class="card-body align-items-center g-3 booking-toggle p-3"
+                     data-bs-toggle="collapse"
+                     data-bs-target="#{{ $collapseId }}"
+                     role="button"
+                     aria-expanded="false"
+                     aria-controls="{{ $collapseId }}">
+
+                    {{-- ÜST SATIR --}}
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold">{{ $order->code }}</span>
+                                <small class="text-muted">— {{ $whenHuman }}</small>
+                            </div>
+
+                            <div class="text-muted booking-meta">
+                                @foreach($types as $t)
+                                    @php
+                                        $label = match ($t) {
+                                            'hotel', 'hotel_room' => 'Konaklama',
+                                            'transfer' => 'Transfer',
+                                            'villa' => 'Villa',
+                                            'tour', 'excursion' => 'Günlük Tur',
+                                            default => strtoupper((string) $t),
+                                        };
+                                    @endphp
+                                    <span class="badge bg-secondary-subtle text-secondary align-middle my-1 fw-medium">{{ $label }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="col-lg-auto col-12 align-self-center text-lg-end">
+                            <span class="badge {{ $statusClass }} align-middle">{{ $statusLabel }}</span>
+                            <br class="d-lg-block d-none">
+                            <span class="align-middle">{{ $totalText }}</span>
+                        </div>
                     </div>
-                    <div class="col-12">
+
+                    {{-- ALT DETAY (AÇILAN ALAN) --}}
+                    <div id="{{ $collapseId }}" class="collapse">
                         <hr>
-                    </div>
-                    <div class="col-12 d-flex align-items-start justify-content-between gap-2">
-                        <a href="/support/tickets/ABC-123" class="btn btn-outline-secondary">İptal et</a>
-                        <a href="#" class="btn btn-outline-primary">Destek talebi oluştur</a>
+
+                        {{-- ITEMS --}}
+                        @foreach($items as $it)
+                            @php
+                                $t = $it['type'] ?? null;
+
+                                $titleBadge = match ($t) {
+                                    'hotel', 'hotel_room' => 'Konaklama',
+                                    'transfer' => 'Transfer',
+                                    'villa' => 'Villa',
+                                    'tour', 'excursion' => 'Günlük Tur',
+                                    default => null,
+                                };
+
+                                $img = $it['image'] ?? null;
+                                $pax = $it['pax'] ?? null;
+                            @endphp
+
+                            <div class="row">
+                                <div class="col-lg-auto col-12 mb-lg-0 mb-3 position-relative">
+                                    @if($titleBadge)
+                                        <span class="badge bg-secondary-subtle text-secondary position-absolute ms-1 mt-1 fw-medium">{{ $titleBadge }}</span>
+                                    @endif
+
+                                    @if($img)
+                                        <img src="{{ $img }}" class="booking-thumb" alt="küçük görsel">
+                                    @else
+                                        <div class="booking-thumb bg-light d-flex align-items-center justify-content-center text-muted">
+                                            Görsel yok
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="col">
+                                    <dl class="row mb-0">
+                                        @if($t === 'hotel' || $t === 'hotel_room')
+                                            <dt class="col-lg-4">Otel</dt>
+                                            <dd class="col-lg-8">{{ $it['hotel_name'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Oda</dt>
+                                            <dd class="col-lg-8">{{ $it['room_name'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Konaklama Tipi</dt>
+                                            <dd class="col-lg-8">{{ $it['board_type'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Tarihler</dt>
+                                            <dd class="col-lg-8">{{ $it['checkin'] ?? '-' }} → {{ $it['checkout'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Misafirler</dt>
+                                            <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Ücret</dt>
+                                            <dd class="col-lg-8">{{ $it['paid'] ?? '-' }}</dd>
+                                        @elseif($t === 'transfer')
+                                            <dt class="col-lg-4">Rota</dt>
+                                            <dd class="col-lg-8">{{ $it['route'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Araç</dt>
+                                            <dd class="col-lg-8">{{ $it['vehicle'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Geliş</dt>
+                                            <dd class="col-lg-8">
+                                                {{ $it['departure_date'] ?? '-' }}
+                                                @if(!empty($it['departure_flight']))
+                                                    — {{ $it['departure_flight'] }}
+                                                @endif
+                                            </dd>
+
+                                            <dt class="col-lg-4">Dönüş</dt>
+                                            <dd class="col-lg-8">
+                                                {{ $it['return_date'] ?? '-' }}
+                                                @if(!empty($it['return_flight']))
+                                                    — {{ $it['return_flight'] }}
+                                                @endif
+                                            </dd>
+
+                                            <dt class="col-lg-4">Yolcular</dt>
+                                            <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Ücret</dt>
+                                            <dd class="col-lg-8">{{ $it['paid'] ?? '-' }}</dd>
+                                        @elseif($t === 'villa')
+                                            <dt class="col-lg-4">Villa</dt>
+                                            <dd class="col-lg-8">{{ $it['villa_name'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Tarihler</dt>
+                                            <dd class="col-lg-8">{{ $it['checkin'] ?? '-' }} → {{ $it['checkout'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Misafirler</dt>
+                                            <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Ön ödeme</dt>
+                                            <dd class="col-lg-8">{{ $it['paid'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Toplam Ücret</dt>
+                                            <dd class="col-lg-8">
+                                                {{ $it['total'] ?? '-' }}
+                                                @if(!empty($it['remaining']))
+                                                    (Kalan {{ $it['remaining'] }})
+                                                @endif
+                                            </dd>
+                                        @elseif($t === 'tour' || $t === 'excursion')
+                                            <dt class="col-lg-4">Tur</dt>
+                                            <dd class="col-lg-8">{{ $it['tour_name'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Tarih</dt>
+                                            <dd class="col-lg-8">{{ $it['date'] ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Misafirler</dt>
+                                            <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
+
+                                            <dt class="col-lg-4">Ücret</dt>
+                                            <dd class="col-lg-8">{{ $it['paid'] ?? '-' }}</dd>
+                                        @else
+                                            <dt class="col-lg-4">Ücret</dt>
+                                            <dd class="col-lg-8">{{ $it['paid'] ?? '-' }}</dd>
+                                        @endif
+                                    </dl>
+                                </div>
+
+                                <div class="col-12">
+                                    <hr>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        {{-- İNDİRİMLER --}}
+                        @if($discounts->isNotEmpty())
+                            <h6 class="mb-2 mt-3">Uygulanmış İndirimler</h6>
+                            <div class="col-12">
+                                @foreach($discounts as $d)
+                                    <div class="bg-success-subtle rounded mb-2 p-2">
+                                        <dl class="row mb-0">
+                                            <dd class="col-lg-8 mb-0">
+                                                @if(!empty($d['badge']))
+                                                    <span class="badge bg-success-subtle text-success fw-medium me-1">{{ $d['badge'] }}</span>
+                                                @endif
+                                                {{ $d['label'] ?? '-' }}
+                                            </dd>
+                                            <dt class="col-lg-4 mb-0">-{{ $d['amount'] ?? '-' }}</dt>
+                                        </dl>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <hr>
+                        @endif
+
+                        {{-- GERİ ÖDEMELER --}}
+                        @if($refundRows->isNotEmpty())
+                            <h6 class="mb-2 mt-3">Geri Ödemeler</h6>
+                            <div class="col-12">
+                                @foreach($refundRows as $r)
+                                    <div class="bg-danger-subtle rounded mb-2 p-2">
+                                        <dl class="row mb-0">
+                                            <dd class="col-lg-8 mb-0">
+                                                {{ $r['reason'] ?? 'Geri ödeme' }}
+                                            </dd>
+                                            <dt class="col-lg-4 mb-0">
+                                                +{{ $r['amount'] ?? '-' }}
+                                                @if(!empty($r['time']))
+                                                    <small class="text-muted fw-normal">({{ $r['time'] }})</small>
+                                                @endif
+                                            </dt>
+                                        </dl>
+                                    </div>
+                                @endforeach
+                                <p class="text-muted d-flex align-items-center mb-0">
+                                    <i class="fi fi-rr-info me-1"></i>
+                                    Bankanıza bağlı olarak 1-7 iş günü içinde tutar kartınıza yansıyabilir.
+                                </p>
+                            </div>
+                            <hr>
+                        @endif
+
+                        {{-- AKSİYONLAR (şimdilik sadece UI) --}}
+                        <div class="col-12 d-flex align-items-start justify-content-between gap-2">
+                            <a href="#" class="btn btn-outline-secondary" data-order-id="{{ $order->id }}">İptal et</a>
+                            <a href="#" class="btn btn-outline-primary" data-order-id="{{ $order->id }}">Destek talebi oluştur</a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endforeach
     </div>
 
-    {{-- TRANSFER --}}
-    <div class="card booking-card mb-3"
-         data-when="2025-08-25T10:30"
-         data-price="1200"
-         data-status="completed">
-        <div class="card-body align-items-center g-3 booking-toggle p-3"
-             data-bs-toggle="collapse"
-             data-bs-target="#booking-101-B101"
-             role="button"
-             aria-expanded="false"
-             aria-controls="booking-101-B101">
-            {{-- ÜST SATIR (TIKLANABİLİR) --}}
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <img src="/images/vito.png" class="booking-thumb" alt="küçük görsel">
-                </div>
-                <div class="col p-0">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="fw-semibold">Havalimanı Transferi (Vito)</span>
-                        <span class="text-muted">— 101-B101</span>
-                    </div>
-                    <div class="text-muted booking-meta">
-                        <span class="badge bg-secondary text-light align-middle my-1">Transfer</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">2 Yetişkin</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">1 Çocuk</span>
-                    </div>
-                    <div class="text-muted booking-meta align-items-center d-flex">
-                        25 Ağustos 2025 • 10:30
-                    </div>
-                </div>
-                <div class="col-auto text-end align-self-start">
-                    <span class="badge bg-success">Onaylandı</span>
-                </div>
-            </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const list = document.getElementById('bookingList');
+            const sortSelect = document.getElementById('sortSelect');
+            const statusFilter = document.getElementById('statusFilter');
 
-            {{-- ALT DETAY (AÇILAN ALAN) --}}
-            <div id="booking-101-B101" class="collapse">
-                <hr>
-                <div class="row">
-                    <div class="col-12">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Sipariş no</dt>
-                            <dd class="col-sm-8"><code>101-B101</code></dd>
+            function getCards() {
+                return Array.from(list.querySelectorAll('.booking-card'));
+            }
 
-                            <dt class="col-sm-4">Oluşturulma tarihi</dt>
-                            <dd class="col-sm-8">10.05.2025</dd>
+            function parseWhen(card) {
+                const v = card.getAttribute('data-when') || '';
+                const t = Date.parse(v);
+                return isNaN(t) ? 0 : t;
+            }
 
-                            <dt class="col-sm-4">Rota</dt>
-                            <dd class="col-sm-8">Dalaman → İçmeler</dd>
+            function parsePrice(card) {
+                const v = parseInt(card.getAttribute('data-price'), 10);
+                return isNaN(v) ? 0 : v;
+            }
 
-                            <dt class="col-sm-4">Yolcu</dt>
-                            <dd class="col-sm-8">2 yetişkin, 1 çocuk</dd>
+            function applyFilter(cards) {
+                const wanted = statusFilter.value;
 
-                            <dt class="col-sm-4">Araç</dt>
-                            <dd class="col-sm-8">Mercedes Vito</dd>
+                cards.forEach(c => {
+                    const st = (c.getAttribute('data-status') || '').toLowerCase();
+                    const show = (wanted === 'all') || (st === wanted);
+                    c.classList.toggle('d-none', !show);
+                });
+            }
 
-                            <dt class="col-sm-4">Ücret</dt>
-                            <dd class="col-sm-8">1.200 ₺</dd>
-                        </dl>
-                    </div>
-                    <div class="col-12">
-                        <hr>
-                    </div>
-                    <div class="col-12 d-flex align-items-start justify-content-between gap-2">
-                        <a href="/support/tickets/ABC-456" class="btn btn-outline-secondary">İptal et</a>
-                        <a href="#" class="btn btn-outline-primary">Destek talebi oluştur</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            function applySort(cards) {
+                list.querySelectorAll('.collapse.show').forEach(el => {
+                    const acc = bootstrap.Collapse.getOrCreateInstance(el);
+                    acc.hide();
+                });
 
-    {{-- TUR --}}
-    <div class="card booking-card mb-3"
-         data-when="2025-08-27"
-         data-price="950"
-         data-status="canceled">
-        <div class="card-body align-items-center g-3 booking-toggle p-3"
-             data-bs-toggle="collapse"
-             data-bs-target="#booking-101-C101"
-             role="button"
-             aria-expanded="false"
-             aria-controls="booking-101-C101">
-            {{-- ÜST SATIR (TIKLANABİLİR) --}}
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <img src="/images/k2.webp" class="booking-thumb" alt="küçük görsel">
-                </div>
-                <div class="col p-0">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="fw-semibold">Dalyan Tekne Turu</span>
-                        <span class="text-muted">— 101-C101</span>
-                    </div>
-                    <div class="text-muted booking-meta">
-                        <span class="badge bg-secondary text-light align-middle my-1">Tur</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">1 Yetişkin</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">1 Çocuk</span>
-                    </div>
-                    <div class="text-muted booking-meta align-items-center d-flex">
-                        27 Ağustos 2025
-                    </div>
-                </div>
-                <div class="col-auto text-end align-self-start">
-                    <span class="badge bg-secondary">İptal edildi</span>
-                </div>
-            </div>
+                const mode = sortSelect.value;
+                const visible = cards.filter(c => !c.classList.contains('d-none'));
 
-            {{-- ALT DETAY (AÇILAN ALAN) --}}
-            <div id="booking-101-C101" class="collapse">
-                <hr>
-                <div class="row">
-                    <div class="col-12">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Sipariş no</dt>
-                            <dd class="col-sm-8"><code>101-C101</code></dd>
+                visible.sort((a, b) => {
+                    if (mode === 'date_desc')  return parseWhen(b)  - parseWhen(a);
+                    if (mode === 'date_asc')   return parseWhen(a)  - parseWhen(b);
+                    if (mode === 'price_asc')  return parsePrice(a) - parsePrice(b);
+                    if (mode === 'price_desc') return parsePrice(b) - parsePrice(a);
+                    return 0;
+                });
 
-                            <dt class="col-sm-4">Oluşturulma tarihi</dt>
-                            <dd class="col-sm-8">08.05.2025</dd>
+                const frag = document.createDocumentFragment();
+                visible.forEach(c => frag.appendChild(c));
+                list.prepend(frag);
+            }
 
-                            <dt class="col-sm-4">Katılımcı</dt>
-                            <dd class="col-sm-8">2 yetişkin</dd>
+            function refresh() {
+                const cards = getCards();
+                applyFilter(cards);
+                applySort(cards);
+            }
 
-                            <dt class="col-sm-4">Tur tarihi</dt>
-                            <dd class="col-sm-8">27.08.2025</dd>
+            sortSelect.addEventListener('change', refresh);
+            statusFilter.addEventListener('change', refresh);
 
-                            <dt class="col-sm-4">Ücret</dt>
-                            <dd class="col-sm-8">950 ₺</dd>
-                        </dl>
-                    </div>
-                    <div class="col-12">
-                        <hr>
-                    </div>
-                    <div class="col-12 d-flex align-items-start justify-content-between gap-2">
-                        <a href="#" class="btn btn-outline-primary">Destek talebi oluştur</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- VILLA --}}
-    <div class="card booking-card mb-3"
-         data-when="2025-10-05"
-         data-price="42000"
-         data-status="completed">
-        <div class="card-body align-items-center g-3 booking-toggle p-3"
-             data-bs-toggle="collapse"
-             data-bs-target="#booking-101-D101"
-             role="button"
-             aria-expanded="false"
-             aria-controls="booking-101-D101">
-            {{-- ÜST SATIR (TIKLANABİLİR) --}}
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <img src="/images/samples/villa-sample-1.jpg" class="booking-thumb" alt="küçük görsel">
-                </div>
-                <div class="col p-0">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="fw-semibold">Sunset Villa</span>
-                        <span class="text-muted">— 101-D101</span>
-                    </div>
-                    <div class="text-muted booking-meta">
-                        <span class="badge bg-secondary text-light align-middle my-1">Villa</span>
-                        <span class="badge bg-secondary-subtle text-secondary align-middle my-1">4 Kişi</span>
-                    </div>
-                    <div class="text-muted booking-meta align-items-center d-flex">
-                        05 Ekim 2025 - 12 Ekim 2025
-                    </div>
-                </div>
-                <div class="col-auto text-end align-self-start">
-                    <span class="badge bg-success">Onaylandı</span>
-                </div>
-            </div>
-
-            {{-- ALT DETAY (AÇILAN ALAN) --}}
-            <div id="booking-101-D101" class="collapse">
-                <hr>
-                <div class="row">
-                    <div class="col-12">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Sipariş no</dt>
-                            <dd class="col-sm-8"><code>101-D101</code></dd>
-
-                            <dt class="col-sm-4">Oluşturulma tarihi</dt>
-                            <dd class="col-sm-8">12.06.2025</dd>
-
-                            <dt class="col-sm-4">Giriş/Çıkış</dt>
-                            <dd class="col-sm-8">05.10.2025 — 12.10.2025</dd>
-
-                            <dt class="col-sm-4">Misafir</dt>
-                            <dd class="col-sm-8">4 Yetişkin</dd>
-
-                            <dt class="col-sm-4">Ücret</dt>
-                            <dd class="col-sm-8">42.000 ₺</dd>
-                        </dl>
-                    </div>
-                    <div class="col-12">
-                        <hr>
-                    </div>
-                    <div class="col-12 d-flex align-items-start justify-content-between gap-2">
-                        <a href="/support/tickets/ABC-987" class="btn btn-outline-secondary">İptal et</a>
-                        <a href="#" class="btn btn-outline-primary">Destek talebi oluştur</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const list = document.getElementById('bookingList');
-        const sortSelect = document.getElementById('sortSelect');
-        const statusFilter = document.getElementById('statusFilter');
-
-        function getCards() {
-            return Array.from(list.querySelectorAll('.booking-card'));
-        }
-
-        function parseWhen(card) {
-            const v = card.getAttribute('data-when') || '';
-            const t = Date.parse(v);
-            return isNaN(t) ? 0 : t;
-        }
-
-        function parsePrice(card) {
-            const v = parseInt(card.getAttribute('data-price'), 10);
-            return isNaN(v) ? 0 : v;
-        }
-
-        function applyFilter(cards) {
-            const wanted = statusFilter.value; // all | completed | pending | canceled
-            cards.forEach(c => {
-                const st = (c.getAttribute('data-status') || '').toLowerCase();
-                const show = (wanted === 'all') || (st === wanted);
-                c.classList.toggle('d-none', !show);
-            });
-        }
-
-        function applySort(cards) {
-            // açık collapseları kapat (reflow bozulmasın)
-            list.querySelectorAll('.collapse.show').forEach(el => {
-                const acc = bootstrap.Collapse.getOrCreateInstance(el);
-                acc.hide();
-            });
-
-            const mode = sortSelect.value; // date_desc | date_asc | price_asc | price_desc | all
-            const visible = cards.filter(c => !c.classList.contains('d-none'));
-
-            visible.sort((a, b) => {
-                if (mode === 'date_desc')  return parseWhen(b)  - parseWhen(a);
-                if (mode === 'date_asc')   return parseWhen(a)  - parseWhen(b);
-                if (mode === 'price_asc')  return parsePrice(a) - parsePrice(b);
-                if (mode === 'price_desc') return parsePrice(b) - parsePrice(a);
-                return 0;
-            });
-
-            const frag = document.createDocumentFragment();
-            visible.forEach(c => frag.appendChild(c));
-            list.prepend(frag);
-        }
-
-        function refresh() {
-            const cards = getCards();
-            applyFilter(cards);
-            applySort(cards);
-        }
-
-        sortSelect.addEventListener('change', refresh);
-        statusFilter.addEventListener('change', refresh);
-
-        // İlk yüklemede uygula
-        refresh();
-    });
-</script>
+            refresh();
+        });
+    </script>
 
 @endsection

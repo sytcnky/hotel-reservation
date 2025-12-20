@@ -11,6 +11,11 @@ class Order extends Model
 {
     use SoftDeletes;
 
+    public const STATUS_PENDING   = 'pending';
+    public const STATUS_CONFIRMED = 'confirmed';
+    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_COMPLETED = 'completed';
+
     protected $table = 'orders';
 
     protected $guarded = [];
@@ -24,6 +29,7 @@ class Order extends Model
         'paid_at'            => 'datetime',
         'payment_expires_at' => 'datetime',
         'cancelled_at'       => 'datetime',
+        'completed_at'       => 'datetime',
     ];
 
     protected static function booted(): void
@@ -47,6 +53,172 @@ class Order extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Status meta (tek kaynak)
+    |--------------------------------------------------------------------------
+    |
+    | Filament: label_key + filament_color
+    | FE (Bootstrap): label + bootstrap_class
+    */
+    public static function statusMeta(?string $status): array
+    {
+        $status = (string) ($status ?? '');
+
+        return match ($status) {
+            self::STATUS_PENDING => [
+                'status'          => self::STATUS_PENDING,
+                'label_key'       => 'admin.orders.status.pending',
+                'label'           => 'Onay Bekliyor',
+                'filament_color'  => 'warning',
+                'bootstrap_class' => 'bg-warning',
+            ],
+
+            self::STATUS_CONFIRMED => [
+                'status'          => self::STATUS_CONFIRMED,
+                'label_key'       => 'admin.orders.status.confirmed',
+                'label'           => 'Onaylandı',
+                'filament_color'  => 'success',
+                'bootstrap_class' => 'bg-success',
+            ],
+
+            self::STATUS_CANCELLED => [
+                'status'          => self::STATUS_CANCELLED,
+                'label_key'       => 'admin.orders.status.cancelled',
+                'label'           => 'İptal Edildi',
+                'filament_color'  => 'danger',
+                'bootstrap_class' => 'bg-danger',
+            ],
+
+            self::STATUS_COMPLETED => [
+                'status'          => self::STATUS_COMPLETED,
+                'label_key'       => 'admin.orders.status.completed',
+                'label'           => 'Tamamlandı',
+                'filament_color'  => 'gray',
+                'bootstrap_class' => 'bg-dark',
+            ],
+
+            default => [
+                'status'          => $status,
+                'label_key'       => null,
+                'label'           => $status !== '' ? $status : '-',
+                'filament_color'  => 'gray',
+                'bootstrap_class' => 'bg-secondary',
+            ],
+        };
+    }
+
+    public static function statusList(): array
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_CONFIRMED,
+            self::STATUS_CANCELLED,
+            self::STATUS_COMPLETED,
+        ];
+    }
+
+    public static function filamentStatusOptions(): array
+    {
+        $out = [];
+
+        foreach (self::statusList() as $st) {
+            $meta = self::statusMeta($st);
+            $out[$st] = $meta['label_key'] ? __($meta['label_key']) : $st;
+        }
+
+        return $out;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Completed hesabı (runtime)
+    |--------------------------------------------------------------------------
+    |
+    | Kural:
+    | - Sadece: hotel_room, villa, transfer, tour|excursion
+    | - hotel item'ları yok sayılır.
+    | - Her item için "bitiş tarihi" hesaplanır; siparişin service_end_at değeri en geç olanıdır.
+    */
+    public function computeServiceEndAt(): ?Carbon
+    {
+        $items = $this->items;
+
+        if (! $items || $items->isEmpty()) {
+            return null;
+        }
+
+        $tz = config('app.timezone', 'Europe/Istanbul');
+
+        $endCandidates = [];
+
+        foreach ($items as $item) {
+            $type = (string) ($item->product_type ?? '');
+            $s    = (array) ($item->snapshot ?? []);
+
+            if ($type === 'hotel') {
+                continue;
+            }
+
+            if ($type === 'hotel_room') {
+                $dt = $this->parseYmdDateToEndOfDay($s['checkout'] ?? null, $tz);
+                if ($dt) $endCandidates[] = $dt;
+                continue;
+            }
+
+            if ($type === 'villa') {
+                $dt = $this->parseYmdDateToEndOfDay($s['checkout'] ?? null, $tz);
+                if ($dt) $endCandidates[] = $dt;
+                continue;
+            }
+
+            if ($type === 'tour' || $type === 'excursion') {
+                $dt = $this->parseYmdDateToEndOfDay($s['date'] ?? null, $tz);
+                if ($dt) $endCandidates[] = $dt;
+                continue;
+            }
+
+            if ($type === 'transfer') {
+                $direction = (string) ($s['direction'] ?? 'oneway');
+
+                $date = $direction === 'roundtrip'
+                    ? ($s['return_date'] ?? null)
+                    : ($s['departure_date'] ?? null);
+
+                $dt = $this->parseYmdDateToEndOfDay($date, $tz);
+                if ($dt) $endCandidates[] = $dt;
+                continue;
+            }
+        }
+
+        if (empty($endCandidates)) {
+            return null;
+        }
+
+        /** @var Carbon $max */
+        $max = collect($endCandidates)->sort()->last();
+
+        return $max;
+    }
+
+    private function parseYmdDateToEndOfDay($value, string $tz): ?Carbon
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d', $value, $tz)->endOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Order Items (Infolist için)
     |--------------------------------------------------------------------------
     */
@@ -57,11 +229,10 @@ class Order extends Model
             ->map(function (OrderItem $item): array {
                 $s        = (array) ($item->snapshot ?? []);
                 $type     = $item->product_type;
-                $currency = strtoupper($item->currency ?? $this->currency ?? 'TRY');
+                $currency = strtoupper($item->currency ?? $this->currency ?? '');
 
                 $image = $this->resolveItemImageFromSnapshot($s);
 
-                // Para formatlayıcı
                 $formatMoney = function ($amount) use ($currency): ?string {
                     if ($amount === null) {
                         return null;
@@ -72,7 +243,6 @@ class Order extends Model
                     return number_format($amount, 0, ',', '.') . ' ' . $currency;
                 };
 
-                // Tarih formatlayıcı
                 $formatDateTime = function (?string $date, ?string $time = null): ?string {
                     if (blank($date)) {
                         return null;
@@ -82,7 +252,7 @@ class Order extends Model
 
                     try {
                         return Carbon::parse($value)->format('d.m.Y H:i');
-                    } catch (\Throwable $e) {
+                    } catch (\Throwable) {
                         return $value;
                     }
                 };
@@ -94,13 +264,10 @@ class Order extends Model
 
                     try {
                         return Carbon::parse($value)->format('d.m.Y');
-                    } catch (\Throwable $e) {
+                    } catch (\Throwable) {
                         return $value;
                     }
                 };
-
-                // Kişi sayısı — sadece sayısal ham veri
-                $pax = null;
 
                 $a = (int) ($s['adults']   ?? 0);
                 $c = (int) ($s['children'] ?? 0);
@@ -108,30 +275,18 @@ class Order extends Model
 
                 $paxParts = [];
 
-                if ($a) {
-                    $paxParts[] = trans_choice('admin.orders.pax.adult', $a, ['count' => $a]);
-                }
+                if ($a) $paxParts[] = trans_choice('admin.orders.pax.adult', $a, ['count' => $a]);
+                if ($c) $paxParts[] = trans_choice('admin.orders.pax.child', $c, ['count' => $c]);
+                if ($i) $paxParts[] = trans_choice('admin.orders.pax.infant', $i, ['count' => $i]);
 
-                if ($c) {
-                    $paxParts[] = trans_choice('admin.orders.pax.child', $c, ['count' => $c]);
-                }
+                $pax = $paxParts ? implode(', ', $paxParts) : null;
 
-                if ($i) {
-                    $paxParts[] = trans_choice('admin.orders.pax.infant', $i, ['count' => $i]);
-                }
-
-                if ($paxParts) {
-                    $pax = implode(', ', $paxParts);
-                }
-
-                // Ortak base
                 $base = [
                     'type'  => $type,
                     'image' => $image,
                     'pax'   => $pax,
                 ];
 
-                // Otel
                 if ($type === 'hotel' || $type === 'hotel_room') {
                     return $base + [
                             'hotel_name' => $s['hotel_name']      ?? $s['title'] ?? null,
@@ -143,7 +298,6 @@ class Order extends Model
                         ];
                 }
 
-                // Villa
                 if ($type === 'villa') {
                     $total = isset($s['price_total'])      ? (float) $s['price_total']      : null;
                     $pre   = isset($s['price_prepayment']) ? (float) $s['price_prepayment'] : null;
@@ -170,7 +324,6 @@ class Order extends Model
                         ];
                 }
 
-                // Tur
                 if ($type === 'tour' || $type === 'excursion') {
                     $tourDateTime = null;
 
@@ -193,7 +346,6 @@ class Order extends Model
                         ];
                 }
 
-                // Transfer
                 if ($type === 'transfer') {
                     $route = null;
 
@@ -226,7 +378,6 @@ class Order extends Model
                         ];
                 }
 
-                // Fallback
                 return $base + [
                         'paid' => $formatMoney($item->total_price ?? $item->unit_price),
                     ];
@@ -235,9 +386,6 @@ class Order extends Model
             ->all();
     }
 
-    /**
-     * Snapshot içinden kart görselini çözer.
-     */
     protected function resolveItemImageFromSnapshot(array $s): ?string
     {
         foreach (['hotel_image', 'villa_image', 'vehicle_image', 'cover_image'] as $key) {
@@ -283,36 +431,25 @@ class Order extends Model
             ->first();
     }
 
-    /**
-     * Bu siparişe ait tüm ödeme girişimleri.
-     */
     public function paymentAttempts()
     {
         return $this->hasMany(\App\Models\PaymentAttempt::class);
     }
 
-    /**
-     * En son oluşturulmuş ödeme girişimi (ör. yeniden deneme senaryoları).
-     */
     public function latestPaymentAttempt()
     {
         return $this->hasOne(\App\Models\PaymentAttempt::class)->latestOfMany();
     }
 
-    /**
-     * Bu siparişe ait tüm geri ödeme girişimleri.
-     *
-     * Order -> PaymentAttempt (order_id) -> RefundAttempt (payment_attempt_id)
-     */
     public function refundAttempts(): HasManyThrough
     {
         return $this->hasManyThrough(
             \App\Models\RefundAttempt::class,
             \App\Models\PaymentAttempt::class,
-            'order_id',            // payment_attempts.order_id
-            'payment_attempt_id',  // refund_attempts.payment_attempt_id
-            'id',                  // orders.id
-            'id'                   // payment_attempts.id
+            'order_id',
+            'payment_attempt_id',
+            'id',
+            'id'
         );
     }
 
@@ -355,12 +492,6 @@ class Order extends Model
             ->all();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Refunds (Infolist için)
-    |--------------------------------------------------------------------------
-    */
-
     public function getRefundsForInfolistAttribute(): array
     {
         $currency = strtoupper((string) ($this->currency ?? ''));
@@ -372,8 +503,6 @@ class Order extends Model
             ->get()
             ->map(function (\App\Models\RefundAttempt $r) use ($currency) {
                 return [
-                    'badge'  => $r->initiator_role ?? null,
-                    'name'   => $r->initiator_name ?? null,
                     'reason' => $r->reason ?: null,
                     'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $currency,
                     'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
@@ -385,7 +514,7 @@ class Order extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | CUSTOMER ACCESSORS (Üye + Misafir için birleşik API)
+    | CUSTOMER ACCESSORS
     |--------------------------------------------------------------------------
     */
 
@@ -395,6 +524,7 @@ class Order extends Model
         if (is_array($guest)) {
             $first = $guest['first_name'] ?? null;
             $last  = $guest['last_name'] ?? null;
+
             return trim($first . ' ' . $last) ?: null;
         }
 
@@ -423,8 +553,8 @@ class Order extends Model
         return $this->user->phone ?? null;
     }
 
-    public function getIsGuestAttribute(): bool
+    public function getCustomerTypeAttribute(): string
     {
-        return ! empty($this->metadata['guest']);
+        return $this->user_id ? 'member' : 'guest';
     }
 }

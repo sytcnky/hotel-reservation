@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesBookingSnapshot;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TransferBookingRequest extends FormRequest
 {
+    use NormalizesBookingSnapshot;
+
     public function authorize(): bool
     {
         return true;
@@ -21,14 +24,11 @@ class TransferBookingRequest extends FormRequest
             'to_location_id'   => ['required', 'integer', 'min:1', 'different:from_location_id'],
 
             'departure_date'   => ['required', 'date'],
-            // roundtrip’te zorunlu, oneway’de boş olabilir → nullable önemli
             'return_date'      => ['nullable', 'date', 'required_if:direction,roundtrip'],
 
-            // OUTBOUND (tek yön veya gidiş)
             'pickup_time_outbound'   => ['nullable', 'date_format:H:i'],
             'flight_number_outbound' => ['nullable', 'string', 'max:20'],
 
-            // RETURN (sadece roundtrip ise)
             'pickup_time_return'   => ['nullable', 'date_format:H:i', 'prohibited_unless:direction,roundtrip'],
             'flight_number_return' => ['nullable', 'string', 'max:20', 'prohibited_unless:direction,roundtrip'],
 
@@ -49,17 +49,11 @@ class TransferBookingRequest extends FormRequest
         ];
     }
 
-    /**
-     * Ek kurallar:
-     * - Gidiş için (outbound) saat veya uçuş numarasından en az biri zorunlu
-     * - direction=roundtrip ise dönüş için de en az biri zorunlu
-     */
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
             $direction = $this->input('direction');
 
-            // OUTBOUND: en az biri dolu olmalı
             $pickupOutbound = $this->input('pickup_time_outbound');
             $flightOutbound = $this->input('flight_number_outbound');
 
@@ -70,7 +64,6 @@ class TransferBookingRequest extends FormRequest
                 );
             }
 
-            // RETURN: sadece roundtrip ise kontrol et
             if ($direction === 'roundtrip') {
                 $pickupReturn = $this->input('pickup_time_return');
                 $flightReturn = $this->input('flight_number_return');
@@ -83,5 +76,14 @@ class TransferBookingRequest extends FormRequest
                 }
             }
         });
+    }
+
+    protected function passedValidation(): void
+    {
+        $this->merge([
+            'departure_date' => $this->normalizeDateToYmd($this->input('departure_date')),
+            'return_date'    => $this->normalizeDateToYmd($this->input('return_date')),
+            'currency'       => $this->normalizeCurrency($this->input('currency')),
+        ]);
     }
 }
