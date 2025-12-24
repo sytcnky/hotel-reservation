@@ -88,6 +88,10 @@ return [
         'villa_category' => [
             'singular' => 'Villa Kategorisi',
             'plural' => 'Villa Kategorileri',
+        ],
+        'support_ticket_category' => [
+            'singular' => 'Destek Talep Kategorisi',
+            'plural' => 'Destek Talep Kategorileri',
         ]
     ],
     'field' => [
@@ -888,6 +892,68 @@ return [
             'cancelled' => 'İptal',
             'expired'   => 'Süresi Doldu',
             'refunded'  => 'İade',
+        ],
+    ],
+    'support_tickets' => [
+        'nav' => [
+            'label' => 'Destek Talepleri',
+        ],
+
+        'ent' => [
+            'singular' => 'Destek Talebi',
+            'plural'   => 'Destek Talepleri',
+        ],
+
+        'sections' => [
+            'info' => 'Talep Bilgileri',
+            'new_message' => 'Yeni Mesaj',
+            'operations' => 'Operasyon Alanları',
+        ],
+
+        'field' => [
+            'user'             => 'Kullanıcı',
+            'category'         => 'Kategori',
+            'user_phone'       => 'Telefon',
+            'subject'          => 'Konu',
+            'status'           => 'Durum',
+            'order'         => 'Sipariş',
+            'last_message_at'  => 'Son Mesaj Tarihi',
+            'closed_at'        => 'Kapanma Tarihi',
+        ],
+
+        'status' => [
+            'open'             => 'Açık',
+            'waiting_agent'    => 'Operasyon Bekliyor',
+            'waiting_customer' => 'Müşteri Bekleniyor',
+            'closed'           => 'Kapalı',
+        ],
+
+        'action' => [
+            'close'  => 'Talebi Kapat',
+            'reopen' => 'Talebi Yeniden Aç',
+        ],
+
+        'messages' => [
+            'title'       => 'Mesajlar',
+            'author'      => 'Gönderen',
+            'author_type' => 'Tip',
+            'body'        => 'Mesaj',
+            'attachments' => 'Dosya Ekleri',
+
+            'agent'    => 'Operasyon',
+            'customer' => 'Müşteri',
+
+            'action' => [
+                'reply' => 'Cevap Yaz',
+            ],
+        ],
+
+        'categories' => [
+            'singular' => 'Destek Talep Kategorisi',
+            'plural'   => 'Destek Talep Kategorileri',
+
+            'requires_order' => 'Sipariş Zorunlu',
+            'roles'          => 'İlgili Roller',
         ],
     ],
 

@@ -302,9 +302,9 @@
                                         <dl class="row mb-0">
                                             <dd class="col-lg-8 mb-0">
                                                 @if(!empty($d['badge']))
-                                                    <span class="badge bg-success-subtle text-success fw-medium me-1">{{ $d['badge'] }}</span>
+                                                    <span class="badge bg-success fw-medium me-1">{{ $d['badge'] }}</span>
                                                 @endif
-                                                {{ $d['label'] ?? '-' }}
+                                                <span>{{ $d['label'] ?? '-' }}</span>
                                             </dd>
                                             <dt class="col-lg-4 mb-0">-{{ $d['amount'] ?? '-' }}</dt>
                                         </dl>
@@ -319,7 +319,7 @@
                             <h6 class="mb-2 mt-3">Geri Ödemeler</h6>
                             <div class="col-12">
                                 @foreach($refundRows as $r)
-                                    <div class="bg-danger-subtle rounded mb-2 p-2">
+                                    <div class="bg-info-subtle rounded mb-2 p-2">
                                         <dl class="row mb-0">
                                             <dd class="col-lg-8 mb-0">
                                                 {{ $r['reason'] ?? 'Geri ödeme' }}
@@ -343,8 +343,22 @@
 
                         {{-- AKSİYONLAR (şimdilik sadece UI) --}}
                         <div class="col-12 d-flex align-items-start justify-content-between gap-2">
-                            <a href="#" class="btn btn-outline-secondary" data-order-id="{{ $order->id }}">İptal et</a>
-                            <a href="#" class="btn btn-outline-primary" data-order-id="{{ $order->id }}">Destek talebi oluştur</a>
+                            <a href="#" class="btn btn-outline-secondary btn-sm" data-order-id="{{ $order->id }}">İptal et</a>
+                            @php
+                                $hasTicket = (bool) ($order->has_ticket ?? false);
+                                $ticketId  = $order->ticket_id ?? null;
+
+                                $supportHref = $hasTicket && $ticketId
+                                    ? localized_route('account.tickets.show', ['ticket' => $ticketId])
+                                    : localized_route('account.tickets.create', ['order_id' => $order->id]);
+                            @endphp
+
+                            <a href="{{ $supportHref }}"
+                               class="btn {{ $hasTicket ? 'btn-outline-secondary' : 'btn-outline-primary' }} btn-sm"
+                               @if($hasTicket) aria-label="Mevcut destek talebine git" @else aria-label="Bu sipariş için destek talebi oluştur" @endif>
+                                {{ $hasTicket ? 'Mevcut Destek Talebi' : 'Destek talebi oluştur' }}
+                            </a>
+
                         </div>
                     </div>
                 </div>

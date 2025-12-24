@@ -512,6 +512,17 @@ class Order extends Model
             ->all();
     }
 
+    public function supportTickets()
+    {
+        return $this->hasMany(\App\Models\SupportTicket::class);
+    }
+
+    public function activeSupportTicket()
+    {
+        return $this->hasOne(\App\Models\SupportTicket::class)
+            ->whereNull('deleted_at');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | CUSTOMER ACCESSORS

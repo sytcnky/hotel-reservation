@@ -8,12 +8,11 @@ use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
 use App\Support\Helpers\CurrencyHelper;
 
-use App\Http\Controllers\TransferController;
-
 use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
 use App\Http\Controllers\Account\CouponsController;
 use App\Http\Controllers\Account\BookingsController;
+use App\Http\Controllers\Account\SupportTicketsController;
 
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CartController;
@@ -22,6 +21,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\VillaController;
+use App\Http\Controllers\TransferController;
 
 /** Hotel booking -> sepete ekleme */
 LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
@@ -262,26 +262,34 @@ LocalizedRoute::get('guides.show', 'gezi-rehberi/{slug}', function ($slug) {
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // View sayfalar
+    // Hesabım - Dashboard
     LocalizedRoute::view('account.dashboard', 'account/dashboard', 'pages.account.index');
 
+    // Hesabım - Rezervasyonlarım
     LocalizedRoute::get('account.bookings', 'account/bookings', [BookingsController::class, 'index']);
 
-    LocalizedRoute::get(
-        'account.coupons',
-        'account/coupons',      // fallback path
-        [CouponsController::class, 'index']   // action
-    );
+    // Hesabım - Kuponlar
+    LocalizedRoute::get('account.coupons', 'account/coupons', [CouponsController::class, 'index']);
 
-    LocalizedRoute::view('account.tickets', 'account/tickets', 'pages.account.tickets');
+    // Hesabım - Destek Talepleri
+    LocalizedRoute::get('account.tickets.create', 'account/tickets/create', [SupportTicketsController::class, 'create']);
 
+    LocalizedRoute::get('account.tickets', 'account/tickets', [SupportTicketsController::class, 'index']);
+
+    foreach (LocalizedRoute::get('account.tickets.show', 'account/tickets/{ticket}', [SupportTicketsController::class, 'show']) as $route) {
+        $route->whereNumber('ticket');
+    }
+
+    LocalizedRoute::post('account.tickets.store', 'account/tickets', [SupportTicketsController::class, 'store']);
+
+    foreach (LocalizedRoute::post('account.tickets.message', 'account/tickets/{ticket}/messages', [SupportTicketsController::class, 'storeMessage']) as $route) {
+        $route->whereNumber('ticket');
+    }
+
+    // Hesabım - Ayalar
     LocalizedRoute::view('account.settings', 'account/settings', 'pages.account.settings');
 
-    LocalizedRoute::get('account.tickets.show', 'account/tickets/{id}', function ($id) {
-        return view('pages.account.ticket-detail', ['id' => $id]);
-    });
-
-    // Form action'ları (PUT) - her aktif locale için
+    // Hesabım - Ayalar - Form action'ları (PUT) - her aktif locale için
     foreach (LocaleHelper::active() as $locale) {
         Route::prefix($locale)
             ->name($locale . '.')

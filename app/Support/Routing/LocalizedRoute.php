@@ -4,93 +4,65 @@ namespace App\Support\Routing;
 
 use App\Models\Translation;
 use App\Support\Helpers\LocaleHelper;
+use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Route;
 
 class LocalizedRoute
 {
     /**
-     * Çok dilli GET route.
-     *
-     * @param  string                $baseName   Base route adı (ör: 'home', 'hotels.index')
-     * @param  string                $defaultSlug Varsayılan slug (çeviri yoksa kullanılacak), prefixsiz (ör: 'hotels')
-     * @param  callable|array|string $action     Route action (closure, [Controller::class, 'method'], 'Controller@method')
+     * @return array<int, LaravelRoute>
      */
-    public static function get(string $baseName, string $defaultSlug, $action): void
+    public static function get(string $baseName, string $defaultSlug, $action): array
     {
-        self::map('get', $baseName, $defaultSlug, $action);
+        return self::map('get', $baseName, $defaultSlug, $action);
     }
 
     /**
-     * Çok dilli POST route.
-     *
-     * @param  string                $baseName
-     * @param  string                $defaultSlug
-     * @param  callable|array|string $action
+     * @return array<int, LaravelRoute>
      */
-    public static function post(string $baseName, string $defaultSlug, $action): void
+    public static function post(string $baseName, string $defaultSlug, $action): array
     {
-        self::map('post', $baseName, $defaultSlug, $action);
+        return self::map('post', $baseName, $defaultSlug, $action);
     }
 
     /**
-     * Çok dilli PUT route.
-     *
-     * @param  string                $baseName
-     * @param  string                $defaultSlug
-     * @param  callable|array|string $action
+     * @return array<int, LaravelRoute>
      */
-    public static function put(string $baseName, string $defaultSlug, $action): void
+    public static function put(string $baseName, string $defaultSlug, $action): array
     {
-        self::map('put', $baseName, $defaultSlug, $action);
+        return self::map('put', $baseName, $defaultSlug, $action);
     }
 
     /**
-     * Çok dilli PATCH route.
-     *
-     * @param  string                $baseName
-     * @param  string                $defaultSlug
-     * @param  callable|array|string $action
+     * @return array<int, LaravelRoute>
      */
-    public static function patch(string $baseName, string $defaultSlug, $action): void
+    public static function patch(string $baseName, string $defaultSlug, $action): array
     {
-        self::map('patch', $baseName, $defaultSlug, $action);
+        return self::map('patch', $baseName, $defaultSlug, $action);
     }
 
     /**
-     * Çok dilli DELETE route.
-     *
-     * @param  string                $baseName
-     * @param  string                $defaultSlug
-     * @param  callable|array|string $action
+     * @return array<int, LaravelRoute>
      */
-    public static function delete(string $baseName, string $defaultSlug, $action): void
+    public static function delete(string $baseName, string $defaultSlug, $action): array
     {
-        self::map('delete', $baseName, $defaultSlug, $action);
+        return self::map('delete', $baseName, $defaultSlug, $action);
     }
 
     /**
-     * Çok dilli view route (statik sayfalar için).
-     *
-     * @param string $baseName
-     * @param string $defaultSlug
-     * @param string $view
-     * @param array  $data
+     * @return array<int, LaravelRoute>
      */
-    public static function view(string $baseName, string $defaultSlug, string $view, array $data = []): void
+    public static function view(string $baseName, string $defaultSlug, string $view, array $data = []): array
     {
-        self::map('view', $baseName, $defaultSlug, [$view, $data]);
+        return self::map('view', $baseName, $defaultSlug, [$view, $data]);
     }
 
     /**
      * Ortak mapper.
      *
-     * Her aktif locale için:
-     *   - slug'ı Translation(group='routes', key=$baseName) içinden okur.
-     *   - yoksa $defaultSlug kullanır.
-     *   - URL: /{locale}/{slug}
-     *   - name: {locale}.{baseName}
+     * @return array<int, LaravelRoute> Her locale için üretilen route nesneleri
      */
-    protected static function map(string $method, string $baseName, string $defaultSlug, $payload): void
+    protected static function map(string $method, string $baseName, string $defaultSlug, $payload): array
     {
         $locales = LocaleHelper::active();
 
@@ -99,17 +71,18 @@ class LocalizedRoute
             ->where('key', $baseName)
             ->first();
 
+        $routes = [];
+
         foreach ($locales as $locale) {
             $slug = $translation->values[$locale] ?? $defaultSlug;
-            $slug = trim($slug, '/');
+            $slug = trim((string) $slug, '/');
 
             $path = $slug === '' ? '/' : '/' . $slug;
 
             Route::prefix($locale)
                 ->name($locale . '.')
-                ->group(function () use ($method, $path, $baseName, $payload) {
+                ->group(function () use ($method, $path, $baseName, $payload, &$routes) {
                     if ($method === 'view') {
-                        // BURASI DEĞİŞTİ
                         [$view, $data] = $payload;
 
                         $route = Route::get($path, function () use ($view, $data) {
@@ -120,8 +93,11 @@ class LocalizedRoute
                     }
 
                     $route->name($baseName);
+
+                    $routes[] = $route;
                 });
         }
-    }
 
+        return $routes;
+    }
 }

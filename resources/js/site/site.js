@@ -16,6 +16,7 @@ import { initHelpSearch } from './pages/help';
 import { initPayment } from './pages/payment';
 import { initPhoneInputs } from './ui/phone-input';
 import { initGuestPicker } from './ui/guestpicker.js';
+import { initAccountTickets } from './pages/account-tickets';
 
 document.addEventListener('DOMContentLoaded', () => {
     // === Guest Picker: tüm sayfa için tek yerden init ===
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPayment();
     initHelpSearch();
     initPhoneInputs();
+    initAccountTickets(document);
 
     // === Dil seçimi butonları ===
     document.querySelectorAll('.dropdown-menu .btn-group').forEach(group => {
