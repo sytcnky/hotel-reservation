@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,13 +30,15 @@ final class RegisterController extends Controller
             'password'   => ['required', 'confirmed', PasswordRule::min(8)->letters()->mixedCase()->numbers()],
         ]);
 
+        $locale = app()->getLocale() ?: LocaleHelper::defaultCode();
+
         $user = User::create([
             'first_name' => $request->string('first_name'),
             'last_name'  => $request->string('last_name'),
             'phone'      => $request->string('phone'),
             'email'      => $request->string('email'),
             'password'   => $request->string('password'),
-            'locale'     => app()->getLocale() ?? 'tr',
+            'locale'     => $locale,
         ]);
 
         // Yeni üyeler otomatik müşteri rolü alır
