@@ -32,10 +32,22 @@ class RefundService
 
         return DB::transaction(function () use ($order, $paymentAttempt, $amount, $reason, $meta) {
 
-            // initiator bilgisi (fallback yok)
-            $initiatorUserId = $meta['initiator_user_id'] ?? null;   // int|null
-            $initiatorName   = $meta['initiator_name'] ?? null;      // string|null
-            $initiatorRole   = $meta['initiator_role'] ?? null;      // string|null (customer/admin/support...)
+            // initiator bilgisi
+            $initiator = is_array($meta['initiator'] ?? null) ? $meta['initiator'] : [];
+
+            $initiatorUserId =
+                $meta['initiator_user_id']
+                ?? ($initiator['user_id'] ?? null)
+                ?? ($initiator['id'] ?? null);
+
+            $initiatorName =
+                $meta['initiator_name']
+                ?? ($initiator['name'] ?? null);
+
+            $initiatorRole =
+                $meta['initiator_role']
+                ?? ($initiator['role'] ?? null);
+
 
             $refund = RefundAttempt::create([
                 'order_id'           => $order->id,

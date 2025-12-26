@@ -422,6 +422,8 @@ return [
     'orders' => [
         'singular' => 'Sipariş',
         'plural'   => 'Siparişler',
+        'order_details'  => 'Sipariş Detayları',
+        'breadcrumb_details' => 'Detaylar',
 
         'sections' => [
             'order_info'   => 'Sipariş Bilgileri',
@@ -430,6 +432,18 @@ return [
             'operations'   => 'Operasyon Alanları',
             'discounts'   => 'İndirimler',
             'invoice_info' => 'Fatura Bilgileri',
+        ],
+
+        'actions' => [
+            'approve'         => 'Onayla',
+            'approve_confirm' => 'Bu siparişi onaylamak istediğine emin misin?',
+            'approved_ok'     => 'Sipariş onaylandı.',
+            'approved_fail'   => 'Sipariş onaylanamadı.',
+
+            'cancel'          => 'İptal Et',
+            'cancel_confirm'  => 'Bu siparişi iptal etmek istediğine emin misin? Bu işlem geri alınamaz.',
+            'cancelled_ok'    => 'Sipariş iptal edildi.',
+            'cancelled_fail'  => 'Sipariş iptal edilemedi.',
         ],
 
         'form' => [
@@ -507,6 +521,18 @@ return [
             'paid'             => 'Alınan Ücret',
             'remaining'        => 'Kalan Ücret',
             'total'            => 'Toplam Ücret',
+        ],
+
+        'fields' => [
+            'cancel_reason' => 'İptal Gerekçesi',
+        ],
+
+        'status_details' => [
+            'status'     => 'Durum',
+            'actor'      => 'Gerçekleştiren',
+            'date'       => 'İşlem Tarihi',
+            'reason'     => 'Gerekçe',
+            'system'     => 'Sistem',
         ],
 
         'coupon' => [

@@ -53,8 +53,13 @@ class OrderResource extends Resource
         return parent::getRecordRouteBindingEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+            ])
+            ->with([
+                'approvedBy',
+                'cancelledBy',
             ]);
     }
+
     public static function getNavigationGroup(): ?string { return __('admin.nav.order_group'); }
     public static function getNavigationLabel(): string { return __('admin.orders.plural'); }
     public static function getModelLabel(): string { return __('admin.orders.singular'); }

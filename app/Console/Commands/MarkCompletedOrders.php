@@ -58,15 +58,16 @@ class MarkCompletedOrders extends Command
             return self::SUCCESS;
         }
 
-        $ids = array_map(fn ($r) => $r['order_id'], $toComplete);
-
-        Order::query()
-            ->whereIn('id', $ids)
-            ->where('status', 'confirmed')
-            ->update([
-                'status'     => 'completed',
-                'updated_at' => now(),
-            ]);
+        foreach ($toComplete as $row) {
+            Order::query()
+                ->where('id', $row['order_id'])
+                ->where('status', 'confirmed')
+                ->update([
+                    'status'       => 'completed',
+                    'completed_at' => Carbon::createFromFormat('Y-m-d', $row['latest'])->startOfDay(),
+                    'updated_at'   => now(),
+                ]);
+        }
 
         $this->info('Güncellendi: ' . count($ids));
 

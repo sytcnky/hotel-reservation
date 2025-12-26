@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendOrderCreatedEmails;
 use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Models\PaymentAttempt;
@@ -11,6 +12,7 @@ use App\Services\CouponViewModelService;
 use App\Services\PaymentGateway3dsInterface;
 use App\Services\PaymentGatewayFactory;
 use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -241,10 +243,10 @@ class PaymentController extends Controller
                 ->to(localized_route('payment', ['code' => $checkout->code]));
         }
 
-        // 3DS SUCCESS → order + attempt success + session completed (mevcut transaction mantığını koru)
         $order = null;
+        $orderCreatedNow = false;
 
-        DB::transaction(function () use ($checkout, $attempt, $result, &$order) {
+        DB::transaction(function () use ($checkout, $attempt, $result, &$order, &$orderCreatedNow) {
             $lockedSession = CheckoutSession::query()
                 ->where('id', $checkout->id)
                 ->lockForUpdate()
@@ -252,6 +254,7 @@ class PaymentController extends Controller
 
             if ($lockedSession->status === CheckoutSession::STATUS_COMPLETED && $lockedSession->order_id) {
                 $order = Order::withTrashed()->find($lockedSession->order_id);
+                $orderCreatedNow = false;
                 return;
             }
 
@@ -259,6 +262,37 @@ class PaymentController extends Controller
             $items   = (array) ($payload['items'] ?? []);
             $meta    = (array) ($payload['metadata'] ?? []);
             $discountSnapshot = (array) ($payload['discount_snapshot'] ?? []);
+
+            // locale: orders.locale NOT NULL → garanti
+            $locale = (string) (app()->getLocale() ?: '');
+            if ($locale === '') {
+                $locale = (string) LocaleHelper::defaultCode();
+            }
+
+            // customer fields (order üzerinde donmuş olsun)
+            $customerName  = null;
+            $customerEmail = null;
+            $customerPhone = null;
+
+            $guest = $meta['guest'] ?? null;
+
+            if (is_array($guest)) {
+                $first = trim((string) ($guest['first_name'] ?? ''));
+                $last  = trim((string) ($guest['last_name'] ?? ''));
+                $customerName  = trim($first . ' ' . $last) ?: null;
+                $customerEmail = ! empty($guest['email']) ? (string) $guest['email'] : null;
+                $customerPhone = ! empty($guest['phone']) ? (string) $guest['phone'] : null;
+            } else {
+                $user = $lockedSession->user_id
+                    ? \App\Models\User::query()->find($lockedSession->user_id)
+                    : null;
+
+                if ($user) {
+                    $customerName  = $user->name ?? null;
+                    $customerEmail = $user->email ?? null;
+                    $customerPhone = $user->phone ?? null;
+                }
+            }
 
             $order = Order::create([
                 'user_id'            => $lockedSession->user_id,
@@ -272,6 +306,11 @@ class PaymentController extends Controller
                 'billing_address'    => null,
                 'coupon_snapshot'    => $discountSnapshot ?: null,
                 'metadata'           => $meta ?: null,
+
+                'locale'             => $locale,
+                'customer_name'      => $customerName,
+                'customer_email'     => $customerEmail,
+                'customer_phone'     => $customerPhone,
             ]);
 
             foreach ($items as $item) {
@@ -317,17 +356,21 @@ class PaymentController extends Controller
                 'completed_at' => now(),
                 'order_id'     => $order->id,
             ])->save();
+
+            $orderCreatedNow = true;
         });
 
         session()->forget('cart');
         session()->forget('cart.applied_coupons');
 
+        // mail dispatch (idempotent)
+        if ($order && $orderCreatedNow) {
+            SendOrderCreatedEmails::dispatch((int) $order->id);
+        }
+
         return redirect()->to(localized_route('success'));
     }
 
-    /**
-     * Sepetten ödeme başlangıcı (ÜYE)
-     */
     public function start(
         Request $request,
         CouponViewModelService $couponVm,
@@ -462,9 +505,6 @@ class PaymentController extends Controller
         return redirect()->to(localized_route('payment', ['code' => $checkout->code]));
     }
 
-    /**
-     * Misafir checkout başlangıcı (DB CheckoutSession)
-     */
     public function startGuest(Request $request)
     {
         $guest = $request->validate([
@@ -555,9 +595,6 @@ class PaymentController extends Controller
         return redirect()->to(localized_route('payment', ['code' => $checkout->code]));
     }
 
-    /**
-     * Ödeme formu submit (DB CheckoutSession merkezli) - 3DS start
-     */
     public function process(string $code, Request $request)
     {
         $validated = $request->validate([
@@ -574,12 +611,10 @@ class PaymentController extends Controller
             ->where('code', $code)
             ->firstOrFail();
 
-        // completed → idempotent
         if ($checkout->status === CheckoutSession::STATUS_COMPLETED) {
             return redirect()->to(localized_route('success'));
         }
 
-        // expired → deterministik + raporlama attempt
         if ($this->isSessionExpired($checkout) || $checkout->status === CheckoutSession::STATUS_EXPIRED) {
             DB::transaction(function () use ($checkout, $validated) {
                 /** @var CheckoutSession $locked */
@@ -603,7 +638,6 @@ class PaymentController extends Controller
         $gateway = PaymentGatewayFactory::make();
 
         if (! $gateway instanceof PaymentGateway3dsInterface) {
-            // Demo dışı driver’da henüz 3DS interface yoksa “deterministik” hata
             return redirect()
                 ->to(localized_route('payment', ['code' => $checkout->code]))
                 ->with('err', 'payment_3ds_not_supported');
@@ -628,7 +662,6 @@ class PaymentController extends Controller
             ])->save();
         }
 
-        // 3DS START
         $start = $gateway->start3ds($checkout, $attempt, $cardData);
 
         if (empty($start['success'])) {
@@ -765,7 +798,6 @@ class PaymentController extends Controller
         ]);
     }
 
-
     private function getOrCreatePendingAttempt(CheckoutSession $checkout, string $idempotencyKey, Request $request): PaymentAttempt
     {
         $existing = PaymentAttempt::query()
@@ -817,5 +849,4 @@ class PaymentController extends Controller
             throw $e;
         }
     }
-
 }

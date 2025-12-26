@@ -6,10 +6,10 @@ use App\Models\Order;
 use App\Models\RefundAttempt;
 use App\Services\RefundService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
@@ -50,10 +50,9 @@ class OrderForm
 
                                                 TextEntry::make('created_at')
                                                     ->label(__('admin.orders.form.created_at'))
-                                                    ->state(
-                                                        fn (?Order $record) => $record?->created_at
-                                                            ? $record->created_at->format('d.m.Y H:i')
-                                                            : '-'
+                                                    ->state(fn (?Order $record) => $record?->created_at
+                                                        ? $record->created_at->format('d.m.Y H:i')
+                                                        : '-'
                                                     ),
                                             ]),
 
@@ -74,24 +73,11 @@ class OrderForm
                                                 TextEntry::make('customer_email')
                                                     ->label(__('admin.orders.form.customer_email'))
                                                     ->state(fn (?Order $record) => $record?->customer_email ?? '-'),
-                                            ]),
 
-                                            Grid::make()->columns(2)->schema([
+
                                                 TextEntry::make('customer_phone')
                                                     ->label(__('admin.orders.form.customer_phone'))
                                                     ->state(fn (?Order $record) => $record?->customer_phone ?? '-'),
-
-                                                TextEntry::make('status_readonly')
-                                                    ->label(__('admin.orders.form.status'))
-                                                    ->badge()
-                                                    ->state(function (?Order $record) {
-                                                        $meta = Order::statusMeta($record?->status);
-                                                        return $meta['label_key'] ? __($meta['label_key']) : (string) ($meta['label'] ?? '-');
-                                                    })
-                                                    ->color(function (?Order $record) {
-                                                        $meta = Order::statusMeta($record?->status);
-                                                        return (string) ($meta['filament_color'] ?? 'gray');
-                                                    }),
                                             ]),
 
                                             TextEntry::make('metadata.customer_note')
@@ -231,18 +217,16 @@ class OrderForm
                                             Grid::make()->columns(2)->schema([
                                                 TextEntry::make('paid_at')
                                                     ->label(__('admin.orders.form.paid_at'))
-                                                    ->state(
-                                                        fn (?Order $record) => $record?->paid_at
-                                                            ? $record->paid_at->format('d.m.Y H:i')
-                                                            : '-'
+                                                    ->state(fn (?Order $record) => $record?->paid_at
+                                                        ? $record->paid_at->format('d.m.Y H:i')
+                                                        : '-'
                                                     ),
 
                                                 TextEntry::make('cancelled_at')
                                                     ->label(__('admin.orders.form.cancelled_at'))
-                                                    ->state(
-                                                        fn (?Order $record) => $record?->cancelled_at
-                                                            ? $record->cancelled_at->format('d.m.Y H:i')
-                                                            : '-'
+                                                    ->state(fn (?Order $record) => $record?->cancelled_at
+                                                        ? $record->cancelled_at->format('d.m.Y H:i')
+                                                        : '-'
                                                     ),
                                             ]),
                                         ]),
@@ -343,7 +327,15 @@ class OrderForm
                                                 return false;
                                             }
 
-                                            return (bool) $record->successfulPaymentAttempt();
+                                            $attempt = $record->successfulPaymentAttempt();
+                                            if (! $attempt) {
+                                                return false;
+                                            }
+
+                                            return RefundAttempt::query()
+                                                ->where('payment_attempt_id', $attempt->id)
+                                                ->where('status', RefundAttempt::STATUS_SUCCESS)
+                                                ->exists();
                                         })
                                         ->description(function (?Order $record) {
                                             if (! $record) {
@@ -371,13 +363,110 @@ class OrderForm
                                                 'İade edilen: ' . number_format($successSum, 2, ',', '.') . ' ' . $cur .
                                                 '  Kalan: ' . number_format($remaining, 2, ',', '.') . ' ' . $cur;
                                         })
-                                        ->afterHeader([
-                                            Action::make('refund')
-                                                ->label(__('admin.payment_attempts.actions.refund'))
+                                        ->schema([
+                                            RepeatableEntry::make('refunds_for_infolist')
+                                                ->hiddenLabel()
+                                                ->table([
+                                                    TableColumn::make(__('admin.payment_attempts.fields.name')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.role')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.description')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.date')),
+                                                    TableColumn::make(__('admin.payment_attempts.fields.total')),
+                                                ])
+                                                ->schema([
+                                                    TextEntry::make('name')->hiddenLabel(),
+                                                    TextEntry::make('badge')->badge()->hiddenLabel(),
+                                                    TextEntry::make('reason')->placeholder('-')->hiddenLabel(),
+                                                    TextEntry::make('time')->hiddenLabel(),
+                                                    TextEntry::make('amount')->hiddenLabel(),
+                                                ])
+                                                ->hidden(fn ($record, $state) => empty($state)),
+                                        ])
+                                ]),
+
+                            // SAĞ (4)
+                            Group::make()
+                                ->columnSpan([
+                                    'default' => 12,
+                                    'lg'      => 4,
+                                ])
+                                ->schema([
+                                    Section::make(__('admin.orders.sections.operations'))
+                                        ->schema([
+
+                                            // Onayla
+                                            Action::make('approve_order')
+                                                ->label(__('admin.orders.actions.approve'))
+                                                ->color('success')
+                                                ->icon('heroicon-o-check-circle')
+                                                ->visible(fn (?Order $record) => (bool) $record && $record->status === Order::STATUS_PENDING)
+                                                ->requiresConfirmation()
+                                                ->modalHeading(__('admin.orders.actions.approve'))
+                                                ->modalDescription(__('admin.orders.actions.approve_confirm'))
+                                                ->extraAttributes(['class' => 'w-full'])
+                                                ->action(function (Order $record) {
+                                                    try {
+                                                        $record->approve(auth()->id());
+                                                        $record->save();
+
+                                                        Notification::make()
+                                                            ->title(__('admin.orders.actions.approved_ok'))
+                                                            ->success()
+                                                            ->send();
+                                                    } catch (\Throwable $e) {
+                                                        Notification::make()
+                                                            ->title(__('admin.orders.actions.approved_fail'))
+                                                            ->body($e->getMessage())
+                                                            ->danger()
+                                                            ->send();
+                                                    }
+                                                }),
+
+                                            // İptal
+                                            Action::make('cancel_order')
+                                                ->label(__('admin.orders.actions.cancel'))
                                                 ->color('danger')
+                                                ->icon('heroicon-o-x-circle')
+                                                ->visible(fn (?Order $record) => (bool) $record && in_array($record->status, [Order::STATUS_PENDING, Order::STATUS_CONFIRMED], true))
+                                                ->modalHeading(__('admin.orders.actions.cancel'))
+                                                ->modalDescription(__('admin.orders.actions.cancel_confirm'))
+                                                ->extraAttributes(['class' => 'w-full'])
+                                                ->schema([
+                                                    Textarea::make('reason')
+                                                        ->label(__('admin.orders.fields.cancel_reason'))
+                                                        ->rows(4)
+                                                        ->required(),
+                                                ])
+                                                ->action(function (array $data, Order $record) {
+                                                    try {
+                                                        $record->cancel(auth()->id(), (string) ($data['reason'] ?? ''));
+                                                        $record->save();
+
+                                                        Notification::make()
+                                                            ->title(__('admin.orders.actions.cancelled_ok'))
+                                                            ->success()
+                                                            ->send();
+                                                    } catch (\Throwable $e) {
+                                                        Notification::make()
+                                                            ->title(__('admin.orders.actions.cancelled_fail'))
+                                                            ->body($e->getMessage())
+                                                            ->danger()
+                                                            ->send();
+                                                    }
+                                                }),
+
+                                            // Refund kısayolu (sadece onaylandı iken)
+                                            Action::make('refund_shortcut')
+                                                ->label(__('admin.payment_attempts.actions.refund'))
+                                                ->color('warning')
                                                 ->icon('heroicon-o-arrow-uturn-left')
+                                                ->extraAttributes(['class' => 'w-full'])
                                                 ->visible(function (?Order $record) {
                                                     if (! $record) {
+                                                        return false;
+                                                    }
+
+                                                    if (! in_array($record->status, [Order::STATUS_CONFIRMED, Order::STATUS_CANCELLED], true)) {
                                                         return false;
                                                     }
 
@@ -438,6 +527,12 @@ class OrderForm
                                                             'initiator_role'    => $initiatorRole,
                                                         ];
 
+                                                        $meta['initiator'] = [
+                                                            'user_id' => $meta['initiator_user_id'] ?? null,
+                                                            'name'    => $meta['initiator_name'] ?? null,
+                                                            'role'    => $meta['initiator_role'] ?? null,
+                                                        ];
+
                                                         app(RefundService::class)->refundPayment(
                                                             order: $record,
                                                             paymentAttempt: $attempt,
@@ -458,44 +553,82 @@ class OrderForm
                                                             ->send();
                                                     }
                                                 }),
-                                        ])
-                                        ->schema([
-                                            RepeatableEntry::make('refunds_for_infolist')
-                                                ->hiddenLabel()
-                                                ->table([
-                                                    TableColumn::make(__('admin.payment_attempts.fields.name')),
-                                                    TableColumn::make(__('admin.payment_attempts.fields.role')),
-                                                    TableColumn::make(__('admin.payment_attempts.fields.description')),
-                                                    TableColumn::make(__('admin.payment_attempts.fields.date')),
-                                                    TableColumn::make(__('admin.payment_attempts.fields.total')),
-                                                ])
-                                                ->schema([
-                                                    TextEntry::make('name')->hiddenLabel(),
-                                                    TextEntry::make('badge')->badge()->hiddenLabel(),
-                                                    TextEntry::make('reason')->placeholder('-')->hiddenLabel(),
-                                                    TextEntry::make('time')->hiddenLabel(),
-                                                    TextEntry::make('amount')->hiddenLabel(),
-                                                ])
-                                                ->hidden(fn ($record, $state) => empty($state)),
-                                        ])
-                                        ->contained(false),
-                                ]),
 
-                            // SAĞ (4)
-                            Group::make()
-                                ->columnSpan([
-                                    'default' => 12,
-                                    'lg'      => 4,
-                                ])
-                                ->schema([
-                                    Section::make(__('admin.orders.sections.operations'))
-                                        ->schema([
-                                            Select::make('status')
-                                                ->label(__('admin.orders.form.status'))
-                                                ->required()
-                                                ->options(Order::filamentStatusOptions())
-                                                ->disabled(fn (?Order $record) => $record?->status === Order::STATUS_COMPLETED),
-                                        ]),
+                                            // Durum
+                                            TextEntry::make('status')
+                                                ->label(__('admin.orders.status_details.status'))
+                                                ->state(fn (?Order $record) =>
+                                                $record
+                                                    ? (__(
+                                                    Order::statusMeta($record->status)['label_key']
+                                                    ?? $record->status
+                                                ))
+                                                    : '-'
+                                                )
+                                                ->badge()
+                                                ->color(fn (?Order $record) =>
+                                                    Order::statusMeta($record?->status)['filament_color'] ?? 'gray'
+                                                ),
+
+                                            // İşlem Tarihi
+                                            TextEntry::make('date')
+                                                ->label(__('admin.orders.status_details.date'))
+                                                ->state(fn (?Order $record) => match ($record?->status) {
+                                                    Order::STATUS_CONFIRMED => $record->approved_at?->format('d.m.Y H:i'),
+                                                    Order::STATUS_CANCELLED => $record->cancelled_at?->format('d.m.Y H:i'),
+                                                    Order::STATUS_COMPLETED => $record->completed_at?->format('d.m.Y H:i'),
+                                                    default                 => '-',
+                                                })
+                                                ->visible(fn (?Order $record) =>
+                                                match ($record?->status) {
+                                                    Order::STATUS_CONFIRMED => filled($record->approved_at),
+                                                    Order::STATUS_CANCELLED => filled($record->cancelled_at),
+                                                    Order::STATUS_COMPLETED => filled($record->completed_at),
+                                                    default => false,
+                                                }),
+
+                                            // Gerçekleştiren
+                                            TextEntry::make('actor')
+                                                ->label(__('admin.orders.status_details.actor'))
+                                                ->state(fn (?Order $record) => match ($record?->status) {
+                                                    Order::STATUS_CONFIRMED => $record->approvedBy?->name,
+                                                    Order::STATUS_CANCELLED => $record->cancelledBy?->name,
+                                                    Order::STATUS_COMPLETED => __('admin.orders.status_details.system'),
+                                                    default                 => '-',
+                                                })
+                                                ->visible(fn (?Order $record) =>
+                                                match ($record?->status) {
+                                                    Order::STATUS_CONFIRMED => filled($record->approvedBy),
+                                                    Order::STATUS_CANCELLED => filled($record->cancelledBy),
+                                                    Order::STATUS_COMPLETED => true,
+                                                    default => false,
+                                                }),
+
+                                            // Gerekçe (sadece iptal)
+                                            TextEntry::make('reason')
+                                                ->label(__('admin.orders.status_details.reason'))
+                                                ->state(fn (?Order $record) =>
+                                                $record?->status === Order::STATUS_CANCELLED
+                                                    ? ($record->cancelled_reason ?: '-')
+                                                    : '-'
+                                                )
+                                                ->visible(fn (?Order $record) =>
+                                                    $record?->status === Order::STATUS_CANCELLED
+                                                ),
+                                        ])
+                                        ->contained(true)
+                                        ->hidden(function (?Order $record) {
+                                            if (! $record) {
+                                                return true;
+                                            }
+
+                                            return ! in_array($record->status, [
+                                                Order::STATUS_PENDING,
+                                                Order::STATUS_CONFIRMED,
+                                                Order::STATUS_CANCELLED,
+                                                Order::STATUS_COMPLETED,
+                                            ], true);
+                                        }),
                                 ]),
                         ]),
                 ]),

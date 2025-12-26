@@ -22,6 +22,7 @@ class OrdersTable
                     ->searchable()
                     ->sortable(),
 
+
                 TextColumn::make('status')
                     ->label(__('admin.orders.table.status'))
                     ->badge()
@@ -89,15 +90,10 @@ class OrdersTable
                     ->dateTime()
                     ->sortable(),
             ])
+            ->defaultSort('id', 'desc')
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                ]),
-            ]);
+            ->toolbarActions([]);
     }
 }

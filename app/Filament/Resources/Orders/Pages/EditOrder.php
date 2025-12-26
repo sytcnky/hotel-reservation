@@ -12,11 +12,19 @@ class EditOrder extends EditRecord
 {
     protected static string $resource = OrderResource::class;
 
+    public function getTitle(): string
+    {
+        return __('admin.orders.order_details');
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return __('admin.orders.breadcrumb_details');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
     }

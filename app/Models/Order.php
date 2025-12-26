@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Order extends Model
 {
@@ -29,6 +30,7 @@ class Order extends Model
         'paid_at'            => 'datetime',
         'payment_expires_at' => 'datetime',
         'cancelled_at'       => 'datetime',
+        'approved_at'        => 'datetime',
         'completed_at'       => 'datetime',
     ];
 
@@ -53,11 +55,55 @@ class Order extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Status transitions (tek kaynak)
+    |--------------------------------------------------------------------------
+    */
+    public function canApprove(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    public function canCancel(): bool
+    {
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_CONFIRMED], true);
+    }
+
+    public function approve(?int $adminUserId, ?Carbon $now = null): void
+    {
+        if (! $this->canApprove()) {
+            throw new \DomainException('Bu sipariş onaylanamaz.');
+        }
+
+        $now = $now ?: Carbon::now(config('app.timezone', 'Europe/Istanbul'));
+
+        $this->status = self::STATUS_CONFIRMED;
+        $this->approved_at = $now;
+        $this->approved_by = $adminUserId;
+    }
+
+    public function cancel(?int $adminUserId, string $reason, ?Carbon $now = null): void
+    {
+        if (! $this->canCancel()) {
+            throw new \DomainException('Bu sipariş iptal edilemez.');
+        }
+
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new \DomainException('İptal gerekçesi zorunludur.');
+        }
+
+        $now = $now ?: Carbon::now(config('app.timezone', 'Europe/Istanbul'));
+
+        $this->status = self::STATUS_CANCELLED;
+        $this->cancelled_at = $now;
+        $this->cancelled_by = $adminUserId;
+        $this->cancelled_reason = $reason;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Status meta (tek kaynak)
     |--------------------------------------------------------------------------
-    |
-    | Filament: label_key + filament_color
-    | FE (Bootstrap): label + bootstrap_class
     */
     public static function statusMeta(?string $status): array
     {
@@ -132,11 +178,6 @@ class Order extends Model
     |--------------------------------------------------------------------------
     | Completed hesabı (runtime)
     |--------------------------------------------------------------------------
-    |
-    | Kural:
-    | - Sadece: hotel_room, villa, transfer, tour|excursion
-    | - hotel item'ları yok sayılır.
-    | - Her item için "bitiş tarihi" hesaplanır; siparişin service_end_at değeri en geç olanıdır.
     */
     public function computeServiceEndAt(): ?Carbon
     {
@@ -219,7 +260,73 @@ class Order extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Order Items (Infolist için)
+    | Relations
+    |--------------------------------------------------------------------------
+    */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'approved_by');
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'cancelled_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(\App\Models\OrderItem::class);
+    }
+
+    public function paymentAttempts()
+    {
+        return $this->hasMany(\App\Models\PaymentAttempt::class);
+    }
+
+    public function successfulPaymentAttempt(): ?\App\Models\PaymentAttempt
+    {
+        return $this->paymentAttempts()
+            ->where('status', \App\Models\PaymentAttempt::STATUS_SUCCESS)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function latestPaymentAttempt()
+    {
+        return $this->hasOne(\App\Models\PaymentAttempt::class)->latestOfMany();
+    }
+
+    public function refundAttempts(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \App\Models\RefundAttempt::class,
+            \App\Models\PaymentAttempt::class,
+            'order_id',
+            'payment_attempt_id',
+            'id',
+            'id'
+        );
+    }
+
+    public function supportTickets()
+    {
+        return $this->hasMany(\App\Models\SupportTicket::class);
+    }
+
+    public function activeSupportTicket()
+    {
+        return $this->hasOne(\App\Models\SupportTicket::class)
+            ->whereNull('deleted_at');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Infolist Accessors (mevcut)
     |--------------------------------------------------------------------------
     */
 
@@ -407,52 +514,6 @@ class Order extends Model
         return null;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relations
-    |--------------------------------------------------------------------------
-    */
-
-    public function user()
-    {
-        return $this->belongsTo(\App\Models\User::class);
-    }
-
-    public function items()
-    {
-        return $this->hasMany(\App\Models\OrderItem::class);
-    }
-
-    public function successfulPaymentAttempt(): ?\App\Models\PaymentAttempt
-    {
-        return $this->paymentAttempts()
-            ->where('status', \App\Models\PaymentAttempt::STATUS_SUCCESS)
-            ->orderByDesc('id')
-            ->first();
-    }
-
-    public function paymentAttempts()
-    {
-        return $this->hasMany(\App\Models\PaymentAttempt::class);
-    }
-
-    public function latestPaymentAttempt()
-    {
-        return $this->hasOne(\App\Models\PaymentAttempt::class)->latestOfMany();
-    }
-
-    public function refundAttempts(): HasManyThrough
-    {
-        return $this->hasManyThrough(
-            \App\Models\RefundAttempt::class,
-            \App\Models\PaymentAttempt::class,
-            'order_id',
-            'payment_attempt_id',
-            'id',
-            'id'
-        );
-    }
-
     public function getDiscountsForInfolistAttribute(): array
     {
         $rows     = (array) ($this->coupon_snapshot ?? []);
@@ -502,25 +563,19 @@ class Order extends Model
             ->orderByDesc('refund_attempts.id')
             ->get()
             ->map(function (\App\Models\RefundAttempt $r) use ($currency) {
+                $name = trim((string) ($r->initiator_name ?? ''));
+                $role = trim((string) ($r->initiator_role ?? ''));
+
                 return [
+                    'name'   => $name !== '' ? $name : '-',
+                    'badge'  => $role !== '' ? $role : '-',
                     'reason' => $r->reason ?: null,
-                    'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $currency,
                     'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+                    'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $currency,
                 ];
             })
             ->values()
             ->all();
-    }
-
-    public function supportTickets()
-    {
-        return $this->hasMany(\App\Models\SupportTicket::class);
-    }
-
-    public function activeSupportTicket()
-    {
-        return $this->hasOne(\App\Models\SupportTicket::class)
-            ->whereNull('deleted_at');
     }
 
     /*
@@ -528,7 +583,6 @@ class Order extends Model
     | CUSTOMER ACCESSORS
     |--------------------------------------------------------------------------
     */
-
     public function getCustomerNameAttribute(): ?string
     {
         $guest = $this->metadata['guest'] ?? null;
