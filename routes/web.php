@@ -42,24 +42,37 @@ LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'b
 */
 
 Route::get('/locale/{locale}', function (Request $request, string $locale) {
-    $active  = LocaleHelper::active();
+    $active = LocaleHelper::active();
 
     if (in_array($locale, $active, true)) {
         if (auth()->check()) {
             auth()->user()->forceFill(['locale' => $locale])->save();
         }
 
-        session(['locale' => $locale]);
+        if ($request->hasSession()) {
+            session(['locale' => $locale]);
+        }
+
         app()->setLocale($locale);
     }
 
     $redirect = $request->query('redirect');
 
-    if (is_string($redirect) && $redirect !== '') {
-        return redirect($redirect);
+    // Prevent open redirect: allow only same-app relative paths.
+    if (is_string($redirect)) {
+        $redirect = trim($redirect);
+
+        if ($redirect !== '' && str_starts_with($redirect, '/')) {
+            return redirect($redirect);
+        }
     }
 
-    return back();
+    // Safe fallback
+    try {
+        return redirect(\localized_route('home'));
+    } catch (\Throwable) {
+        return redirect('/');
+    }
 })->name('locale.switch');
 
 

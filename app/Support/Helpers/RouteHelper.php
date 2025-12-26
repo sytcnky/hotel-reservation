@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Support\Facades\Route;
 
 if (! function_exists('localized_route')) {
@@ -17,7 +18,8 @@ if (! function_exists('localized_route')) {
         bool $absolute = true,
         ?string $forceLocale = null
     ): string {
-        $locale = $forceLocale ?: (app()->getLocale() ?: config('app.locale', 'tr'));
+        $locale = $forceLocale
+            ?: (app()->getLocale() ?: LocaleHelper::defaultCode());
 
         $name = $locale . '.' . $baseName;
 

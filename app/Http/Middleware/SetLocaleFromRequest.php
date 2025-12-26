@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Setting;
 use App\Support\Helpers\LocaleHelper;
 use Closure;
 use Illuminate\Http\Request;
@@ -11,34 +10,35 @@ class SetLocaleFromRequest
 {
     public function handle(Request $request, Closure $next)
     {
-        $active = LocaleHelper::active();
-        if (empty($active)) {
-            $active = [config('app.locale', 'tr')];
-        }
+        $activeCodes = LocaleHelper::active();
+        $defaultCode = LocaleHelper::defaultCode();
 
-        $default = Setting::get('default_locale', config('app.locale', 'tr'));
-        if (! in_array($default, $active, true)) {
-            $default = $active[0];
-        }
-
-        // Session yoksa: sadece default locale set et, session kullanma
+        // Bootstrap edge-case: no session (CLI-like, stateless, etc.)
+        // Contract: even without session, prefer browser match; else default.
         if (! $request->hasSession()) {
-            app()->setLocale($default);
+            $code = LocaleHelper::codeFromBrowser($request) ?: $defaultCode;
+            app()->setLocale($code);
+
             return $next($request);
         }
 
         $user = $request->user();
 
-        if ($user && $user->locale && in_array($user->locale, $active, true)) {
-            $locale = $user->locale;
-        } elseif ($sessionLocale = $request->session()->get('locale')) {
-            $locale = in_array($sessionLocale, $active, true) ? $sessionLocale : $default;
-        } else {
-            $locale = $default;
+        // 1) Logged-in user preference (if active)
+        if ($user && is_string($user->locale) && $user->locale !== '' && in_array($user->locale, $activeCodes, true)) {
+            $code = $user->locale;
+        }
+        // 2) Session value (if active)
+        elseif ($sessionLocale = $request->session()->get('locale')) {
+            $code = in_array($sessionLocale, $activeCodes, true) ? $sessionLocale : $defaultCode;
+        }
+        // 3) First visit: browser match (if any), else default
+        else {
+            $code = LocaleHelper::codeFromBrowser($request) ?: $defaultCode;
         }
 
-        $request->session()->put('locale', $locale);
-        app()->setLocale($locale);
+        $request->session()->put('locale', $code);
+        app()->setLocale($code);
 
         return $next($request);
     }
