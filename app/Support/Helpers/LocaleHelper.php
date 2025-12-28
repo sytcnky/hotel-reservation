@@ -69,6 +69,36 @@ class LocaleHelper
     }
 
     /**
+     * Normalize / validate a canonical locale code.
+     *
+     * Rules:
+     * - Accepts canonical codes only (e.g. 'tr', 'en').
+     * - If candidate is empty or not active, returns defaultCode().
+     * - defaultCode() itself already implements "last resort" behavior.
+     */
+    public static function normalizeCode(?string $candidate): string
+    {
+        $candidate = strtolower(trim((string) $candidate));
+
+        if ($candidate === '') {
+            return static::defaultCode();
+        }
+
+        $activeCodes = static::active();
+
+        // If active languages not seeded yet, defaultCode() will fallback to config/app.locale.
+        if (empty($activeCodes)) {
+            return static::defaultCode();
+        }
+
+        if (in_array($candidate, $activeCodes, true)) {
+            return $candidate;
+        }
+
+        return static::defaultCode();
+    }
+
+    /**
      * Resolve canonical language code from request's Accept-Language header.
      *
      * Matching order:

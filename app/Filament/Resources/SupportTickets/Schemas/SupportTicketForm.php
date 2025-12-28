@@ -20,6 +20,8 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
 use App\Filament\Resources\Orders\OrderResource;
+use App\Jobs\SendSupportTicketAgentMessageCustomerEmail;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SupportTicketForm
 {
@@ -186,7 +188,7 @@ class SupportTicketForm
                                                                 ->markdown(),
 
                                                             Section::make([
-                                                                // ✅ EKLER (kart içinde, linkli)
+                                                                // EKLER (kart içinde, linkli)
                                                                 TextEntry::make('attachments')
                                                                     ->label(__('admin.support_tickets.messages.attachments'))
                                                                     ->html()
@@ -276,13 +278,17 @@ class SupportTicketForm
 
                                                         $files = $schemaGet('reply_attachments') ?? [];
 
-                                                        DB::transaction(function () use ($record, $body, $files) {
+                                                        $newMessageId = null;
+
+                                                        DB::transaction(function () use ($record, $body, $files, &$newMessageId) {
                                                             /** @var SupportMessage $message */
                                                             $message = $record->messages()->create([
                                                                 'author_user_id' => (int) auth()->id(),
                                                                 'author_type'    => SupportMessage::AUTHOR_AGENT,
                                                                 'body'           => $body,
                                                             ]);
+
+                                                            $newMessageId = $message->id;
 
                                                             foreach ($files as $file) {
                                                                 if (! $file instanceof TemporaryUploadedFile) {
@@ -305,6 +311,11 @@ class SupportTicketForm
                                                                 'last_message_at' => now(),
                                                             ])->save();
                                                         });
+
+                                                        // Customer mail: operasyon yanıt verdi
+                                                        if ($newMessageId) {
+                                                            dispatch(new SendSupportTicketAgentMessageCustomerEmail($newMessageId));
+                                                        }
 
                                                         $schemaSet('reply_body', '');
                                                         $schemaSet('reply_attachments', []);

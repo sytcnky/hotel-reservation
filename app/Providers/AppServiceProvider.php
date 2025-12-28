@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Observers\OrderObserver;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,5 +24,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Filament bileşenleri (DateTimePicker, TextColumn vs.) için varsayılan timezone
         FilamentTimezone::set('Europe/Istanbul');
+
+        // Order status mail tetikleri (approve/cancel)
+        Order::observe(OrderObserver::class);
     }
 }

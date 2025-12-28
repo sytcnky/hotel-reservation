@@ -22,6 +22,7 @@ class SupportTicket extends Model
         'support_ticket_category_id',
         'order_id',
         'subject',
+        'locale',
         'status',
         'last_message_at',
         'closed_at',

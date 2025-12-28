@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendRefundSucceededEmails;
 use App\Models\Order;
 use App\Models\PaymentAttempt;
 use App\Models\RefundAttempt;
@@ -31,7 +32,6 @@ class RefundService
         }
 
         return DB::transaction(function () use ($order, $paymentAttempt, $amount, $reason, $meta) {
-
             // initiator bilgisi
             $initiator = is_array($meta['initiator'] ?? null) ? $meta['initiator'] : [];
 
@@ -48,7 +48,6 @@ class RefundService
                 $meta['initiator_role']
                 ?? ($initiator['role'] ?? null);
 
-
             $refund = RefundAttempt::create([
                 'order_id'           => $order->id,
                 'payment_attempt_id' => $paymentAttempt->id,
@@ -57,7 +56,7 @@ class RefundService
                 'status'             => RefundAttempt::STATUS_PENDING,
                 'gateway'            => $paymentAttempt->gateway,
                 'reason'             => $reason,
-                'meta'               => $meta ?: null, // istersen bunu tamamen kaldırabiliriz; şimdilik dokunmuyorum
+                'meta'               => $meta ?: null,
                 'started_at'         => now(),
                 'ip_address'         => request()->ip(),
                 'user_agent'         => substr((string) request()->userAgent(), 0, 255),
@@ -76,7 +75,7 @@ class RefundService
                     'payment_ref' => $paymentAttempt->gateway_reference,
                 ]);
 
-                if (!empty($result['success'])) {
+                if (! empty($result['success'])) {
                     $refund->forceFill([
                         'status'            => RefundAttempt::STATUS_SUCCESS,
                         'gateway_reference' => $result['gateway_reference'] ?? null,
@@ -84,6 +83,9 @@ class RefundService
                         'raw_response'      => $result['raw_response'] ?? null,
                         'completed_at'      => now(),
                     ])->save();
+
+                    // Refund başarılı oldu → mail tetik (commit sonrası garanti)
+                    SendRefundSucceededEmails::dispatch((int) $refund->id)->afterCommit();
 
                     return $refund;
                 }
@@ -98,11 +100,10 @@ class RefundService
                 ])->save();
 
                 return $refund;
-
             } catch (\Throwable $e) {
                 Log::error('Refund exception', [
                     'refund_attempt_id' => $refund->id,
-                    'exception' => $e,
+                    'exception'         => $e,
                 ]);
 
                 $refund->forceFill([

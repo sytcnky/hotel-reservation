@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendSupportTicketCreatedOpsEmail;
+use App\Jobs\SendSupportTicketCustomerMessageOpsEmail;
 use App\Models\Order;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
@@ -19,7 +21,7 @@ class SupportTicketsController extends Controller
         $user = $request->user();
 
         $tickets = SupportTicket::query()
-            ->with(['category', 'order']) // ✅ order badge için gerekli
+            ->with(['category', 'order']) // order badge için gerekli
             ->where('user_id', $user->id)
             ->orderByDesc('last_message_at')
             ->get();
@@ -155,13 +157,15 @@ class SupportTicketsController extends Controller
         }
 
         $ticketId = null;
+        $messageId = null;
 
-        DB::transaction(function () use ($user, $data, &$ticketId) {
+        DB::transaction(function () use ($user, $data, &$ticketId, &$messageId) {
             $ticket = SupportTicket::query()->create([
                 'user_id' => $user->id,
                 'support_ticket_category_id' => $data['support_ticket_category_id'],
                 'order_id' => $data['order_id'] ?? null,
                 'subject' => $data['subject'],
+                'locale' => app()->getLocale(),
                 'status' => SupportTicket::STATUS_WAITING_AGENT,
                 'last_message_at' => now(),
             ]);
@@ -174,6 +178,8 @@ class SupportTicketsController extends Controller
                 'body' => $data['body'],
             ]);
 
+            $messageId = $message->id;
+
             foreach (($data['attachments'] ?? []) as $file) {
                 if (! $file instanceof UploadedFile) {
                     continue;
@@ -184,6 +190,11 @@ class SupportTicketsController extends Controller
                     ->toMediaCollection('attachments');
             }
         });
+
+        // ✅ Ops mail: müşteri yeni destek talebi oluşturdu
+        if ($ticketId && $messageId) {
+            dispatch(new SendSupportTicketCreatedOpsEmail($ticketId, $messageId));
+        }
 
         return redirect()
             ->to(localized_route('account.tickets.show', ['ticket' => $ticketId]))
@@ -209,12 +220,16 @@ class SupportTicketsController extends Controller
             ]
         );
 
-        DB::transaction(function () use ($ticket, $user, $data) {
+        $messageId = null;
+
+        DB::transaction(function () use ($ticket, $user, $data, &$messageId) {
             $message = $ticket->messages()->create([
                 'author_user_id' => $user->id,
                 'author_type' => SupportMessage::AUTHOR_CUSTOMER,
                 'body' => $data['body'],
             ]);
+
+            $messageId = $message->id;
 
             foreach (($data['attachments'] ?? []) as $file) {
                 if (! $file instanceof UploadedFile) {
@@ -232,6 +247,11 @@ class SupportTicketsController extends Controller
                 'last_message_at' => now(),
             ])->save();
         });
+
+        // Ops mail: müşteri yeni mesaj ekledi
+        if ($messageId) {
+            dispatch(new SendSupportTicketCustomerMessageOpsEmail($messageId));
+        }
 
         return redirect()->back()->with('success', __('account.support_tickets.message_sent'));
     }

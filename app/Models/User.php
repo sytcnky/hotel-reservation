@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -100,7 +103,24 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
                 'phone',
             ])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->dontLogIfAttributesChangedOnly(['remember_token']);
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | Auth Mails (Default Laravel template'e düşmesin)
+     |--------------------------------------------------------------------------
+     */
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification());
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     /*

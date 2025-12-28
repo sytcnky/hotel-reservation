@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +38,6 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->middleware('throttle:5,1')
         ->name('password.email');
 
     // Reset password
@@ -82,13 +83,34 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
 
 // Doğrulama mailini tekrar gönder
 Route::post('/email/verification-notification', function (Request $request) {
-    if ($request->user()->hasVerifiedEmail()) {
+
+    $user = $request->user();
+
+    // Kullanıcı + IP bazlı key
+    $key = 'verify-email:' . $user->id . ':' . $request->ip();
+
+    // 5 dakika içinde max 5 deneme
+    if (RateLimiter::tooManyAttempts($key, 5)) {
+        $seconds = RateLimiter::availableIn($key);
+
+        return back()
+            ->withErrors([
+                'verify' => "Çok fazla deneme yaptınız. Lütfen tekrar deneyin.",
+            ])
+            ->with('verify_retry', $seconds);
+    }
+
+    RateLimiter::hit($key, 300); // 300 sn = 5 dk
+
+    if ($user->hasVerifiedEmail()) {
         return redirect(localized_route('home'));
     }
 
-    $request->user()->sendEmailVerificationNotification();
+    $user->sendEmailVerificationNotification();
 
     return back()->with('status', 'verification-link-sent');
+
 })
-    ->middleware(['auth', 'throttle:6,1'])
+    ->middleware('auth')
     ->name('verification.send');
+

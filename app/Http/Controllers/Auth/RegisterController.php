@@ -48,7 +48,7 @@ final class RegisterController extends Controller
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect(localized_route('home'))
+        return redirect()->route('verification.notice')
             ->with('status', 'verification-link-sent');
     }
 }

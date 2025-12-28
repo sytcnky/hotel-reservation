@@ -186,7 +186,7 @@ class PaymentAttemptForm
                                         ->afterHeader([
                                             Action::make('refund')
                                                 ->label(__('admin.payment_attempts.actions.refund'))
-                                                ->color('danger')
+                                                ->color('warning')
                                                 ->icon('heroicon-o-arrow-uturn-left')
                                                 ->visible(function (?PaymentAttempt $record) {
                                                     if (! $record) {
