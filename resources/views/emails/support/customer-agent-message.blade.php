@@ -1,27 +1,41 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Destek yanıtı</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
-<h2 style="margin:0 0 12px 0;">
-    Destek yanıtı
-</h2>
+@extends('emails.layouts.base')
 
-<p style="margin:0 0 6px 0;">
-    <strong>Talep:</strong> #{{ $ticket->id }}
-</p>
+@section('title', $ticket->id)
 
-<p style="margin:0 0 6px 0;">
-    <strong>Konu:</strong> {{ $ticket->subject }}
-</p>
+@section('preheader')
+    Talebiniz yanıtlandı. Talep no: ({{ $ticket->id }})
+@endsection
 
-<hr style="margin:14px 0;">
+@section('content')
+    <h2>Talebiniz yanıtlandı,</h2>
 
-<p style="margin:0 0 8px 0;"><strong>Mesaj:</strong></p>
-<p style="margin:0;">{{ $supportMessage->body }}</p>
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 32px 0;
+    ">
+        <strong>"{{ $ticket->subject }}"</strong> başlıklı Destek Talebiniz yanıtlandı.
+    </p>
 
-</body>
-</html>
+    @component('emails.partials.banner', [
+    'tone' => 'info',
+    'ctaHref' => localized_route('account.bookings'),
+    'ctaLabel' => 'Yanıtı Gör',
+])
+        <p style="margin:0;">
+            Mesaj içeriğini görmek için lütfen yanıtı gör butonunu kullanın.
+        </p>
+    @endcomponent
+
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:32px 0 0 0;
+    ">
+        Talep No: <span class="code">{{ $ticket->id }}</span>
+    </p>
+@endsection

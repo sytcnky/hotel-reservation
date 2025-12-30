@@ -1,23 +1,48 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $subject ?? 'E-posta doğrulama' }}</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
-<h2 style="margin:0 0 12px 0;">{{ $title ?? 'E-posta doğrulama' }}</h2>
+@extends('emails.layouts.base')
 
-<p style="margin:0 0 12px 0;">
-    {{ $intro ?? '' }}
-</p>
+@section('title', $title)
 
-<p style="margin:0 0 12px 0;">
-    <a href="{{ $actionUrl }}">{{ $actionText ?? 'Devam et' }}</a>
-</p>
+@section('preheader')
+    {{ $subject ?? 'E-posta doğrulama' }}
+@endsection
 
-<p style="margin:0;">
-    {{ $outro ?? '' }}
-</p>
-</body>
-</html>
+@section('content')
+    @php
+        /** @var \App\Models\User|null $authUser */
+        $authUser = auth()->user();
+        $displayName = $authUser?->first_name ?: $authUser?->name ?: '';
+    @endphp
+
+    <h2>Hoşgeldin {{ $displayName ?? 'E-posta doğrulama' }},</h2>
+
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 30px 0;
+    ">
+        Kaydolduğunuz için teşekkür ederiz. Başlamak için hesabını etkinleştirmen gerekiyor.
+    </p>
+
+    @component('emails.partials.banner', [
+    'tone' => 'info',
+    'ctaHref' => $actionUrl,
+    'ctaLabel' => $actionText,
+])
+        <p style="margin:0;">
+            {{ $intro ?? '' }}
+        </p>
+    @endcomponent
+
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:30px 0 0 0;
+    ">
+        {{ $outro ?? '' }}
+    </p>
+@endsection
+

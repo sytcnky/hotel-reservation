@@ -1,26 +1,37 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Yeni Destek Talebi</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
-<h2 style="margin:0 0 12px 0;">Yeni destek talebi</h2>
+@extends('emails.layouts.base')
 
-<p style="margin:0 0 6px 0;"><strong>Talep No:</strong> #{{ $ticket->id }}</p>
-<p style="margin:0 0 6px 0;"><strong>Konu:</strong> {{ $ticket->subject }}</p>
-<p style="margin:0 0 6px 0;"><strong>Müşteri:</strong> {{ $ticket->user?->name ?: '-' }}</p>
-<p style="margin:0 0 6px 0;"><strong>E-posta:</strong> {{ $ticket->user?->email ?: '-' }}</p>
+@section('title', $ticket->id)
 
-@if($ticket->order)
-    <p style="margin:0 0 6px 0;"><strong>Sipariş:</strong> {{ $ticket->order->code ?: ('#'.$ticket->order_id) }}</p>
-@endif
+@section('preheader')
+    Yeni Destek Talebi. Talep No: ({{ $ticket->id }})
+@endsection
 
-<hr style="margin:14px 0;">
+@section('content')
+    <h2>Yeni Destek Talebi</h2>
 
-<p style="margin:0 0 8px 0;"><strong>İlk mesaj:</strong></p>
-<p style="margin:0;">{{ $supportMessage->body }}</p>
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 16px 0;
+    ">
+        <span class="code">{{ $ticket->id }}</span> numaralı yeni bir Destek Talebi oluşturuldu. Lütfen mesaj ayrıntılarını görmek için Yönetim Paneli'ni ziyaret edin.
+    </p>
 
-</body>
-</html>
+    {{-- Divider --}}
+    <div style="height:1px; background:#e6e8ec; margin:12px 0;"></div>
+
+    <p style="margin:0 0 6px 0;"><strong>Konu:</strong> {{ $ticket->subject }}</p>
+    <p style="margin:0 0 6px 0;"><strong>Müşteri:</strong> {{ $ticket->user?->name ?: '-' }}</p>
+    <p style="margin:0 0 6px 0;"><strong>E-posta:</strong> {{ $ticket->user?->email ?: '-' }}</p>
+    @if($ticket->order)
+        <p style="margin:0 0 6px 0;"><strong>Sipariş:</strong> {{ $ticket->order->code ?: ('#'.$ticket->order_id) }}</p>
+    @endif
+
+    {{-- Divider --}}
+    <div style="height:1px; background:#e6e8ec; margin:12px 0;"></div>
+
+    <p style="margin:0 0 8px 0;"><strong>Mesaj:</strong></p>
+    <p style="margin:0;">{{ $supportMessage->body }}</p>
+@endsection

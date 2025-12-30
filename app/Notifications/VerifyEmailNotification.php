@@ -19,7 +19,7 @@ class VerifyEmailNotification extends BaseVerifyEmail
             ->view('emails.auth.verify-email', [
                 'subject'    => 'E-posta adresinizi doğrulayın',
                 'title'      => 'E-posta doğrulama',
-                'intro'      => 'Hesabınızı aktifleştirmek için aşağıdaki linke tıklayın.',
+                'intro'      => 'Kaydınızı tamamlamak için aşağıdaki düğmeye tıkla',
                 'actionUrl'  => $verifyUrl,
                 'actionText' => 'E-postamı doğrula',
                 'outro'      => 'Eğer bu işlemi siz başlatmadıysanız bu e-postayı yok sayabilirsiniz.',

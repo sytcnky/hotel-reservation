@@ -1,31 +1,21 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $order->code }}</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
+@extends('emails.layouts.base')
 
-<h2 style="margin:0 0 12px 0;">
-    Siparişiniz iptal edildi
-</h2>
+@section('title', $order->code)
 
-<p style="margin:0 0 8px 0;">
-    Sipariş kodu:
-    <strong>{{ $order->code }}</strong>
-</p>
+@section('preheader')
+    Siparişiniz  iptal edildi ({{ $order->code }})
+@endsection
 
-@if(!empty($order->cancelled_reason))
-    <p style="margin:0 0 8px 0;">
-        Gerekçe:
-        <strong>{{ $order->cancelled_reason }}</strong>
+@section('content')
+    <h2>Siparişiniz iptal edildi,</h2>
+
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 30px 0;
+    ">
+        <span class="code">{{ $order->code }}</span> numaralı sipariş iptal olmuştur. Bunun için üzüldük, ileride başka siparişlerinizde görüşmek üzere.
     </p>
-@endif
-
-<p style="margin:16px 0 0 0;">
-    Sorunuz varsa bu e-postaya yanıt verebilirsiniz.
-</p>
-
-</body>
-</html>
+@endsection

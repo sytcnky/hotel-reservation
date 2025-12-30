@@ -23,16 +23,18 @@
     <div class="container">
         <div class="row">
             <div class="col-xl-8">
-                <article class="pe-lg-5"> {{-- İçerik gövdesi: şimdilik placeholder; bölüm bölüm ilerleyeceğiz --}} <h2
-                        class="h4 mb-3">Genel Bakış</h2>
+                <article class="pe-lg-5">
+                    <h2 class="h4 mb-3">Genel Bakış</h2>
                     <p class="text-muted">Marmaris, Türkiye'nin en popüler tatil beldeleri arasında yer alır ve yeşil ve
                         mavi doğanın muhteşem birlikteliğini sunmasıyla dikkat çeker. Gökova Körfezi'nde bulunan Sedir
                         Adası, diğer adıyla Kleopatra Adası, turkuaz mavisi denizi ve beyaz ince kumlu plajlarıyla
                         dikkat çeken özellikleriyle Maldivleri aratmayacak türden. Bu sebeplerle Marmaris, Türkiye'nin
                         görülmeye değer tatil destinasyonlarından.</p>
-                    <div class="ratio ratio-21x9"><img src="/images/samples/popular-marmaris.jpg"
-                                                       class="w-100 object-fit-cover rounded"
-                                                       alt="{{ $guide['title'] }}" loading="lazy"></div>
+                    <div class="ratio ratio-21x9">
+                        <img src="/images/samples/popular-marmaris.jpg"
+                             class="w-100 object-fit-cover rounded"
+                             alt="{{ $guide['title'] }}" loading="lazy">
+                    </div>
                     <h2 class="h4 mt-5 mb-3">Sedir Adası’nın tarihi</h2>
                     <p class="text-muted">Sedir Adası, Cedrae olarak da bilinir ve adını Sedir Ağacından (Cedrus) alır.
                         Bugün adada sadece çam ve zeytin ağaçları bulunuyor. Adada Helenistik-Roma dönemine ait
@@ -46,15 +48,18 @@
                         <div class="col-12 col-xl-6">
                             <div class="ratio ratio-4x3">
                                 <img src="/images/samples/hotel-5.jpg"
-                                                              class="w-100 object-fit-cover rounded"
-                                                              alt="{{ $guide['title'] }}" loading="lazy"></div>
+                                     class="w-100 object-fit-cover rounded"
+                                     alt="{{ $guide['title'] }}" loading="lazy">
+                            </div>
                         </div>
-                        <div class="col-12 col-xl-6"><h2 class="h4">Sedir Adası nasıl bir yer?</h2>
+                        <div class="col-12 col-xl-6">
+                            <h2 class="h4">Sedir Adası nasıl bir yer?</h2>
                             <p class="text-muted">Sedir Adası tarihi kalıntılar ve doğal güzelliklerle dolu. Zeytin
                                 ağaçları, beyaz kumlu plajlar ve koruma altındaki ormanlarla turistler için çekici bir
                                 yer. Özellikle Kleopatra plajı popüler. Ancak, yaz aylarında çok kalabalık olabiliyor.
                                 Ada'da çok fazla tesis yok ve yeme içme bakımından tedarik sınırlı. Adaya giderken yeme
-                                ve içme için tedarikli olmanda fayda var..</p></div>
+                                ve içme için tedarikli olmanda fayda var..</p>
+                        </div>
                     </div>
 
                     <!-- BURAYA 1 TANE OTEL GELECEK -->
@@ -65,9 +70,19 @@
                             <div class="card-body p-2">
                                 <div class="row align-items-center">
                                     <div class="col-xl-3 mb-3 mb-lg-0">
-                                        <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}">
-                                            <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}" class="img-fluid rounded" alt="otel görseli">
-                                        </a>
+                                        @php
+                                            $hotelSlug = $hotel->slug ?? null;
+                                        @endphp
+
+                                        @if($hotelSlug)
+                                            <a href="{{ localized_route('hotel.detail', ['slug' => $hotelSlug]) }}">
+                                                <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}" class="img-fluid rounded" alt="otel görseli">
+                                            </a>
+                                        @else
+                                            <a href="#" onclick="return false;">
+                                                <img src="{{ $hotel->images[0] ?? '/images/default.jpg' }}" class="img-fluid rounded" alt="otel görseli">
+                                            </a>
+                                        @endif
                                     </div>
                                     <div class="col-xl-5 mb-3 mb-lg-0">
                                         <h4 class="card-title mb-0">{{ $hotel->name }}</h4>
@@ -106,7 +121,11 @@
                                                 @endif
                                             </div>
                                             <div class="d-grid mt-1">
-                                                <a href="{{ localized_route('hotel.detail', ['id' => $hotel->id]) }}" class="btn btn-outline-primary mt-2">Oteli İncele</a>
+                                                @if($hotelSlug)
+                                                    <a href="{{ localized_route('hotel.detail', ['slug' => $hotelSlug]) }}" class="btn btn-outline-primary mt-2">Oteli İncele</a>
+                                                @else
+                                                    <a href="#" class="btn btn-outline-primary mt-2 disabled" aria-disabled="true">Oteli İncele</a>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>

@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\SupportMessage;
+use App\Models\SupportTicket;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -22,6 +24,10 @@ use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\VillaController;
 use App\Http\Controllers\TransferController;
+use App\Models\Order;
+use App\Models\RefundAttempt;
+use App\Notifications\VerifyEmailNotification;
+use App\Notifications\ResetPasswordNotification;
 
 /** Hotel booking -> sepete ekleme */
 LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
@@ -338,4 +344,128 @@ if (app()->environment('local')) {
         'email' => auth()->user()?->email,
         'roles' => auth()->user()?->getRoleNames(),
     ])->middleware('auth');
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Test
+|--------------------------------------------------------------------------
+*/
+
+if (app()->environment('local')) {
+    Route::get('/__preview/emails/order-approved/{order}', function (Order $order) {
+        return view('emails.orders.customer-approved', [
+            'order' => $order,
+        ]);
+    })->middleware('auth');
+}
+
+if (app()->environment('local')) {
+    Route::get('/__preview/emails/order-created/{order}', function (Order $order) {
+        return view('emails.orders.customer-created', [
+            'order' => $order,
+        ]);
+    })->middleware('auth');
+}
+
+if (app()->environment('local')) {
+    Route::get('/__preview/emails/order-cancelled/{order}', function (Order $order) {
+        return view('emails.orders.customer-cancelled', [
+            'order' => $order,
+        ]);
+    })->middleware('auth');
+}
+
+Route::get('/__preview/emails/order-refunded/{refund}', function (RefundAttempt $refund) {
+    $refund->loadMissing('order');
+
+    return view('emails.orders.customer-refunded', [
+        'refund' => $refund,
+        'order'  => $refund->order,
+    ]);
+})->middleware('auth');
+
+if (app()->environment('local')) {
+    Route::get('/__preview/emails/ops-created/{order}', function (Order $order) {
+        return view('emails.orders.ops-created', [
+            'order' => $order,
+            'layoutVariant' => 'ops',
+        ]);
+    })->middleware('auth');
+}
+
+Route::get('/__test/mail/support-customer-replied/{ticket}', function (\App\Models\SupportTicket $ticket) {
+    $message = $ticket->messages()->where('is_from_ops', true)->latest()->first();
+
+    return new \App\Mail\SupportTicketAgentMessageCustomerMail($ticket, $message);
+});
+
+if (app()->environment('local')) {
+
+    Route::get('/__preview/emails/support/ops-ticket-created/{ticket}', function (SupportTicket $ticket) {
+        $message = $ticket->messages()->orderBy('id')->firstOrFail();
+
+        return view('emails.support.ops-ticket-created', [
+            'ticket' => $ticket,
+            'supportMessage' => $message,
+            'layoutVariant' => 'ops',
+        ]);
+    })->middleware('auth');
+
+    Route::get('/__preview/emails/support/ops-customer-message/{ticket}/{message}', function (
+        SupportTicket $ticket,
+        SupportMessage $message
+    ) {
+        abort_unless((int) $message->support_ticket_id === (int) $ticket->id, 404);
+
+        return view('emails.support.ops-customer-message', [
+            'ticket' => $ticket,
+            'supportMessage' => $message,
+            'layoutVariant' => 'ops',
+        ]);
+    })->middleware('auth');
+
+    Route::get('/__preview/emails/support/customer-agent-message/{ticket}/{message}', function (
+        SupportTicket $ticket,
+        SupportMessage $message
+    ) {
+        abort_unless((int) $message->support_ticket_id === (int) $ticket->id, 404);
+
+        return view('emails.support.customer-agent-message', [
+            'ticket' => $ticket,
+            'supportMessage' => $message,
+        ]);
+    })->middleware('auth');
+}
+
+if (app()->environment('local')) {
+
+    // 1) Verify Email preview
+    Route::get('/__preview/emails/auth/verify', function (Request $request) {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $notification = new VerifyEmailNotification();
+
+        // Notification -> MailMessage
+        $mailMessage = $notification->toMail($user);
+
+        // MailMessage -> Render (blade'in neyse onu basar)
+        return $mailMessage->render();
+    })->middleware('auth');
+
+    // 2) Reset Password preview
+    Route::get('/__preview/emails/auth/reset', function (Request $request) {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $token = 'TEST_TOKEN_123'; // preview token
+
+        $notification = new ResetPasswordNotification($token);
+
+        $mailMessage = $notification->toMail($user);
+
+        return $mailMessage->render();
+    })->middleware('auth');
 }

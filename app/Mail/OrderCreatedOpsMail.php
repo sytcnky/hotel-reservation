@@ -24,6 +24,7 @@ class OrderCreatedOpsMail extends Mailable
             ->subject('Yeni sipariş: ' . ($this->order->code ?: ('#' . $this->order->id)))
             ->view('emails.orders.ops-created', [
                 'order' => $this->order,
+                'layoutVariant' => 'ops',
             ]);
     }
 }

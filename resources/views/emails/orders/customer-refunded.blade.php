@@ -1,32 +1,51 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Geri ödeme başarılı</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
+@extends('emails.layouts.base')
 
-<h2 style="margin:0 0 12px 0;">Geri ödeme başarılı</h2>
+@section('title', $refund->order?->code ?? '')
 
-<p style="margin:0 0 8px 0;">
-    Sipariş kodu:
-    <strong>{{ $order?->code ?? '-' }}</strong>
-</p>
+@section('preheader')
+    {{ ($refund->order?->code ?? '') }} nolu siparişiniz için geri ödeme yapıldı
+@endsection
 
-<p style="margin:0 0 8px 0;">
-    İade tutarı:
-    <strong>{{ number_format((float) ($refund->amount ?? 0), 2, ',', '.') }} {{ strtoupper((string) ($refund->currency ?? '')) }}</strong>
-</p>
+@section('content')
+    @php
+        /** @var \App\Models\RefundAttempt $refund */
+        $order = $refund->order;
 
-@if(!empty($refund->reason))
-    <p style="margin:0 0 8px 0;">
-        İade açıklaması:
-        <strong>{{ $refund->reason }}</strong>
+        $amount = number_format((float) ($refund->amount ?? 0), 2, ',', '.');
+        $currency = strtoupper((string) ($refund->currency ?? ''));
+        $amountText = trim($amount . ($currency !== '' ? (' ' . $currency) : ''));
+    @endphp
+
+    <h2>Geri ödemeniz yapıldı,</h2>
+
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 14px 0;
+    ">
+        <span class="code">{{ $order?->code }}</span> nolu siparişiniz için
+        <strong>{{ $amountText }}</strong> geri ödeme yapıldı.
     </p>
-@endif
 
-<p style="margin:16px 0 0 0;">Teşekkürler.</p>
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 14px 0;
+    ">
+        Bankanıza bağlı olarak 1-7 iş günü içinde tutar kartınıza yansıyabilir.
+    </p>
 
-</body>
-</html>
+    @component('emails.partials.banner', [
+    'tone' => 'info',
+    'ctaHref' => localized_route('account.bookings'),
+    'ctaLabel' => 'Hesabım',
+])
+        <p style="margin:0;">
+            Siparişinizin durumunu görüntülemek ve diğer işlemler için "Hesabım" sayfasını kullanabilirsiniz.
+        </p>
+    @endcomponent
+@endsection

@@ -15,14 +15,14 @@ class ResetPasswordNotification extends BaseResetPassword
         ], false));
 
         return (new MailMessage)
-            ->subject('Şifre sıfırlama')
+            ->subject('Şifre sıfırlama talebi')
             ->view('emails.auth.reset-password', [
-                'subject'    => 'Şifre sıfırlama',
+                'subject'    => 'Şifrenizi Sıfırlayın',
                 'title'      => 'Şifre sıfırlama',
                 'intro'      => 'Şifrenizi sıfırlamak için aşağıdaki linke tıklayın.',
                 'actionUrl'  => $url,
                 'actionText' => 'Şifremi sıfırla',
-                'outro'      => 'Eğer bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz.',
+                'outro'      => 'Parola sıfırlama isteğinde bulunmadıysanız, bu e-postayı güvenle görmezden gelebilirsiniz. Hesabınızda herhangi bir değişiklik yapılmadı.',
             ]);
     }
 }

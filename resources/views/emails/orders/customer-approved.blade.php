@@ -1,36 +1,37 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $order->code }}</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5;">
+@extends('emails.layouts.base')
 
-<h2 style="margin:0 0 12px 0;">
-    Siparişiniz onaylandı
-</h2>
+@section('title', $order->code)
 
-<p style="margin:0 0 8px 0;">
-    Sipariş kodu:
-    <strong>{{ $order->code }}</strong>
-</p>
+@section('preheader')
+    Siparişiniz onaylandı ({{ $order->code }})
+@endsection
 
-<p style="margin:0 0 8px 0;">
-    Toplam:
-    <strong>{{ number_format((float) $order->total_amount, 2, ',', '.') }} {{ strtoupper((string) $order->currency) }}</strong>
-</p>
+@section('content')
+    <h2>Siparişiniz onaylandı, İyi Tatiller!</h2>
 
-@if(!empty($order->discount_amount) && (float)$order->discount_amount > 0)
-    <p style="margin:0 0 8px 0;">
-        İndirim:
-        <strong>{{ number_format((float) $order->discount_amount, 2, ',', '.') }} {{ strtoupper((string) $order->currency) }}</strong>
+    <p style="
+        font-family:Helvetica, Arial, sans-serif;
+        font-size:14px;
+        line-height:22px;
+        color:#0f172a;
+        margin:0 0 30px 0;
+    ">
+        <span class="code">{{ $order->code }}</span> numaralı siparişiniz onaylandı.
     </p>
-@endif
 
-<p style="margin:16px 0 0 0;">
-    Gerekli durumlarda sizinle iletişime geçeceğiz.
-</p>
+    @component('emails.partials.banner', [
+        'tone' => 'info',
+        'ctaHref' => localized_route('account.bookings'),
+        'ctaLabel' => 'Hesabım',
+    ])
+        <p style="margin:0;">
+            Siparişinizin durumunu görüntülemek ve diğer işlemler için "Hesabım" sayfasını kullanabilirsiniz.
+        </p>
+    @endcomponent
 
-</body>
-</html>
+    {{-- Divider --}}
+    <div style="height:1px; margin:12px 0;"></div>
+
+    <h3>Sipariş Detayları</h3>
+    @include('emails.partials.order-items', ['order' => $order])
+@endsection

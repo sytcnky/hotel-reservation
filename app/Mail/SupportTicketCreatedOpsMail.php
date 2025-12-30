@@ -31,6 +31,7 @@ class SupportTicketCreatedOpsMail extends Mailable
             ->view('emails.support.ops-ticket-created', [
                 'ticket' => $this->ticket,
                 'supportMessage' => $this->supportMessage,
+                'layoutVariant' => 'ops',
             ]);
     }
 }
