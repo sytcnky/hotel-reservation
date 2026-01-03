@@ -74,7 +74,8 @@ class LocalizedRoute
         $routes = [];
 
         foreach ($locales as $locale) {
-            $slug = $translation->values[$locale] ?? $defaultSlug;
+            $values = is_array($translation?->values ?? null) ? $translation->values : [];
+            $slug = $values[$locale] ?? $defaultSlug;
             $slug = trim((string) $slug, '/');
 
             $path = $slug === '' ? '/' : '/' . $slug;

@@ -24,6 +24,9 @@ use App\Http\Controllers\TourController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\VillaController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\TravelGuideController;
+
+/** Mail Test */
 use App\Models\Order;
 use App\Models\RefundAttempt;
 use App\Notifications\VerifyEmailNotification;
@@ -168,6 +171,12 @@ LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']
 /** Excursion detail */
 LocalizedRoute::get('excursions.detail', 'excursions/{slug}', [TourController::class, 'show']);
 
+/** Guide list */
+LocalizedRoute::get('guides', 'guides', [TravelGuideController::class, 'index']);
+
+/** Guide detail */
+LocalizedRoute::get('guides.show', 'guides/{slug}', [TravelGuideController::class, 'show']);
+
 /** Ödeme sayfası (görüntüleme + işleme) */
 LocalizedRoute::get('payment', 'payment/{code}', [PaymentController::class, 'show']);
 
@@ -195,78 +204,6 @@ Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->n
 /** Statik sayfalar */
 LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
 LocalizedRoute::view('help', 'help', 'pages.help.index');
-
-
-/** Guides list */
-LocalizedRoute::get('guides', 'gezi-rehberi', function () {
-    $guides = [
-        [
-            'title'        => 'Marmaris',
-            'slug'         => 'marmaris-gezi-rehberi',
-            'excerpt'      => 'Marmaris’te gezilecek yerler...',
-            'cover'        => '/images/samples/popular-marmaris.jpg',
-            'category'     => 'Ege',
-            'published_at' => '2025-08-01',
-        ],
-        [
-            'title'        => 'İçmeler',
-            'slug'         => 'icmeler-gezi-rehberi',
-            'excerpt'      => 'İçmeler’in en popüler plajları...',
-            'cover'        => '/images/samples/icmeler-1.jpg',
-            'category'     => 'Ege',
-            'published_at' => '2025-07-20',
-        ],
-    ];
-
-    return view('pages.guides.index', compact('guides'));
-});
-
-/** Guide detail */
-LocalizedRoute::get('guides.show', 'gezi-rehberi/{slug}', function ($slug) {
-    $all = collect([
-        'sedir-adasi' => [
-            'title' => 'Sedir Adası',
-            'cover' => '/images/samples/popular-marmaris.jpg',
-            'intro' => 'Altın renkli kumları, berrak koyları ve antik dokusuyla Sedir Adası...',
-        ],
-        'marmaris-gezi-rehberi' => [
-            'title' => 'Marmaris Gezi Rehberi',
-            'cover' => '/images/samples/popular-marmaris.jpg',
-            'intro' => 'Marmaris’te gezilecek yerler, plajlar ve ipuçları.',
-        ],
-        'icmeler-gezi-rehberi' => [
-            'title' => 'İçmeler Gezi Rehberi',
-            'cover' => '/images/samples/popular-marmaris.jpg',
-            'intro' => 'İçmeler’in plajları, sakin koyları ve öneriler.',
-        ],
-    ]);
-
-    abort_unless($all->has($slug), 404);
-
-    $guide = $all[$slug];
-
-    // Ek veriler
-    $hotelsPath     = public_path('data/hotels.json');
-    $villasPath     = public_path('data/villas/villas.json');
-    $excursionsPath = public_path('data/excursions/excursions.json');
-
-    $hotels     = File::exists($hotelsPath) ? json_decode(File::get($hotelsPath)) : [];
-    $villas     = File::exists($villasPath) ? json_decode(File::get($villasPath), true) : [];
-    $excursions = File::exists($excursionsPath) ? json_decode(File::get($excursionsPath), true) : [];
-
-    $hotel             = $hotels[0] ?? null;
-    $villa             = $villas[0] ?? null;
-    $excursionsSidebar = array_slice($excursions, 0, 2);
-
-    return view('pages.guides.show', compact(
-        'guide',
-        'slug',
-        'hotel',
-        'villa',
-        'excursionsSidebar'
-    ));
-});
-
 
 /*
 |--------------------------------------------------------------------------

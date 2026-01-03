@@ -983,4 +983,56 @@ return [
         ],
     ],
 
+    'travel_guides' => [
+        'singular' => 'Gezi Rehberi',
+        'plural'   => 'Gezi Rehberleri',
+
+        'fields' => [
+            'title'          => 'Başlık',
+            'excerpt'        => 'Kısa Açıklama',
+            'slug'           => 'Slug',
+            'canonical_slug' => 'Kanonik Slug',
+            'tags'           => 'Etiketler',
+            'tags_placeholder' => 'Etiket ekle',
+            'content_blocks' => 'İçerik Blokları',
+            'published_at'   => 'Yayın Tarihi',
+            'sidebar_tours'  => 'Yan Alan Turları',
+        ],
+
+        'sections' => [
+            'content'       => 'İçerik Alanı',
+            'status'        => 'Durum',
+            'cover'         => 'Kapak Görseli',
+            'sidebar_tours' => 'Yan Alanda Gösterilecek Turlar',
+        ],
+
+        'actions' => [
+            'add_block' => 'Blok Ekle',
+        ],
+
+        'blocks' => [
+            'type' => 'Blok Tipi',
+            'content_section' => 'İçerik Bloğu',
+            'recommendation'  => 'Öneri Bloğu',
+
+            'layout' => 'Yerleşim',
+            'layout_stacked' => 'Dikey (Metin ve görsel alt alta)',
+            'layout_media_left' => 'Görsel solda, metin sağda',
+
+            'title' => 'Başlık',
+            'body'  => 'Metin',
+            'image' => 'Görsel',
+
+            'product_type' => 'Ürün Tipi',
+            'product'      => 'Ürün',
+
+            'product_type_hotel' => 'Otel',
+            'product_type_villa' => 'Villa',
+        ],
+
+        'validation' => [
+            'slug_unique' => 'Bu slug bu dil için zaten kullanılıyor.',
+        ],
+    ],
+
 ];
