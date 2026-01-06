@@ -15,6 +15,7 @@ use App\Models\RoomRateRule;
 use App\Models\Currency;
 use App\Services\RoomRateResolver;
 use App\Support\Helpers\CurrencyHelper;
+use App\Models\StaticPage;
 
 class HotelController extends Controller
 {
@@ -724,6 +725,14 @@ class HotelController extends Controller
     {
         $locale = App::getLocale();
 
+        $page = StaticPage::query()
+            ->where('key', 'hotel_page')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $c = $page->content ?? [];
+        $loc = app()->getLocale();
+
         $hotels = Hotel::query()
             ->with([
                 'location.parent.parent',
@@ -732,10 +741,15 @@ class HotelController extends Controller
                 'media',
             ])
             ->where('is_active', true)
-            ->orderBy("name->{$locale}") // istersen id ile de sıralayabilirsin
+            ->orderBy("name->{$locale}")
             ->get();
 
-        return view('pages.hotel.index', compact('hotels'));
+        return view('pages.hotel.index', [
+            'hotels' => $hotels,
+            'page' => $page,
+            'c' => $c,
+            'loc' => $loc,
+        ]);
     }
 
 }

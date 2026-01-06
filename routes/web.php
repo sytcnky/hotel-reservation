@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HomeController;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use Illuminate\Support\Facades\Route;
@@ -148,7 +149,7 @@ Route::get('/', function () {
 */
 
 /** Home */
-LocalizedRoute::view('home', '', 'pages.home');
+LocalizedRoute::get('home', '', [HomeController::class, 'index']);
 
 /** Hotels list */
 LocalizedRoute::get('hotels', 'oteller', [HotelController::class, 'index']);
@@ -192,7 +193,7 @@ Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])->name('
 LocalizedRoute::get('payment.3ds', 'payment/{code}/3ds', [PaymentController::class, 'show3ds']);
 LocalizedRoute::post('payment.3ds.complete', 'payment/{code}/3ds/complete', [PaymentController::class, 'complete3ds']);
 
-// Başarı
+/** Başarılı Ödeme */
 LocalizedRoute::view('success', 'success', 'pages.payment.success');
 
 /** Sepet */
@@ -204,6 +205,13 @@ Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->n
 /** Statik sayfalar */
 LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
 LocalizedRoute::view('help', 'help', 'pages.help.index');
+
+/** Legal sayfalar */
+
+LocalizedRoute::view('privacy_policy', 'privacy-policy', 'pages.legal.show', ['pageKey' => 'privacy_policy_page']);
+LocalizedRoute::view('terms_of_use', 'terms-of-use', 'pages.legal.show', ['pageKey' => 'terms_of_use_page']);
+LocalizedRoute::view('distance_sales', 'distance-sales', 'pages.legal.show', ['pageKey' => 'distance_sales_page']);
+
 
 /*
 |--------------------------------------------------------------------------

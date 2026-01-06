@@ -18,9 +18,18 @@
         </nav>
     </div>
     <div class="text-center my-5 px-3 px-lg-5">
-        <h1 class="display-5 fw-bold text-secondary">Kendini evinde hisset</h1>
+        {{-- PAGE HEADER (en üstteki bölüm) --}}
+        @php
+            $loc = app()->getLocale();
+            $c = $page->content ?? [];
+        @endphp
+
+        <h1 class="display-5 fw-bold text-secondary">
+            {{ $c['page_header']['title'][$loc] ?? '' }}
+        </h1>
+
         <p class="lead text-muted px-lg-5">
-            İçmelerdeki birbirinden güzel villarda konforu ve size özel ayrıcalıkları keşfedin.
+            {{ $c['page_header']['description'][$loc] ?? '' }}
         </p>
     </div>
 </section>
@@ -201,44 +210,44 @@
     <hr class="pb-5">
     <div class="row">
         <div class="col-lg-6 pe-lg-5">
+            @php
+                $images = $page->villa_content_images ?? [];
+                $texts  = $c['page_content']['image_texts'] ?? [];
+            @endphp
+
             <h1 class="text-primary display-4">
-                Güzel bir tatil
-                <span class="d-block fw-bold">sözü veriyoruz.</span>
+                {!! nl2br(e($c['page_content']['title'][$loc] ?? '')) !!}
             </h1>
+
             <p class="text-secondary my-4 pe-lg-5">
-                ICR olarak sunduğumuz villa kiralama hizmetiyle, sadece konaklama değil,
-                eksiksiz bir tatil deneyimi vadediyoruz. Tüm villalarımız, profesyonel
-                ekiplerimiz tarafından yerinde incelenir ve yalnızca en yüksek standartları
-                karşılayan evler sistemimize dahil edilir. Her bir villa; konfor, temizlik ve
-                güvenlik kriterlerine göre özenle seçilmiştir.
+                {!! nl2br(e($c['page_content']['description'][$loc] ?? '')) !!}
             </p>
         </div>
         <div class="col-lg-6">
             <div class="row">
-                <div class="col-6">
-                    <div class="d-flex flex-column mb-4">
-                        <img src="/images/samples/villa-sample-1.jpg" class="img-fluid rounded" width="160">
-                        <p class="mt-2">Her ev uzmanlar tarafından incelenir, standartlarımızı karşılamaları gerekir.</p>
+                @for($i = 0; $i < 4; $i++)
+                    @php
+                        $img  = $images[$i] ?? null;
+                        $text = $texts[$i][$loc] ?? null;
+                    @endphp
+
+                    <div class="col-6">
+                        <div class="d-flex flex-column mb-4">
+                            @if($img)
+                                <x-responsive-image
+                                    :image="$img"
+                                    preset="listing-card"
+                                    class="img-fluid rounded"
+                                    width="160"
+                                />
+                            @endif
+
+                            @if($text)
+                                <p class="mt-2">{{ $text }}</p>
+                            @endif
+                        </div>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="d-flex flex-column mb-4">
-                        <img src="/images/samples/villa-sample-2.jpg" class="img-fluid rounded" width="160">
-                        <p class="mt-2">Kusursuz derecede temiz, bakımlı evler.</p>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="d-flex flex-column mb-4">
-                        <img src="/images/samples/villa-sample-3.jpg" class="img-fluid rounded" width="160">
-                        <p class="mt-2">Tanıdığımız, yüksek kaliteli ev sahipliği geçmişi olan ev sahipleri.</p>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="d-flex flex-column mb-4">
-                        <img src="/images/samples/villa-sample-4.jpg" class="img-fluid rounded" width="160">
-                        <p class="mt-2">Nadiren de olsa ev sahibinizin iptal etmesi durumunda içinizin rahat olması.</p>
-                    </div>
-                </div>
+                @endfor
             </div>
         </div>
     </div>

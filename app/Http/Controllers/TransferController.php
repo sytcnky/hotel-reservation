@@ -2,18 +2,39 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Location;
+use App\Models\StaticPage;
 use App\Models\TransferRoute;
 use App\Models\TransferVehicle;
-use App\Models\Location;
 use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use App\Support\Helpers\ImageHelper;
 
 class TransferController extends Controller
 {
     public function index(Request $request)
     {
+        // -------------------------------------------------
+        // Static Page (Transfer)
+        // -------------------------------------------------
+        $page = StaticPage::query()
+            ->where('key', 'transfer_page')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $base = config('app.locale', 'tr');
+        $loc  = app()->getLocale();
+        $c    = $page->content ?? [];
+
+        $pickLocale = function ($map) use ($loc, $base) {
+            if (! is_array($map)) return null;
+            return $map[$loc] ?? $map[$base] ?? null;
+        };
+
+        // -------------------------------------------------
+        // Transfer Search / Offer
+        // -------------------------------------------------
         $transferOffer = null;
 
         $direction      = $request->get('direction', 'oneway') === 'roundtrip' ? 'roundtrip' : 'oneway';
@@ -26,7 +47,6 @@ class TransferController extends Controller
         $children = max(0, $request->integer('children', 0));
         $infants  = max(0, $request->integer('infants', 0));
 
-        // Arama yapılıp yapılmadığını anlamak için basit flag
         $hasSearch = $request->has('from_location_id')
             || $request->has('to_location_id')
             || $request->has('departure_date')
@@ -34,11 +54,6 @@ class TransferController extends Controller
 
         $totalPassengers = $adults + $children + $infants;
 
-        // Tüm alanlar zorunlu:
-        // - from != to
-        // - min 1 yetişkin
-        // - gidiş tarihi dolu
-        // - roundtrip ise dönüş tarihi dolu
         $isInputValid =
             $fromId && $toId && $fromId !== $toId &&
             $departureDate &&
@@ -65,7 +80,6 @@ class TransferController extends Controller
                     );
 
                     if ($pricing) {
-                        // --- Araç galerisini normalize et ---
                         $mediaItems = $vehicle->getMedia('gallery');
 
                         $vehicleGallery = $mediaItems
@@ -73,17 +87,14 @@ class TransferController extends Controller
                             ->values()
                             ->all();
 
-                        // Galeri boşsa placeholder
                         if (empty($vehicleGallery)) {
                             $placeholder    = ImageHelper::normalize(null);
                             $vehicleGallery = [$placeholder];
                         }
 
-                        // Sepet için tek görsel (ilk eleman, thumb)
                         $vehicleImage = $vehicleGallery[0]['thumb'] ?? null;
 
                         $transferOffer = [
-                            // ...
                             'route_id'               => $route->id,
                             'from_location_id'       => $fromId,
                             'to_location_id'         => $toId,
@@ -94,9 +105,11 @@ class TransferController extends Controller
                             'children'               => $children,
                             'infants'                => $infants,
                             'estimated_duration_min' => $route->duration_minutes,
+
                             'vehicle_id'             => $vehicle->id,
                             'vehicle_name'           => $this->localizeJson($vehicle->name),
                             'capacity_total'         => $vehicle->capacity_total,
+
                             'price_total'            => $pricing['total'],
                             'currency'               => $pricing['currency'],
 
@@ -104,7 +117,6 @@ class TransferController extends Controller
                             'vehicle_image'          => $vehicleImage,
                         ];
                     }
-
                 }
             }
         }
@@ -112,6 +124,10 @@ class TransferController extends Controller
         $locations = $this->getLocationsForSelect();
 
         return view('pages.transfer.index', [
+            'page'          => $page,
+            'c'             => $c,
+            'pickLocale'    => $pickLocale,
+
             'transferOffer' => $transferOffer,
             'locations'     => $locations,
             'hasSearch'     => $hasSearch,

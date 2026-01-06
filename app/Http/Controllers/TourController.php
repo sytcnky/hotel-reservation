@@ -8,6 +8,7 @@ use App\Models\TourService;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Facades\App;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Models\StaticPage;
 
 class TourController extends Controller
 {
@@ -70,6 +71,14 @@ class TourController extends Controller
     {
         $locale = App::getLocale();
 
+        $page = StaticPage::query()
+            ->where('key', 'tour_page')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $c = $page->content ?? [];
+        $loc = app()->getLocale();
+
         $tours = Tour::with(['category'])
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -125,6 +134,9 @@ class TourController extends Controller
         return view('pages.excursion.index', [
             'tours'      => $tours,
             'categories' => $categories,
+            'page' => $page,
+            'c' => $c,
+            'loc' => $loc,
         ]);
     }
 

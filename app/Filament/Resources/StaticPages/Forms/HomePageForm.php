@@ -1,0 +1,353 @@
+<?php
+
+namespace App\Filament\Resources\StaticPages\Forms;
+
+use App\Models\Hotel;
+use App\Models\Location;
+use App\Models\TravelGuide;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Str;
+
+class HomePageForm
+{
+    public static function schema(): array
+    {
+        $base = config('app.locale', 'tr');
+        $locales = config('app.supported_locales', [$base]);
+        $uiLocale = app()->getLocale();
+
+        $pickLocale = function (?array $map) use ($uiLocale, $base): ?string {
+            if (! is_array($map)) {
+                return null;
+            }
+
+            return $map[$uiLocale] ?? $map[$base] ?? (array_values($map)[0] ?? null);
+        };
+
+        $getHotelLabelById = function (int $id) use ($pickLocale): ?string {
+            static $cache = [];
+
+            if (array_key_exists($id, $cache)) {
+                return $cache[$id];
+            }
+
+            $h = Hotel::query()->find($id);
+            $cache[$id] = $h ? $pickLocale($h->name) : null;
+
+            return $cache[$id];
+        };
+
+        $getGuideLabelById = function (int $id) use ($pickLocale): ?string {
+            static $cache = [];
+
+            if (array_key_exists($id, $cache)) {
+                return $cache[$id];
+            }
+
+            $g = TravelGuide::query()->find($id);
+            $cache[$id] = $g ? $pickLocale($g->title) : null;
+
+            return $cache[$id];
+        };
+
+        $searchHotels = function (string $search) use ($uiLocale, $base): array {
+            return Hotel::query()
+                ->where('is_active', true)
+                ->withoutTrashed()
+                ->whereRaw("COALESCE(name->>'{$uiLocale}', name->>'{$base}', '') ILIKE ?", ["%{$search}%"])
+                ->limit(50)
+                ->get()
+                ->mapWithKeys(function (Hotel $h) use ($uiLocale, $base) {
+                    $name = $h->name[$uiLocale]
+                        ?? ($h->name[$base] ?? (array_values($h->name ?? [])[0] ?? '—'));
+
+                    return [$h->id => (string) $name];
+                })
+                ->all();
+        };
+
+        $searchGuides = function (string $search) use ($uiLocale, $base): array {
+            return TravelGuide::query()
+                ->where('is_active', true)
+                ->withoutTrashed()
+                ->whereRaw("COALESCE(title->>'{$uiLocale}', title->>'{$base}', '') ILIKE ?", ["%{$search}%"])
+                ->limit(50)
+                ->get()
+                ->mapWithKeys(function (TravelGuide $g) use ($uiLocale, $base) {
+                    $title = $g->title[$uiLocale]
+                        ?? ($g->title[$base] ?? (array_values($g->title ?? [])[0] ?? '—'));
+
+                    return [$g->id => (string) $title];
+                })
+                ->all();
+        };
+
+        $tabs = function (string $name, array $fieldsByLocale) use ($locales): Tabs {
+            return Tabs::make($name)->tabs(
+                collect($locales)->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))->all()
+            );
+        };
+
+        return [
+            Section::make(__('admin.static_pages.pages.home.hero'))
+                ->schema([
+                    $tabs('hero_i18n', collect($locales)->mapWithKeys(function (string $loc) {
+                        return [$loc => [
+                            TextInput::make("content.hero.eyebrow.$loc")
+                                ->label(__('admin.static_pages.form.eyebrow')),
+
+                            TextInput::make("content.hero.title.$loc")
+                                ->label(__('admin.static_pages.form.title')),
+
+                            TextInput::make("content.hero.subtitle.$loc")
+                                ->label(__('admin.static_pages.form.subtitle')),
+                        ]];
+                    })->all()),
+
+                    Section::make(__('admin.static_pages.form.hero_media'))
+                        ->schema([
+                            Grid::make()
+                                ->columns(['default' => 1, 'lg' => 12])
+                                ->schema([
+                                    SpatieMediaLibraryFileUpload::make('home_hero_background')
+                                        ->label(__('admin.static_pages.form.hero_background_image'))
+                                        ->collection('home_hero_background')
+                                        ->preserveFilenames()
+                                        ->image()
+                                        ->maxFiles(1)
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+
+                                    SpatieMediaLibraryFileUpload::make('home_hero_transparent')
+                                        ->label(__('admin.static_pages.form.hero_transparent_image'))
+                                        ->collection('home_hero_transparent')
+                                        ->preserveFilenames()
+                                        ->image()
+                                        ->maxFiles(1)
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+                                ]),
+                        ]),
+                ]),
+
+            Section::make(__('admin.static_pages.pages.home.popular_hotels'))
+                ->schema([
+                    $tabs('popular_hotels_i18n', collect($locales)->mapWithKeys(function (string $loc) {
+                        return [$loc => [
+                            TextInput::make("content.popular_hotels.section_eyebrow.$loc")
+                                ->label(__('admin.static_pages.form.section_eyebrow')),
+
+                            TextInput::make("content.popular_hotels.section_title.$loc")
+                                ->label(__('admin.static_pages.form.section_title')),
+
+                            TextInput::make("content.popular_hotels.hero_title.$loc")
+                                ->label(__('admin.static_pages.form.hero_title')),
+
+                            Textarea::make("content.popular_hotels.description.$loc")
+                                ->label(__('admin.static_pages.form.description'))
+                                ->rows(4),
+
+                            Grid::make()
+                                ->columns(['default' => 1, 'lg' => 12])
+                                ->schema([
+                                    TextInput::make("content.popular_hotels.button.text.$loc")
+                                        ->label(__('admin.static_pages.form.button_text'))
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+
+                                    TextInput::make("content.popular_hotels.button.href.$loc")
+                                        ->label(__('admin.static_pages.form.button_href'))
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+                                ]),
+                        ]];
+                    })->all()),
+
+                    Section::make(__('admin.static_pages.form.carousel_settings'))
+                        ->schema([
+                            Grid::make()
+                                ->columns(['default' => 1, 'lg' => 12])
+                                ->schema([
+                                    Select::make('content.popular_hotels.carousel.mode')
+                                        ->label(__('admin.static_pages.form.collection_mode'))
+                                        ->options([
+                                            'latest' => 'latest',
+                                            'manual' => 'manual',
+                                            'by_location' => 'by_location',
+                                        ])
+                                        ->native(false)
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, Set $set) {
+                                            if ($state !== 'manual') {
+                                                $set('content.popular_hotels.carousel.items', []);
+                                            }
+
+                                            if ($state !== 'by_location') {
+                                                $set('content.popular_hotels.carousel.location_id', null);
+                                            }
+
+                                            if (! in_array($state, ['latest', 'by_location'], true)) {
+                                                $set('content.popular_hotels.carousel.limit', null);
+                                            }
+                                        })
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+
+                                    TextInput::make('content.popular_hotels.carousel.per_page')
+                                        ->label(__('admin.static_pages.form.per_page'))
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->default(6)
+                                        ->columnSpan(['default' => 12, 'lg' => 3]),
+
+                                    TextInput::make('content.popular_hotels.carousel.total')
+                                        ->label(__('admin.static_pages.form.total'))
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->default(12)
+                                        ->columnSpan(['default' => 12, 'lg' => 3]),
+                                ]),
+
+                            TextInput::make('content.popular_hotels.carousel.limit')
+                                ->label(__('admin.static_pages.form.limit'))
+                                ->numeric()
+                                ->minValue(1)
+                                ->visible(fn (Get $get) => in_array($get('content.popular_hotels.carousel.mode'), ['latest', 'by_location'], true)),
+
+                            Select::make('content.popular_hotels.carousel.location_id')
+                                ->label(__('admin.static_pages.form.location'))
+                                ->searchable()
+                                ->visible(fn (Get $get) => $get('content.popular_hotels.carousel.mode') === 'by_location')
+                                ->getSearchResultsUsing(function (string $search): array {
+                                    $q = Str::slug($search);
+
+                                    return Location::query()
+                                        ->with(['parent.parent'])
+                                        ->where('type', 'area')
+                                        ->where('is_active', true)
+                                        ->where('slug', 'ILIKE', "{$q}%")
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function (Location $r) {
+                                            $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+                                            $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
+
+                                            return [$r->id => $r->name . $suffix];
+                                        })
+                                        ->all();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    $r = Location::with(['parent.parent'])->find($value);
+                                    if (! $r) {
+                                        return null;
+                                    }
+                                    $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+                                    $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
+
+                                    return $r->name . $suffix;
+                                }),
+
+                            Repeater::make('content.popular_hotels.carousel.items')
+                                ->label(__('admin.static_pages.form.manual_items'))
+                                ->live()
+                                ->visible(fn (Get $get) => $get('content.popular_hotels.carousel.mode') === 'manual')
+                                ->reorderable()
+                                ->defaultItems(0)
+                                ->addActionLabel(__('admin.static_pages.form.add_manual_item'))
+                                ->itemLabel(fn (array $state) => isset($state['id'])
+                                    ? $getHotelLabelById((int) $state['id'])
+                                    : null
+                                )
+                                ->schema([
+                                    Select::make('id')
+                                        ->label(__('admin.static_pages.form.item'))
+                                        ->searchable()
+                                        ->native(false)
+                                        ->live()
+                                        ->getSearchResultsUsing(fn (string $search) => $searchHotels($search))
+                                        ->getOptionLabelUsing(fn ($value) => is_numeric($value)
+                                            ? $getHotelLabelById((int) $value)
+                                            : null
+                                        ),
+                                ]),
+                        ])
+                        ->collapsed(),
+                ]),
+
+            Section::make(__('admin.static_pages.pages.home.travel_guides'))
+                ->schema([
+                    $tabs('travel_guides_i18n', collect($locales)->mapWithKeys(function (string $loc) {
+                        return [$loc => [
+                            TextInput::make("content.travel_guides.hero_title.$loc")
+                                ->label(__('admin.static_pages.form.hero_title')),
+
+                            TextInput::make("content.travel_guides.title.$loc")
+                                ->label(__('admin.static_pages.form.title')),
+
+                            Textarea::make("content.travel_guides.description.$loc")
+                                ->label(__('admin.static_pages.form.description'))
+                                ->rows(4),
+                        ]];
+                    })->all()),
+
+                    Section::make(__('admin.static_pages.form.grid_settings'))
+                        ->schema([
+                            Grid::make()
+                                ->columns(['default' => 1, 'lg' => 12])
+                                ->schema([
+                                    Select::make('content.travel_guides.grid.mode')
+                                        ->label(__('admin.static_pages.form.collection_mode'))
+                                        ->options([
+                                            'latest' => 'latest',
+                                            'manual' => 'manual',
+                                        ])
+                                        ->native(false)
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, Set $set) {
+                                            if ($state !== 'manual') {
+                                                $set('content.travel_guides.grid.items', []);
+                                            }
+                                        })
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+
+                                    TextInput::make('content.travel_guides.grid.limit')
+                                        ->label(__('admin.static_pages.form.limit'))
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->default(6)
+                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+                                ]),
+
+                            Repeater::make('content.travel_guides.grid.items')
+                                ->label(__('admin.static_pages.form.manual_items'))
+                                ->visible(fn (Get $get) => $get('content.travel_guides.grid.mode') === 'manual')
+                                ->reorderable()
+                                ->defaultItems(0)
+                                ->addActionLabel(__('admin.static_pages.form.add_manual_item'))
+                                ->itemLabel(fn (array $state) => isset($state['id'])
+                                    ? $getGuideLabelById((int) $state['id'])
+                                    : null
+                                )
+                                ->schema([
+                                    Select::make('id')
+                                        ->label(__('admin.static_pages.form.item'))
+                                        ->searchable()
+                                        ->native(false)
+                                        ->live()
+                                        ->getSearchResultsUsing(fn (string $search) => $searchGuides($search))
+                                        ->getOptionLabelUsing(fn ($value) => is_numeric($value)
+                                            ? $getGuideLabelById((int) $value)
+                                            : null
+                                        ),
+                                ]),
+                        ])
+                        ->collapsed(),
+                ]),
+        ];
+    }
+}

@@ -231,16 +231,12 @@ a:focus,
     position: relative;
 }
 
-.hero-tabs:after {
-    content: "";
-    background: url("@/images/hero-girl.png") no-repeat;
-    position: absolute;
-    background-size: cover;
-    bottom: 0;
-    right: 0;
+.hero-tabs-girl {
     width: 320px;
     height: 320px;
-    z-index: -1;
+    object-fit: cover;
+    z-index: -1;      /* tabların arkasında kalsın */
+    pointer-events: none;
 }
 
 .hero-overlay {

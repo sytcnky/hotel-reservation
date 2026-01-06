@@ -22,13 +22,13 @@ export default defineConfig({
             '@flaticon': path.resolve(process.cwd(), 'node_modules/@flaticon'),
         },
     },
-    css: { preprocessorOptions: { scss: { quietDeps: true } } },
+    css: {
+        preprocessorOptions: {
+            scss: { quietDeps: true },
+        },
+    },
     server: {
-        host: '0.0.0.0',
         port: 5173,
         strictPort: true,
-        cors: true,
-        origin: 'http://192.168.1.15:5173',
-        hmr: { host: '192.168.1.15', port: 5173, protocol: 'ws' },
     },
 })

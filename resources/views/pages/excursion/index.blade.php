@@ -19,9 +19,17 @@
     </div>
 
     <div class="text-center my-5 px-3 px-lg-5">
-        <h1 class="display-5 fw-bold text-secondary">Günlük Turlar</h1>
+        @php
+            $loc = $loc ?? app()->getLocale();
+            $c = $c ?? ($page->content ?? []);
+        @endphp
+
+        <h1 class="display-5 fw-bold text-secondary">
+            {{ $c['page_header']['title'][$loc] ?? '' }}
+        </h1>
+
         <p class="lead text-muted px-lg-5">
-            Biletlerinizi çevrimiçi olarak ayırtın veya tatiliniz boyunca ofisimizi ziyaret edin.
+            {{ $c['page_header']['description'][$loc] ?? '' }}
         </p>
     </div>
 </section>

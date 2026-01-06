@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use App\Support\Helpers\ImageHelper;
+use App\Models\StaticPage;
 
 class VillaController extends Controller
 {
@@ -28,17 +29,6 @@ class VillaController extends Controller
 
     /**
      * Repeater tarzı alanları (ör: highlights, stay_info) aktif dilde düz listeye çevirir.
-     *
-     * Beklenen olası formatlar:
-     *  [
-     *    "tr" => [ {"value": "..."} , {"value": "..."} ],
-     *    "en" => [ ... ]
-     *  ]
-     *  veya
-     *  [
-     *    "tr" => [ "..." , "..." ],
-     *    "en" => [ ... ]
-     *  ]
      */
     private function localizeList(mixed $value, string $locale, string $base): array
     {
@@ -145,7 +135,31 @@ class VillaController extends Controller
             ->values()
             ->all();
 
-        return view('pages.villa.index', compact('villas'));
+        // -------------------------------------------------
+        // Static Page (Transfer)
+        // -------------------------------------------------
+
+        $page = StaticPage::query()
+            ->where('key', 'villa_page')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $base = config('app.locale', 'tr');
+        $loc  = app()->getLocale();
+
+        $pickLocale = function ($map) use ($loc, $base) {
+            if (! is_array($map)) {
+                return null;
+            }
+
+            return $map[$loc] ?? $map[$base] ?? null;
+        };
+
+        return view('pages.villa.index', [
+            'villas'     => $villas,
+            'page'       => $page,
+            'pickLocale' => $pickLocale,
+        ]);
     }
 
     /**

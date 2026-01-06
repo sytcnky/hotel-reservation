@@ -24,7 +24,7 @@ class TravelGuideResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('admin.navigation.content');
+        return __('admin.nav.content');
     }
 
     public static function getModelLabel(): string

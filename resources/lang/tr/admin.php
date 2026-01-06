@@ -9,8 +9,9 @@ return [
         'transfer_group' => 'Transfer',
         'tour_group' => 'Günlük Tur',
         'villa_group' => 'Villa',
-        'order_group' => 'Sipariş',
-        'sales_group' => 'İndirimler'
+        'order_group' => 'Siparişler',
+        'sales_group' => 'Kampanya ve İndirimler',
+        'content' => 'Site İçerikleri'
     ],
     'ent' => [
         'language' => [
@@ -624,7 +625,6 @@ return [
         ],
 
         'bulk' => [
-
             // Navigasyon / Başlıklar
             'navigation_label'          => 'Toplu Kupon İşlemleri',
             'page_title'                => 'Toplu Kupon İşlemleri',
@@ -1032,6 +1032,158 @@ return [
 
         'validation' => [
             'slug_unique' => 'Bu slug bu dil için zaten kullanılıyor.',
+        ],
+    ],
+
+    'static_page_labels' => [
+
+        // Sayfa anahtarları
+        'page_keys' => [
+            'home_page'             => 'Anasayfa',
+            'transfer_page'         => 'Transfer Sayfası',
+            'villa_page'            => 'Villa Sayfası',
+            'hotel_page'            => 'Otel Sayfası',
+            'tour_page'             => 'Tur Sayfası',
+            'travel_guide_page'     => 'Gezi Rehberi Sayfası',
+            'help_page'             => 'Yardım Sayfası',
+            'contact_page'          => 'İletişim Sayfası',
+            'privacy_policy_page'   => 'Gizlilik Politikası',
+            'terms_of_use_page'     => 'Kullanım Şartları',
+            'distance_sales_page'   => 'Mesafeli Satış Sözleşmesi',
+        ],
+
+        // Blok tipleri
+        'block_types' => [
+            'promo'      => 'Tanıtım Bloğu',
+            'collection' => 'Koleksiyon Bloğu',
+        ],
+
+        // Koleksiyon kaynakları
+        'collection_resources' => [
+            'hotels'        => 'Oteller',
+            'travel_guides' => 'Gezi Rehberleri',
+        ],
+    ],
+
+    'static_pages' => [
+        'singular' => 'Statik Sayfa',
+        'plural'   => 'Statik Sayfalar',
+
+        'sections' => [
+            'content'  => 'İçerik Alanı',
+            'settings' => 'Sayfa Ayarları',
+        ],
+
+        'pages' => [
+            'home' => [
+                'hero'            => 'Hero Alanı',
+                'popular_hotels'  => 'Popüler Oteller',
+                'travel_guides'   => 'Gezi Rehberleri',
+            ],
+
+            'help' => [
+                'page_header' => 'Sayfa Başlığı',
+                'faq'         => 'Sık Sorulan Sorular',
+            ],
+
+            'contact' => [
+                'page_header'       => 'Sayfa Başlığı',
+                'offices'           => 'Ofisler',
+                'add_office'        => 'Ofis Ekle',
+                'office_name'       => 'Ofis Adı',
+                'address'           => 'Adres',
+                'phone'             => 'Telefon',
+                'email'             => 'E-posta',
+                'working_hours'     => 'Çalışma Saatleri',
+                'map_embed_url'     => 'Harita Embed URL',
+                'map_embed_url_help'=> 'Google Maps embed linki',
+            ],
+
+            'hotel' => [
+                'page_header' => 'Sayfa Başlığı',
+            ],
+
+            'villa' => [
+                'page_header'   => 'Sayfa Başlığı',
+                'page_content'  => 'Sayfa İçeriği',
+                'images'        => 'Görseller',
+                'image_texts'   => 'Görsel Metinleri',
+                'image_text_1'  => 'Görsel Metni 1',
+                'image_text_2'  => 'Görsel Metni 2',
+                'image_text_3'  => 'Görsel Metni 3',
+                'image_text_4'  => 'Görsel Metni 4',
+            ],
+
+            'tour' => [
+                'page_header' => 'Sayfa Başlığı',
+            ],
+
+            'transfer' => [
+                'page_header'   => 'Sayfa Başlığı',
+                'page_content'  => 'Sayfa İçeriği',
+                'image'         => 'Görsel',
+                'content_title' => 'İçerik Başlığı',
+                'content_text'  => 'İçerik Metni',
+                'features'      => 'Özellikler',
+                'feature'       => 'Özellik',
+            ],
+
+            'travel_guide' => [
+                'page_header' => 'Sayfa Başlığı',
+            ],
+
+            'legal' => [
+                'page_content' => 'Yasal Metin',
+            ],
+        ],
+
+        'form' => [
+            // genel
+            'key'         => 'Sayfa Anahtarı',
+            'add_block'  => 'Yeni Blok Ekle',
+            'block_type' => 'Blok Türü',
+
+            // ortak metin alanları
+            'eyebrow'      => 'Üst Başlık',
+            'title'        => 'Başlık',
+            'description'  => 'Açıklama',
+
+            // buton
+            'button'       => 'Buton',
+            'button_text'  => 'Buton Metni',
+            'button_href'  => 'Buton Linki',
+
+            // features
+            'features'     => 'Özellikler',
+            'feature_item' => 'Özellik',
+            'add_feature'  => 'Özellik Ekle',
+
+            // icons
+            'icons'              => 'İkonlar',
+            'add_icon'           => 'İkon Ekle',
+            'icon'               => 'İkon',
+            'icon_text'          => 'İkon Metni',
+            'icon_text_optional' => 'Opsiyonel',
+
+            // collection / carousel
+            'collection'               => 'Koleksiyon',
+            'collection_resource'      => 'İçerik Türü',
+            'collection_mode'          => 'Koleksiyon Modu',
+            'collection_mode_help'     => 'İçeriklerin nasıl seçileceğini belirler',
+            'ui_layout'                => 'Görünüm Tipi',
+            'ui_per_view'              => 'Görünür Kart Sayısı',
+            'limit'                    => 'Gösterilecek Kayıt Sayısı',
+            'per_page'                 => 'Sayfa Başına',
+            'total'                    => 'Toplam',
+            'location'                 => 'Lokasyon',
+            'manual_items'             => 'Manuel Seçilen İçerikler',
+            'add_manual_item'          => 'İçerik Ekle',
+            'item'                     => 'İçerik',
+
+            // section başlıkları
+            'section_eyebrow' => 'Bölüm Üst Başlığı',
+            'section_title'   => 'Bölüm Başlığı',
+            'hero_title'      => 'Hero Başlığı',
         ],
     ],
 

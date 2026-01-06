@@ -8,12 +8,21 @@ use App\Models\TravelGuide;
 use App\Models\Villa;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
+use App\Models\StaticPage;
 
 class TravelGuideController extends Controller
 {
     public function index(Request $request)
     {
         $locale = app()->getLocale();
+
+        $page = StaticPage::query()
+            ->where('key', 'travel_guide_page')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $c   = $page->content ?? [];
+        $loc = app()->getLocale();
 
         $guides = TravelGuide::query()
             ->where('is_active', true)
@@ -25,6 +34,9 @@ class TravelGuideController extends Controller
         return view('pages.guides.index', [
             'guides' => $guides,
             'locale' => $locale,
+            'page' => $page,
+            'c'    => $c,
+            'loc'  => $loc,
         ]);
     }
 
