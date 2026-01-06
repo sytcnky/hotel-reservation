@@ -92,6 +92,11 @@ class AdminPanelProvider extends PanelProvider
                     ->label(fn (): string => __('admin.nav.tour_group'))
                     ->icon('heroicon-o-map'),
 
+
+                NavigationGroup::make()
+                    ->label(fn (): string => __('admin.nav.content'))
+                    ->icon('heroicon-o-rectangle-stack'),
+
                 NavigationGroup::make()
                     ->label(fn (): string => __('admin.nav.taxonomies'))
                     ->icon('heroicon-o-rectangle-stack'),
