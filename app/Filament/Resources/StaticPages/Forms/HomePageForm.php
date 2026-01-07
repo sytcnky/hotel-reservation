@@ -94,11 +94,16 @@ class HomePageForm
 
         $tabs = function (string $name, array $fieldsByLocale) use ($locales): Tabs {
             return Tabs::make($name)->tabs(
-                collect($locales)->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))->all()
+                collect($locales)
+                    ->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))
+                    ->all()
             );
         };
 
         return [
+            // =========================================================
+            // 1) HERO
+            // =========================================================
             Section::make(__('admin.static_pages.pages.home.hero'))
                 ->schema([
                     $tabs('hero_i18n', collect($locales)->mapWithKeys(function (string $loc) {
@@ -138,6 +143,9 @@ class HomePageForm
                         ]),
                 ]),
 
+            // =========================================================
+            // 2) POPÜLER OTELLER
+            // =========================================================
             Section::make(__('admin.static_pages.pages.home.popular_hotels'))
                 ->schema([
                     $tabs('popular_hotels_i18n', collect($locales)->mapWithKeys(function (string $loc) {
@@ -169,6 +177,19 @@ class HomePageForm
                         ]];
                     })->all()),
 
+                    // HERO GÖRSEL (Popüler Oteller sol görsel alanı)
+                    Grid::make()
+                        ->columns(['default' => 1, 'lg' => 12])
+                        ->schema([
+                            SpatieMediaLibraryFileUpload::make('home_popular_hotels_hero')
+                                ->label(__('admin.static_pages.form.hero_image'))
+                                ->collection('home_popular_hotels_hero')
+                                ->preserveFilenames()
+                                ->image()
+                                ->maxFiles(1)
+                                ->columnSpan(['default' => 12, 'lg' => 12]),
+                        ]),
+
                     Section::make(__('admin.static_pages.form.carousel_settings'))
                         ->schema([
                             Grid::make()
@@ -177,9 +198,9 @@ class HomePageForm
                                     Select::make('content.popular_hotels.carousel.mode')
                                         ->label(__('admin.static_pages.form.collection_mode'))
                                         ->options([
-                                            'latest' => 'latest',
-                                            'manual' => 'manual',
-                                            'by_location' => 'by_location',
+                                            'latest'      => __('admin.static_pages.form.collection_modes.latest'),
+                                            'manual'      => __('admin.static_pages.form.collection_modes.manual'),
+                                            'by_location' => __('admin.static_pages.form.collection_modes.by_location'),
                                         ])
                                         ->native(false)
                                         ->live()
@@ -279,6 +300,9 @@ class HomePageForm
                         ->collapsed(),
                 ]),
 
+            // =========================================================
+            // 3) GEZİ REHBERİ
+            // =========================================================
             Section::make(__('admin.static_pages.pages.home.travel_guides'))
                 ->schema([
                     $tabs('travel_guides_i18n', collect($locales)->mapWithKeys(function (string $loc) {
@@ -303,8 +327,8 @@ class HomePageForm
                                     Select::make('content.travel_guides.grid.mode')
                                         ->label(__('admin.static_pages.form.collection_mode'))
                                         ->options([
-                                            'latest' => 'latest',
-                                            'manual' => 'manual',
+                                            'latest'      => __('admin.static_pages.form.collection_modes.latest'),
+                                            'manual'      => __('admin.static_pages.form.collection_modes.manual'),
                                         ])
                                         ->native(false)
                                         ->live()

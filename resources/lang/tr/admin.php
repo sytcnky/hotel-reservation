@@ -1180,11 +1180,26 @@ return [
             'manual_items'             => 'Manuel Seçilen İçerikler',
             'add_manual_item'          => 'İçerik Ekle',
             'item'                     => 'İçerik',
+            'carousel_settings' => 'Carousel Ayarları',
+            'grid_settings' => 'Grid Ayarları',
 
             // section başlıkları
             'section_eyebrow' => 'Bölüm Üst Başlığı',
             'section_title'   => 'Bölüm Başlığı',
             'hero_title'      => 'Hero Başlığı',
+            'hero_image' => 'Hero Görseli',
+
+            // hero
+            'subtitle' => 'Alt Başlık',
+            'hero_media' => 'Hero Görselleri',
+            'hero_background_image' => 'Hero Arka Plan Görseli',
+            'hero_transparent_image' => 'Hero Ön Plan (Şeffaf) Görseli',
+
+            'collection_modes' => [
+                'latest'      => 'En Yeniler',
+                'manual'      => 'Manuel Seçim',
+                'by_location' => 'Lokasyona Göre',
+            ],
         ],
     ],
 
