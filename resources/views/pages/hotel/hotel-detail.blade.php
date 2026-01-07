@@ -216,43 +216,7 @@
 
         <div class="col-xl-4">
             <!-- Kampanya Banner -->
-            <div class="mb-4 position-relative text-white rounded shadow bg-primary rounded" style="min-height: 200px;">
-
-                <div class="position-absolute bottom-0"
-                     style="right:-15px; z-index: 1; overflow: hidden; width: 220px;">
-                    <!-- Görsel -->
-                    <img src="/images/banner-woman.png" alt="Kampanya Kadın" class="img-fluid">
-                </div>
-
-                <!-- İçerik -->
-                <div class="position-relative p-4" style="z-index: 2;">
-                    <h6 class="fw-light mb-0">Hoş geldin hediyesi!</h6>
-                    <h2 class="fw-bold mb-2" style="color: hotpink">%15 indirim</h2>
-                    <p class="mb-3 text-shadow-transparent w-75 small">
-                        İlk rezevasyonunuzda geçerli
-                        <strong class="d-inline-block whitespace-nowrap">%15 indirim</strong>
-                        fırsatı!
-                    </p>
-                    <a href="#" class="btn btn-outline-light fw-semibold btn-sm">Hesap Oluştur</a>
-                </div>
-            </div>
-
-            <!-- Kampanya Banner -->
-            <div class="mb-4 position-relative text-white rounded shadow bg-secondary rounded" style="min-height: 160px;">
-
-                <div class="position-absolute bottom-0"
-                     style="right:-15px; z-index: 1; overflow: hidden; width: 220px;">
-                    <!-- Görsel -->
-                    <img src="/images/vito.png" alt="Kampanya Kadın" class="img-fluid">
-                </div>
-
-                <!-- İçerik -->
-                <div class="position-relative p-4" style="z-index: 2;">
-                    <h6 class="fw-light mb-0">7 Gece otel rezervasyonunuza</h6>
-                    <h4 class="fw-bold mb-2">Ücretsiz Transfer</h4>
-                    <a href="#" class="btn btn-outline-light fw-semibold mt-3 btn-sm">Havaalanı Transferi</a>
-                </div>
-            </div>
+            @include('partials.campaigns.banner', ['campaigns' => $campaigns ?? []])
 
             <div class="bg-light p-4 rounded shadow-sm">
                 @if(!empty($hotel['latitude']) && !empty($hotel['longitude']))

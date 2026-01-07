@@ -30,19 +30,6 @@ $initials = mb_strtoupper($initials);
 }
 @endphp
 
-<!-- Header Top - Kampanya Carousel (şimdilik statik) -->
-<div class="bg-light text-dark py-1" style="font-size: 0.85rem;">
-    <div class="container position-relative overflow-hidden" style="height: 30px;">
-        <div id="campaignCarousel"
-             class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-            <a href="#" class="text-dark text-decoration-none campaign-slide active">📢 %30 Erken Rezervasyon İndirimi!</a>
-            <a href="#" class="text-dark text-decoration-none campaign-slide">🏖️ 7 Gece Kal, 5 Gece Öde Kampanyası Başladı!</a>
-            <a href="#" class="text-dark text-decoration-none campaign-slide">✈️ Ücretsiz Havalimanı Transferi!</a>
-            <a href="#" class="text-dark text-decoration-none campaign-slide">🏡 Kaş Villalarında %20 İndirim!</a>
-        </div>
-    </div>
-</div>
-
 <!-- Main Header (Desktop) -->
 <nav class="navbar navbar-expand-lg bg-white shadow-lg d-none d-xl-flex flex-column border-bottom border-light">
     <!-- Üst satır (utility bar) -->

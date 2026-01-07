@@ -778,11 +778,12 @@ return [
         // Placement Labels
         // -------------------------------------------------
         'placements' => [
-            'homepage_hero'        => 'Anasayfa Hero',
-            'homepage_banner'      => 'Anasayfa Banner',
-            'listing_top'          => 'Listeleme Üstü',
-            'product_detail_top'   => 'Ürün Detay Üstü',
-            'checkout_banner'      => 'Ödeme Adımı Banner',
+            'homepage_banner'      => 'Anasayfa',
+            'hotel_detail'          => 'Otel Detay',
+            'villa_detail'   => 'Villa Detay',
+            'tour_detail'      => 'Tur Detay',
+            'guide_detail'      => 'Rehber Detay',
+            'basket'      => 'Sepet',
         ],
 
         // -------------------------------------------------

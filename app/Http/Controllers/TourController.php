@@ -9,6 +9,7 @@ use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Facades\App;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use App\Models\StaticPage;
+use App\Services\CampaignPlacementViewService;
 
 class TourController extends Controller
 {
@@ -143,7 +144,7 @@ class TourController extends Controller
     /**
      * Detay
      */
-    public function show(string $slug)
+    public function show(string $slug, CampaignPlacementViewService $campaignService)
     {
         $locale   = app()->getLocale();
         $currency = strtoupper(CurrencyHelper::currentCode());
@@ -259,6 +260,7 @@ class TourController extends Controller
         return view('pages.excursion.excursion-detail', [
             'tour'     => $viewData,
             'currency' => $currency,
+            'campaigns' => $campaignService->buildForPlacement('tour_detail'),
         ]);
     }
 }

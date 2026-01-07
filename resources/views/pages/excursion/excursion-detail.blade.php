@@ -306,34 +306,9 @@
             @endif
         </div>
 
-        {{-- Sağ sütun: kampanya / transfer banner’ları aynen kalsın --}}
         <div class="col-xl-4">
-            <div class="mb-4 position-relative text-white rounded shadow bg-primary" style="min-height: 220px;">
-                <div class="position-absolute bottom-0" style="right:-100px; z-index: 1; overflow: hidden; width: 280px;">
-                    <img src="/images/banner-woman.png" alt="Kampanya" class="img-fluid">
-                </div>
-                <div class="position-relative p-4" style="z-index: 2;">
-                    <h6 class="fw-light mb-0">Hoş geldin hediyesi!</h6>
-                    <h2 class="fw-bold mb-2" style="color: hotpink">%15 indirim</h2>
-                    <p class="mb-3 w-75 small">
-                        İlk rezervasyonunuzda geçerli <strong class="d-inline-block">%15 indirim</strong> fırsatı!
-                    </p>
-                    <a href="#" class="btn btn-outline-light fw-semibold btn-sm">Hesap Oluştur</a>
-                </div>
-            </div>
-
-            <div class="mb-4 position-relative text-white rounded shadow bg-secondary" style="min-height: 160px;">
-                <div class="position-absolute bottom-0" style="right:-15px; z-index: 1; overflow: hidden; width: 220px;">
-                    <img src="/images/vito.png" alt="Transfer" class="img-fluid">
-                </div>
-                <div class="position-relative p-4" style="z-index: 2;">
-                    <h6 class="fw-light mb-0">7 Gece rezervasyonunuza</h6>
-                    <h4 class="fw-bold mb-2">Ücretsiz Transfer</h4>
-                    <a href="{{ localized_route('transfers') }}" class="btn btn-outline-light fw-semibold mt-3 btn-sm">
-                        Havaalanı Transferi
-                    </a>
-                </div>
-            </div>
+            <!-- Kampanya Banner -->
+            @include('partials.campaigns.banner', ['campaigns' => $campaigns ?? []])
         </div>
     </div>
 </div>

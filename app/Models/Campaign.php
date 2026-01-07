@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Helpers\ImageHelper;
+use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Campaign extends Model implements HasMedia
 {
@@ -14,9 +17,6 @@ class Campaign extends Model implements HasMedia
     use SoftDeletes;
     use InteractsWithMedia;
 
-    /**
-     * Kitleme izin verilen alanlar.
-     */
     protected $fillable = [
         'is_active',
         'start_date',
@@ -27,16 +27,12 @@ class Campaign extends Model implements HasMedia
         'usage_count',
         'visible_on_web',
         'visible_on_mobile',
-
         'content',
         'discount',
         'conditions',
         'placements',
     ];
 
-    /**
-     * Cast'ler.
-     */
     protected $casts = [
         'is_active'          => 'bool',
         'start_date'         => 'date',
@@ -45,27 +41,52 @@ class Campaign extends Model implements HasMedia
         'global_usage_limit' => 'integer',
         'user_usage_limit'   => 'integer',
         'usage_count'        => 'integer',
-
         'visible_on_web'     => 'bool',
         'visible_on_mobile'  => 'bool',
-
-        'content'            => 'array', // locale => [title, subtitle, description, cta_text, cta_link]
-        'discount'           => 'array', // ['type' => 'percent|fixed_amount', 'value' => ..., 'max_discount_amount' => ...]
-        'conditions'         => 'array', // sepet/ürün/kullanıcı/tarih/cihaz koşulları
-        'placements'         => 'array', // ['homepage_hero', 'listing_top', ...]
+        'content'            => 'array',
+        'discount'           => 'array',
+        'conditions'         => 'array',
+        'placements'         => 'array',
     ];
 
-    /**
-     * Medya koleksiyonları (Background / Transparent image).
-     */
     public function registerMediaCollections(): void
     {
+        $disk = config('media-library.disk_name');
+
         $this
             ->addMediaCollection('background_image')
-            ->singleFile();
+            ->singleFile()
+            ->useDisk($disk)
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
 
         $this
             ->addMediaCollection('transparent_image')
-            ->singleFile();
+            ->singleFile()
+            ->useDisk($disk)
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
+    }
+
+    public function registerMediaConversions(Media $media = null): void
+    {
+        MediaConversions::apply($this, 'background_image');
+        MediaConversions::apply($this, 'transparent_image');
+    }
+
+    public function getBackgroundImageAttribute(): array
+    {
+        return ImageHelper::normalize($this->getFirstMedia('background_image'));
+    }
+
+    public function getTransparentImageAttribute(): array
+    {
+        return ImageHelper::normalize($this->getFirstMedia('transparent_image'));
     }
 }

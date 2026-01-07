@@ -36,12 +36,6 @@ class CampaignsTable
                     ->limit(40)
                     ->searchable(),
 
-                TextColumn::make('discount_summary')
-                    ->label(__('admin.campaigns.table.discount'))
-                    ->getStateUsing(function (Campaign $record) {
-                        return self::formatDiscountSummary($record->discount ?? []);
-                    }),
-
                 TextColumn::make('start_date')
                     ->label(__('admin.campaigns.table.start_date'))
                     ->date()
@@ -93,9 +87,6 @@ class CampaignsTable
 
                 TrashedFilter::make(),
             ])
-            ->recordActions([
-                EditAction::make(),
-            ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
@@ -129,38 +120,6 @@ class CampaignsTable
             if (is_array($localeData) && isset($localeData['title']) && $localeData['title'] !== '') {
                 return (string) $localeData['title'];
             }
-        }
-
-        return null;
-    }
-
-    /**
-     * discount JSON'undan okunabilir bir özet üretir.
-     * Örnek: %10 veya 500
-     */
-    protected static function formatDiscountSummary(mixed $discount): ?string
-    {
-        if (! is_array($discount)) {
-            return null;
-        }
-
-        $type  = $discount['type']  ?? null;
-        $value = $discount['value'] ?? null;
-
-        if ($value === null) {
-            return null;
-        }
-
-        if ($type === 'percent') {
-            $v = (float) $value;
-
-            return '%' . rtrim(rtrim(number_format($v, 2, ',', ''), '0'), ',');
-        }
-
-        if ($type === 'fixed_amount') {
-            $v = (float) $value;
-
-            return number_format($v, 0, ',', '.');
         }
 
         return null;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Villa;
+use App\Services\CampaignPlacementViewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -182,7 +183,7 @@ class VillaController extends Controller
      * - $villa['promo_video_id']      string|null
      * - $villa['latitude'], ['longitude']
      */
-    public function show(string $slug)
+    public function show(string $slug, CampaignPlacementViewService $campaignService)
     {
         $locale   = App::getLocale();
         $baseLang = config('app.locale', 'tr');
@@ -325,6 +326,7 @@ class VillaController extends Controller
 
         return view('pages.villa.villa-detail', [
             'villa' => $viewData,
+            'campaigns' => $campaignService->buildForPlacement('villa_detail'),
         ]);
     }
 

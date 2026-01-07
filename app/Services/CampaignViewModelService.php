@@ -267,7 +267,7 @@ class CampaignViewModelService
                     break;
 
                 default:
-                    // şimdilik bilinmeyen kural tiplerini yok sayıyoruz
+                    // bilinmeyen kural tiplerini yok sayıyoruz
                     break;
             }
         }

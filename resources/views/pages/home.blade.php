@@ -248,60 +248,8 @@
         </div>
     </section>
 
-    {{-- KAMPANYA CAROUSEL (ORİJİNAL HALİYLE KORUNDU) --}}
-    <div class="container mt-5">
-        <section id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
-            <!-- Carousel Items -->
-            <div class="carousel-inner rounded">
-                <div class="carousel-item active">
-                    <div class="hero-slide position-relative p-5"
-                         style="background-image: url('/images/samples/slide-marmaris.jpg');">
-                        <div class="d-flex flex-column flex-lg-row position-relative z-3 text-white gap-4">
-                            <div class="flex-lg-grow-1">
-                                <h3 class="fw-bold mb-3 te">İlk rezervasyonunuza özel</h3>
-                                <div class="display-1">%15 indirim!</div>
-                                <p class="lead mb-4">Onlarca tesis arasından seçiminizi yapın, avantajlı fiyatlarla tatilin
-                                    tadını çıkarın.</p>
-                            </div>
-                            <div>
-                                <div class="d-grid">
-                                    <a href="/register" class="btn btn-outline-light btn-lg px-2 mb-4 px-lg-5">Hemen Üye
-                                        Ol</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="overlay z-1 bg-dark opacity-50"></div>
-                    </div>
-                </div>
-                <div class="carousel-item">
-                    <div class="hero-slide position-relative p-5"
-                         style="background-image: url('/images/samples/slide-summer.jpg');">
-                        <div class="d-flex flex-column flex-lg-row position-relative z-3 text-white gap-4">
-                            <div class="flex-lg-grow-1">
-                                <h3 class="fw-bold mb-3">Otel + Transfer + Tur</h3>
-                                <div class="display-1">%10 paket indirimi!</div>
-                                <p class="lead mb-4">Tatilinizi paket alın avantajlı fırsatı kaçırmayın.</p>
-                            </div>
-                            <div>
-                                <div class="d-grid">
-                                    <a href="/register" class="btn btn-outline-light btn-lg px-2 mb-4 px-lg-5">Tatil
-                                        Paketleri</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="overlay z-1 bg-dark opacity-50"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Carousel Indicators -->
-            <div class="carousel-indicators position-absolute bottom-0 mb-4">
-                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true"
-                        aria-label="Slide 1"></button>
-                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-            </div>
-        </section>
-    </div>
+    <!-- Kampanya Carousel -->
+    @include('partials.campaigns.carousel', ['campaigns' => $campaigns ?? []])
 
     {{-- GEZİ REHBERİ --}}
     <section class="container my-5">

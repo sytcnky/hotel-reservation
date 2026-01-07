@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BedType;
+use App\Models\BoardType;
+use App\Models\Currency;
+use App\Models\Hotel;
+use App\Models\Location;
+use App\Models\Room;
+use App\Models\RoomRateRule;
+use App\Models\StaticPage;
+use App\Services\CampaignPlacementViewService;
+use App\Services\RoomRateResolver;
+use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Models\BedType;
-use App\Models\Hotel;
-use App\Models\Location;
-use App\Models\Room;
-use App\Models\BoardType;
-use App\Models\RoomRateRule;
-use App\Models\Currency;
-use App\Services\RoomRateResolver;
-use App\Support\Helpers\CurrencyHelper;
-use App\Models\StaticPage;
 
 class HotelController extends Controller
 {
@@ -604,7 +605,7 @@ class HotelController extends Controller
      *    - adults, children
      *    - board_type_id
      */
-    public function show(Request $request, string $slug)
+    public function show(Request $request, string $slug, CampaignPlacementViewService $campaignService)
     {
         $locale = App::getLocale();
 
@@ -717,6 +718,7 @@ class HotelController extends Controller
         return view('pages.hotel.hotel-detail', [
             'hotel'        => $viewData,
             'searchParams' => $context,
+            'campaigns' => $campaignService->buildForPlacement('hotel_detail'),
         ]);
     }
 

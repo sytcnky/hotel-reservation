@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CampaignPlacementViewService;
 use App\Services\CouponViewModelService;
 use App\Services\CampaignViewModelService;
 use App\Support\Helpers\CurrencyHelper;
@@ -12,7 +13,8 @@ class CartController extends Controller
     public function index(
         Request $request,
         CouponViewModelService $couponVm,
-        CampaignViewModelService $campaignVm
+        CampaignViewModelService $campaignVm,
+        CampaignPlacementViewService $campaignPlacement
     ) {
         $cart = session('cart', [
             'items' => [],
@@ -106,6 +108,8 @@ class CartController extends Controller
 
             'cartCampaigns'         => $cartCampaigns,
             'campaignDiscountTotal' => $campaignDiscountTotal,
+
+            'campaigns' => $campaignPlacement->buildForPlacement('basket'),
         ]);
     }
 

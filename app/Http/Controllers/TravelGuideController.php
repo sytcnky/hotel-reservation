@@ -6,6 +6,7 @@ use App\Models\Hotel;
 use App\Models\Tour;
 use App\Models\TravelGuide;
 use App\Models\Villa;
+use App\Services\CampaignPlacementViewService;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 use App\Models\StaticPage;
@@ -40,7 +41,7 @@ class TravelGuideController extends Controller
         ]);
     }
 
-    public function show(Request $request, string $slug)
+    public function show(Request $request, string $slug, CampaignPlacementViewService $campaignService)
     {
         $locale = app()->getLocale();
 
@@ -139,6 +140,7 @@ class TravelGuideController extends Controller
 
             'currencyCode' => $currencyCode,
             'currencySymbol' => $currencyMeta['symbol'] ?? $currencyCode,
+            'campaigns' => $campaignService->buildForPlacement('guide_detail'),
         ]);
     }
 }

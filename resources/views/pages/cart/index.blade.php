@@ -267,24 +267,9 @@
                     </div>
                 @endif
 
-                {{-- Banner --}}
-                <div class="mb-4 position-relative text-white rounded shadow bg-secondary" style="min-height:160px;">
-                    <div class="position-absolute bottom-0" style="right:-15px;z-index:1;overflow:hidden;width:220px;">
-                        <img src="{{ asset('/images/vito.png') }}" class="img-fluid" alt="Mercedes Vito">
-                    </div>
-                    <div class="position-relative p-4" style="z-index:2;">
-                        <h6 class="fw-light mb-0">6 Gece otel rezervasyonunuza</h6>
-                        <h4 class="fw-bold mb-2">Havalimanı Transferi %10 indirimli!</h4>
-                        <a href="{{ localized_route('transfers') }}"
-                           class="btn btn-outline-light stretched-link fw-semibold mt-3 btn-sm">
-                            Hemen Rezervasyon Yap
-                        </a>
-                    </div>
-                </div>
-
                 {{-- Not Alanı --}}
                 @if (!empty($cartItems))
-                    <div class="card shadow-sm">
+                    <div class="card shadow-sm mb-5">
                         <div class="card-body">
                             <label class="form-label fw-semibold">Sipariş Notunuz:</label>
                             <textarea
@@ -303,6 +288,8 @@
                     </div>
                 @endif
 
+                {{-- Banner --}}
+                @include('partials.campaigns.banner', ['campaigns' => $campaigns ?? []])
             </div>
 
             {{-- SAĞ: ÖZET --}}

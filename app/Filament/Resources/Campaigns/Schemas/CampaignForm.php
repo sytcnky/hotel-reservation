@@ -34,7 +34,7 @@ class CampaignForm
         $base    = config('app.locale', 'tr');
         $locales = config('app.supported_locales', [$base]);
 
-        // Aktif para birimleri (kuponlardaki ile aynı mantık)
+        // Aktif para birimleri
         $currencyCodes = Currency::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -46,13 +46,14 @@ class CampaignForm
             $currencyCodes = config('app.supported_currencies', []);
         }
 
-        // Placement enum – etiketler için çeviri key'leri admin.php'de tanımlı
+        // Placement enum
         $placementOptions = [
-            'homepage_hero'      => __('admin.campaigns.placements.homepage_hero'),
             'homepage_banner'    => __('admin.campaigns.placements.homepage_banner'),
-            'listing_top'        => __('admin.campaigns.placements.listing_top'),
-            'product_detail_top' => __('admin.campaigns.placements.product_detail_top'),
-            'checkout_banner'    => __('admin.campaigns.placements.checkout_banner'),
+            'hotel_detail'        => __('admin.campaigns.placements.hotel_detail'),
+            'villa_detail'        => __('admin.campaigns.placements.villa_detail'),
+            'tour_detail'        => __('admin.campaigns.placements.tour_detail'),
+            'guide_detail'        => __('admin.campaigns.placements.guide_detail'),
+            'basket'        => __('admin.campaigns.placements.basket'),
         ];
 
         // Bootstrap bg-* sınıfları
@@ -80,7 +81,7 @@ class CampaignForm
             $backgroundClassOptions[$class] = __('admin.campaigns.form.' . $class);
         }
 
-        // Ürün tipleri (kupon formundaki ile uyumlu)
+        // Ürün tipleri
         $productTypeOptions = [
             'hotel'    => __('admin.coupons.form.product_type_hotel'),
             'villa'    => __('admin.coupons.form.product_type_villa'),
@@ -485,19 +486,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'user_order_count'),
 
-                                            // device_allowed
-                                            Group::make()
-                                                ->schema([
-                                                    CheckboxList::make('allowed')
-                                                        ->label(__('admin.campaigns.rules.device_allowed_allowed'))
-                                                        ->options([
-                                                            'desktop' => __('admin.campaigns.rules.device_desktop'),
-                                                            'mobile'  => __('admin.campaigns.rules.device_mobile'),
-                                                        ])
-                                                        ->columns(1),
-                                                ])
-                                                ->visible(fn (Get $get) => $get('type') === 'device_allowed'),
-
                                             // discount_target_product_types
                                             Group::make()
                                                 ->schema([
@@ -543,21 +531,16 @@ class CampaignForm
                                         ->default(0),
                                 ]),
 
-                                // PLACEMENT & BACKGROUND CLASS
+                                // PLACEMENT
                                 Section::make(__('admin.campaigns.sections.placement'))->schema([
-                                    Toggle::make('visible_on_web')
-                                        ->label(__('admin.campaigns.form.visible_on_web'))
-                                        ->default(true),
-
-                                    Toggle::make('visible_on_mobile')
-                                        ->label(__('admin.campaigns.form.visible_on_mobile'))
-                                        ->default(true),
 
                                     CheckboxList::make('placements')
                                         ->hiddenLabel()
                                         ->options($placementOptions)
                                         ->columns(1)
+                                        ->default([])
                                         ->bulkToggleable(),
+
                                 ]),
 
                                 // KULLANIM LİMİTLERİ

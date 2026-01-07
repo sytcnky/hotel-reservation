@@ -215,7 +215,6 @@ class Hotel extends Model implements HasMedia
 
     public function registerMediaConversions(Media $media = null): void
     {
-        // Standart ICR dönüşümleri
         MediaConversions::apply($this, 'cover');
         MediaConversions::apply($this, 'gallery');
     }

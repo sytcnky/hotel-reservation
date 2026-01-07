@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Hotel;
 use App\Models\StaticPage;
 use App\Models\TravelGuide;
+use App\Services\CampaignPlacementViewService;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(CampaignPlacementViewService $campaignService)
     {
         $page = StaticPage::query()
             ->where('key', 'home_page')
@@ -122,6 +123,7 @@ class HomeController extends Controller
             'popularHotels' => $popularHotels,
             'travelGuides' => $travelGuides,
             'pickLocale' => $pickLocale,
+            'campaigns' => $campaignService->buildForPlacement('homepage_banner'),
         ]);
     }
 }

@@ -207,7 +207,6 @@ LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
 LocalizedRoute::view('help', 'help', 'pages.help.index');
 
 /** Legal sayfalar */
-
 LocalizedRoute::view('privacy_policy', 'privacy-policy', 'pages.legal.show', ['pageKey' => 'privacy_policy_page']);
 LocalizedRoute::view('terms_of_use', 'terms-of-use', 'pages.legal.show', ['pageKey' => 'terms_of_use_page']);
 LocalizedRoute::view('distance_sales', 'distance-sales', 'pages.legal.show', ['pageKey' => 'distance_sales_page']);
