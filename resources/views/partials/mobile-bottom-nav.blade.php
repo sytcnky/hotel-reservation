@@ -1,27 +1,28 @@
 @php
-$cartCount = session('cart_count', 0);
+    $cartItems = (array) session('cart.items', []);
+    $cartCount = count($cartItems);
 
-$items = [
-[
-'label' => 'Hesabım',
-'icon'  => 'fi fi-rr-user',
-'href'  => localized_route('account.dashboard'),
-'active'=> request()->routeIs('*.account.*'),
-],
-[
-'label' => 'Rezervasyonlarım',
-'icon'  => 'fi fi-rr-calendar-check',
-'href'  => localized_route('account.bookings'),
-'active'=> request()->routeIs('*.account.bookings*'),
-],
-[
-'label' => 'Sepet',
-'icon'  => 'fi fi-rr-basket-shopping-simple',
-'href'  => localized_route('cart'),
-'active'=> request()->routeIs('*.cart*'),
-'badge' => $cartCount > 0 ? $cartCount : 2,
-],
-];
+    $items = [
+        [
+            'label' => 'Hesabım',
+            'icon'  => 'fi fi-rr-user',
+            'href'  => localized_route('account.dashboard'),
+            'active'=> request()->routeIs('*.account.*'),
+        ],
+        [
+            'label' => 'Rezervasyonlarım',
+            'icon'  => 'fi fi-rr-calendar-check',
+            'href'  => localized_route('account.bookings'),
+            'active'=> request()->routeIs('*.account.bookings*'),
+        ],
+        [
+            'label' => 'Sepet',
+            'icon'  => 'fi fi-rr-basket-shopping-simple',
+            'href'  => localized_route('cart'),
+            'active'=> request()->routeIs('*.cart*'),
+            'badge' => $cartCount > 0 ? $cartCount : null,
+        ],
+    ];
 @endphp
 
 <nav class="mobile-bottom-nav d-xl-none fixed-bottom border-top bg-white" role="navigation" aria-label="Alt menü">

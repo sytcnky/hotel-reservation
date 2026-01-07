@@ -32,11 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initVillaDetails();
     initPayment();
     initHelpSearch();
-    initPhoneInputs();
     initAccountTickets(document);
 
+    // === Phone Inputs ===
+    initPhoneInputs();
+
     // === Dil seçimi butonları ===
-    document.querySelectorAll('.dropdown-menu .btn-group').forEach(group => {
+    document.querySelectorAll('.dropdown-menu .btn-group[data-lang-toggle]').forEach(group => {
         const buttons = group.querySelectorAll('.btn');
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -76,4 +78,24 @@ document.addEventListener('DOMContentLoaded', () => {
     tooltipTriggerList.forEach(el => {
         new bootstrap.Tooltip(el)
     });
+
+    // === Currency change confirm modal (cart doluyken) ===
+    const currencyModalEl = document.getElementById('currencyChangeModal');
+    if (currencyModalEl) {
+        const currencyLinks = document.querySelectorAll('.js-currency-switch');
+        const confirmBtn = document.getElementById('confirmCurrencyChange');
+
+        if (currencyLinks.length > 0 && confirmBtn) {
+            const modal = new bootstrap.Modal(currencyModalEl);
+
+            currencyLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = link.dataset.currencyUrl;
+                    if (url) confirmBtn.setAttribute('href', url);
+                    modal.show();
+                });
+            });
+        }
+    }
 });

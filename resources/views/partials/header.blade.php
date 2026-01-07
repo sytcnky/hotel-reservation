@@ -1,33 +1,36 @@
 {{-- resources/views/partials/header.blade.php --}}
 @php
-use App\Support\Helpers\LocaleHelper;
-use App\Support\Helpers\CurrencyHelper;
-use Illuminate\Support\Str;
+    use App\Support\Helpers\LocaleHelper;
+    use App\Support\Helpers\CurrencyHelper;
+    use Illuminate\Support\Str;
 
-$currentRoute = Str::after(request()->route()->getName(), app()->getLocale() . '.');
-$currencies      = \App\Support\Helpers\CurrencyHelper::active();
-$currentCurrency = \App\Support\Helpers\CurrencyHelper::currentCode();
+    $currentRoute = Str::after(request()->route()->getName(), app()->getLocale() . '.');
+    $currencies      = CurrencyHelper::active();
+    $currentCurrency = CurrencyHelper::currentCode();
 
-/** @var \App\Models\User|null $authUser */
-$authUser = auth()->user();
+    /** @var \App\Models\User|null $authUser */
+    $authUser = auth()->user();
 
-$locale      = app()->getLocale();
-$languages   = LocaleHelper::options();
-$currentLang = $languages[$locale] ?? reset($languages);
+    $locale      = app()->getLocale();
+    $languages   = LocaleHelper::options();
+    $currentLang = $languages[$locale] ?? reset($languages);
 
-$initials = '';
-if ($authUser) {
-$fn = $authUser->first_name ?: (Str::beforeLast($authUser->name, ' ') ?: $authUser->name);
-$ln = $authUser->last_name ?: Str::afterLast($authUser->name, ' ');
+    $initials = '';
+    if ($authUser) {
+    $fn = $authUser->first_name ?: (Str::beforeLast($authUser->name, ' ') ?: $authUser->name);
+    $ln = $authUser->last_name ?: Str::afterLast($authUser->name, ' ');
 
-if (!empty($fn)) {
-$initials .= mb_substr($fn, 0, 1);
-}
-if (!empty($ln) && $ln !== $fn) {
-$initials .= mb_substr($ln, 0, 1);
-}
-$initials = mb_strtoupper($initials);
-}
+    if (!empty($fn)) {
+        $initials .= mb_substr($fn, 0, 1);
+    }
+    if (!empty($ln) && $ln !== $fn) {
+        $initials .= mb_substr($ln, 0, 1);
+    }
+        $initials = mb_strtoupper($initials);
+    }
+
+    $cartItems = (array) session('cart.items', []);
+    $cartCount = count($cartItems);
 @endphp
 
 <!-- Main Header (Desktop) -->
@@ -81,8 +84,7 @@ $initials = mb_strtoupper($initials);
                 {{-- Dil Seçimi --}}
                 <div class="mb-2">
                     <div class="dropdown-header px-0">{{ t('nav.language') }}</div>
-                    <div class="btn-group" role="group">
-
+                    <div class="btn-group" role="group" data-lang-toggle>
                         @foreach($languages as $code => $lang)
                         <a href="{{ locale_switch_url($code) }}"
                            class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 {{ $locale === $code ? 'active' : '' }}">
@@ -96,15 +98,21 @@ $initials = mb_strtoupper($initials);
                     </div>
                 </div>
 
-                {{-- Para Birimi (şimdilik statik) --}}
+                {{-- Para Birimi --}}
                 <div>
                     <div class="dropdown-header px-0">{{ t('nav.currency') }}</div>
                     <div class="btn-group w-100" role="group">
                         @foreach ($currencies as $c)
-                        <a href="{{ route('currency.switch', $c['code']) }}"
-                           class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }}">
-                            {{ $c['symbol'] }} {{ $c['code'] }}
-                        </a>
+                            @php
+                                $switchUrl  = route('currency.switch', $c['code']);
+                                $confirmUrl = $switchUrl . '?confirm=1';
+                            @endphp
+
+                            <a href="{{ $cartCount > 0 ? '#' : $switchUrl }}"
+                               class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }} {{ $cartCount > 0 ? 'js-currency-switch' : '' }}"
+                               data-currency-url="{{ $confirmUrl }}">
+                                {{ $c['symbol'] }} {{ $c['code'] }}
+                            </a>
                         @endforeach
                     </div>
                 </div>
@@ -116,10 +124,13 @@ $initials = mb_strtoupper($initials);
         {{-- Sepet --}}
         <a href="{{ localized_route('cart') }}" class="btn btn-sm btn-outline-primary position-relative">
             <i class="fi fi-rr-basket-shopping-simple" style="font-size: 18px; vertical-align: text-top;"></i>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                3
-                <span class="visually-hidden">Sepette ürün sayısı</span>
-            </span>
+
+            @if($cartCount > 0)
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {{ $cartCount }}
+            <span class="visually-hidden">Sepette ürün sayısı</span>
+        </span>
+            @endif
         </a>
 
         <div class="vr"></div>
@@ -397,3 +408,31 @@ $initials = mb_strtoupper($initials);
         <a class="nav-link" href="{{ localized_route('contact') }}">{{ t('nav.contact') }}</a>
     </div>
 </div>
+
+@if($cartCount > 0)
+    <div class="modal fade" id="currencyChangeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ t('nav.currency') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">
+                        Para birimi değişimini şimdi yaparsanız, sepetinizdeki ürünler silinecek.
+                        <br><br>
+                        Para birimini değiştirmek istediğinizden emin misiniz?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        İptal
+                    </button>
+                    <a href="#" class="btn btn-primary" id="confirmCurrencyChange">
+                        Para Birimini Değiştir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
