@@ -3,21 +3,6 @@
 @section('content')
 
 <section>
-    <div class="container mt-3" style="font-size: 14px">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="{{ localized_route('home') }}">
-                        <i class="fi fi-ss-house-chimney"></i>
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    Günlük Turlar
-                </li>
-            </ol>
-        </nav>
-    </div>
-
     <div class="text-center my-5 px-3 px-lg-5">
         @php
             $loc = $loc ?? app()->getLocale();

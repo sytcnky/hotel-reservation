@@ -55,21 +55,6 @@
         ];
     @endphp
 
-    <div class="container mt-3" style="font-size: 14px">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="{{ localized_route('home') }}">
-                        <i class="fi fi-ss-house-chimney"></i>
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    {{ $txt['breadcrumb_cart'] }}
-                </li>
-            </ol>
-        </nav>
-    </div>
-
     <section class="container py-4 py-lg-5">
         <div class="row g-4">
 

@@ -5,18 +5,6 @@
 @section('content')
 
 <section>
-    <div class="container mt-3" style="font-size: 14px">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="{{ localized_route('home') }}">
-                        <i class="fi fi-ss-house-chimney" style="vertical-align: middle"></i>
-                    </a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">Villalar</li>
-            </ol>
-        </nav>
-    </div>
     <div class="text-center my-5 px-3 px-lg-5">
         {{-- PAGE HEADER (en üstteki bölüm) --}}
         @php

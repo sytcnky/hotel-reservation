@@ -13,17 +13,6 @@
         $cover = $guide->cover_image ?? [];
         $heroBg = $cover['large'] ?? '/images/samples/slide-summer.jpg';
     @endphp
-
-    <div class="container mt-3" style="font-size: 14px">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
-                <li class="breadcrumb-item"><a href="{{ localized_route('guides') }}">Gezi Rehberi</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ $title }}</li>
-            </ol>
-        </nav>
-    </div>
-
     <section>
         <div class="container">
             <div
