@@ -99,6 +99,19 @@ a:focus,
     user-drag: none;
 }
 
+.site-header-desktop{
+    height: 102px;
+    z-index: 1024;
+}
+
+.site-header-desktop .header-bottom {
+    gap: 24px;
+}
+
+.site-header-desktop .main-menu .nav-link {
+    padding: .25rem .35rem;
+}
+
 .main-gallery {
     cursor: pointer;
     overflow: hidden;

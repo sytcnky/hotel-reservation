@@ -4,19 +4,25 @@
 
     $items = [
         [
-            'label' => 'Hesabım',
+            'label' => auth()->check()
+                ? t('customer_account.menu.dashboard')
+                : t('nav.auth.login'),
             'icon'  => 'fi fi-rr-user',
-            'href'  => localized_route('account.dashboard'),
-            'active'=> request()->routeIs('*.account.*'),
+            'href'  => auth()->check()
+                ? localized_route('account.dashboard')
+                : route('login'),
+            'active'=> auth()->check()
+                ? request()->routeIs('*.account.*')
+                : request()->routeIs('login'),
         ],
         [
-            'label' => 'Rezervasyonlarım',
+            'label' => t('nav.bookings'),
             'icon'  => 'fi fi-rr-calendar-check',
             'href'  => localized_route('account.bookings'),
             'active'=> request()->routeIs('*.account.bookings*'),
         ],
         [
-            'label' => 'Sepet',
+            'label' => t('nav.basket'),
             'icon'  => 'fi fi-rr-basket-shopping-simple',
             'href'  => localized_route('cart'),
             'active'=> request()->routeIs('*.cart*'),
