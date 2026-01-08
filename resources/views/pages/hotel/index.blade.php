@@ -43,7 +43,7 @@
     <div class="row">
         <!-- Filter Sidebar -->
         <div class="col-xl-3" id="filterCol">
-
+            @include('pages.hotel.hotel-filter')
         </div>
 
         <!-- Hotel Listing -->
@@ -160,8 +160,31 @@
                                         </div>
 
                                         <div class="mb-2">
-                                            <span class="text-muted small d-block">Fiyat için tarih ve kişi sayısı seçin</span>
-                                            {{-- İleride from_price bağlanacak --}}
+                                            @php
+                                                $amount = $hotel->from_price_amount ?? null;
+                                                $type   = $hotel->from_price_type ?? null;
+
+                                                $suffix = match ($type) {
+                                                    'room_per_night'   => '/oda',
+                                                    'person_per_night' => '/kişi',
+                                                    default            => '',
+                                                };
+                                            @endphp
+
+                                            @if(!is_null($amount))
+                                                <div class="mb-2">
+                                                    <span class="text-muted small d-block">Başlayan fiyat</span>
+                                                    <div class="fw-semibold fs-5">
+                                                        {{ number_format((float) $amount, 0, ',', '.') }} {{ $currencyCode ?? '' }}
+                                                        <span class="text-muted small">{{ $suffix }}</span>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="mb-2">
+                                                    <span class="text-muted small d-block">Fiyat bulunamadı</span>
+                                                </div>
+                                            @endif
+
                                         </div>
 
                                         <div class="d-grid mt-1 w-100">

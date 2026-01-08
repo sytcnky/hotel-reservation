@@ -1,154 +1,156 @@
+{{-- resources/views/pages/hotel/hotel-filter.blade.php --}}
+
 <form method="GET" action="{{ localized_route('hotels') }}" class="border rounded p-3 mb-4 bg-light">
-    <!-- Kategori -->
-    <div class="mb-3">
-        <label class="form-label small">Konaklama Türü</label>
-        <select name="category" class="form-select">
-            <option value="">Tümü</option>
-            <option value="Apart Otel" {{ request('category') == 'Apart Otel' ? 'selected' : '' }}>Apart Otel</option>
-            <option value="Butik Otel" {{ request('category') == 'Butik Otel' ? 'selected' : '' }}>Butik Otel</option>
-            <option value="Tatil Köyü" {{ request('category') == 'Tatil Köyü' ? 'selected' : '' }}>Tatil Köyü</option>
-        </select>
-    </div>
 
-    <!-- Yıldız -->
-    <div class="mb-3">
-        <label class="form-label small">Yıldız</label>
-        <select name="stars" class="form-select">
-            <option value="">Tümü</option>
-            @for ($i = 5; $i >= 1; $i--)
-            <option value="{{ $i }}" {{ request('stars') == $i ? 'selected' : '' }}>{{ $i }} yıldız</option>
-            @endfor
-        </select>
-    </div>
-
-    <!-- Konum -->
-    <div class="mb-3">
-        <label class="form-label small">Konum</label>
-        <select name="region" class="form-select">
-            <option value="">Tümü</option>
-            <option value="Muğla" {{ request('region') == 'Muğla' ? 'selected' : '' }}>Muğla</option>
-            <option value="Antalya" {{ request('region') == 'Antalya' ? 'selected' : '' }}>Antalya</option>
-        </select>
-    </div>
-
-    <!-- Konsept -->
-    <div class="mb-3">
-        <label class="form-label small">Konsept</label>
-        <select name="board_type" class="form-select">
-            <option value="">Tümü</option>
-            <option value="Her şey dahil" {{ request('board_type') == 'Her şey dahil' ? 'selected' : '' }}>Her şey dahil</option>
-            <option value="Oda + Kahvaltı" {{ request('board_type') == 'Oda + Kahvaltı' ? 'selected' : '' }}>Oda + Kahvaltı</option>
-            <option value="Ultra Her şey dahil" {{ request('board_type') == 'Ultra Her şey dahil' ? 'selected' : '' }}>Ultra Her şey dahil</option>
-        </select>
-    </div>
-
-    <!-- Fiyat Aralığı -->
-    <div class="mb-3">
-        <label class="form-labe small">Fiyat (gece)</label>
-        <div class="d-flex gap-2">
-            <input type="number" name="price_min" class="form-control" placeholder="Min"
-                   value="{{ request('price_min') }}">
-            <input type="number" name="price_max" class="form-control" placeholder="Max"
-                   value="{{ request('price_max') }}">
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Olanaklar -->
-    <div class="mb-3">
-        <label class="form-label d-block small">Tesis Olanakları</label>
-
-        @php
-        // Otelleri sayfada zaten gösteriyorsak onları kullan, yoksa önce topla
-        $allFacilities = collect($hotels ?? [])
-        ->pluck('facilities')   // her otelin facilities dizisi
-        ->flatten()
-        ->unique()
-        ->sort()
-        ->values();
-
-        $selectedFacilities = request()->input('facilities', []);
-        @endphp
-
-
-        @foreach ($allFacilities as $index => $facility)
-        @php $isChecked = in_array($facility, $selectedFacilities); @endphp
-
-        <div class="form-check {{ $index >= 5 && !$isChecked ? 'd-none extra-facility' : '' }}">
-            <input
-                class="form-check-input"
-                type="checkbox"
-                name="facilities[]"
-                value="{{ $facility }}"
-                id="facility_{{ Str::slug($facility) }}"
-                {{ $isChecked ? 'checked' : '' }}
-            >
-            <label class="form-check-label" for="facility_{{ Str::slug($facility) }}">
-                {{ $facility }}
-            </label>
-        </div>
-        @endforeach
-
-
-        @if ($allFacilities->count() > 5)
-        <button
-            type="button"
-            class="btn btn-link p-0 mt-1 btn-sm"
-            id="toggleFacilitiesBtn"
-        >
-            Tümünü Göster
-        </button>
-        @endif
-    </div>
     @php
-    $childFeatures = collect($hotels ?? [])
-    ->pluck('features') // her otelin features dizisi
-    ->flatten()
-    ->filter(fn($group) => $group->category === 'Çocuk Hizmetleri')
-    ->pluck('items')
-    ->flatten()
-    ->unique()
-    ->sort()
-    ->values();
+        $filters = $filters ?? [];
 
-    $selectedChildItems = request()->input('children_features', []);
+        $categoryId  = (int) ($filters['category_id'] ?? 0);
+        $boardTypeId = (int) ($filters['board_type_id'] ?? 0);
+
+        $checkinVal  = (string) ($filters['checkin'] ?? '');
+
+        $max = (int) ($filters['maxGuests'] ?? ($maxGuests ?? 1));
+        $max = max(1, $max);
+
+        $selectedGuests = (int) ($filters['guests'] ?? 2);
+        $selectedGuests = max(1, min($max, $selectedGuests));
+
+        // Konum select datasetleri
+        $cityOptions     = $cityOptions ?? collect();
+        $districtOptions = $districtOptions ?? collect();
+        $areaOptions     = $areaOptions ?? collect();
+
+        $cityId     = (int) ($filters['city_id'] ?? 0);
+        $districtId = (int) ($filters['district_id'] ?? 0);
+        $areaId     = (int) ($filters['area_id'] ?? 0);
+
+        $showCity     = $cityOptions->count() > 1;
+        $showDistrict = $districtOptions->count() > 1;
+        $showArea     = $areaOptions->count() > 1;
     @endphp
 
-    <hr>
-
-    <!-- Çocuk Hizmetleri -->
+    {{-- Kategori --}}
     <div class="mb-3">
-        <label class="form-label d-block small">Çocuk Hizmetleri</label>
-
-        @foreach ($childFeatures as $index => $item)
-        @php $isChecked = in_array($item, $selectedChildItems); @endphp
-
-        <div class="form-check {{ $index >= 5 && !$isChecked ? 'd-none extra-child-feature' : '' }}">
-            <input
-                class="form-check-input"
-                type="checkbox"
-                name="children_features[]"
-                value="{{ $item }}"
-                id="child_{{ Str::slug($item) }}"
-                {{ $isChecked ? 'checked' : '' }}
-            >
-            <label class="form-check-label" for="child_{{ Str::slug($item) }}">
-                {{ $item }}
-            </label>
-        </div>
-        @endforeach
-
-        @if ($childFeatures->count() > 5)
-        <button type="button" class="btn btn-link p-0 mt-1 btn-sm" id="toggleChildFeaturesBtn">
-            Tümünü Göster
-        </button>
-        @endif
+        <label class="form-label small">Otel Kategorisi</label>
+        <select name="category_id" class="form-select">
+            <option value="">Tümü</option>
+            @foreach(($categories ?? collect()) as $cat)
+                <option value="{{ $cat->id }}" {{ $categoryId === (int) $cat->id ? 'selected' : '' }}>
+                    {{ $cat->name_l }}
+                </option>
+            @endforeach
+        </select>
     </div>
 
-
-    <!-- Gönder -->
+    {{-- Tarih (range) --}}
     <div class="mb-3">
-        <button type="submit" class="btn btn-primary w-100">Filtrele</button>
+        <label class="form-label small">Tarih</label>
+
+        <input
+            type="text"
+            id="checkin"
+            name="checkin"
+            class="form-control"
+            placeholder="Tarih aralığı (gg.aa.yyyy - gg.aa.yyyy)"
+            value="{{ $checkinVal }}"
+        >
+
+        <div class="form-text">Fiyat değişmez, sadece liste daralır.</div>
+    </div>
+
+    {{-- Konum --}}
+    {{-- City / District / Area --}}
+    @if($showCity)
+        <div class="mb-3">
+            <label class="form-label small">Şehir</label>
+            <select name="city_id" class="form-select">
+                <option value="">Tümü</option>
+                @foreach($cityOptions as $opt)
+                    <option value="{{ $opt->id }}" {{ $cityId === (int) $opt->id ? 'selected' : '' }}>
+                        {{ $opt->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    @else
+        @if($cityId)
+            <input type="hidden" name="city_id" value="{{ $cityId }}">
+        @endif
+    @endif
+
+    @if($showDistrict)
+        <div class="mb-3">
+            <label class="form-label small">İlçe</label>
+            <select name="district_id" class="form-select">
+                <option value="">Tümü</option>
+                @foreach($districtOptions as $opt)
+                    <option value="{{ $opt->id }}" {{ $districtId === (int) $opt->id ? 'selected' : '' }}>
+                        {{ $opt->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    @else
+        @if($districtId)
+            <input type="hidden" name="district_id" value="{{ $districtId }}">
+        @endif
+    @endif
+
+    @if($showArea)
+        <div class="mb-3">
+            <label class="form-label small">Bölge</label>
+            <select name="area_id" class="form-select">
+                <option value="">Tümü</option>
+                @foreach($areaOptions as $opt)
+                    <option value="{{ $opt->id }}" {{ $areaId === (int) $opt->id ? 'selected' : '' }}>
+                        {{ $opt->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    @else
+        @if($areaId)
+            <input type="hidden" name="area_id" value="{{ $areaId }}">
+        @endif
+    @endif
+
+    {{-- Board Type --}}
+    <div class="mb-3">
+        <label class="form-label small">Konsept (Board)</label>
+        <select name="board_type_id" class="form-select">
+            <option value="">Tümü</option>
+            @foreach(($boardTypes ?? collect()) as $bt)
+                <option value="{{ $bt->id }}" {{ $boardTypeId === (int) $bt->id ? 'selected' : '' }}>
+                    {{ $bt->name_l }}
+                </option>
+            @endforeach
+        </select>
+        <div class="form-text">Sadece bu board’a aktif kuralı olan oteller listelenir.</div>
+    </div>
+
+    {{-- Misafir --}}
+    <div class="mb-3">
+        <label class="form-label small">Misafir Sayısı</label>
+
+        <select name="guests" class="form-select">
+            @for($i = 1; $i <= $max; $i++)
+                <option value="{{ $i }}" {{ $selectedGuests === $i ? 'selected' : '' }}>
+                    {{ $i }}
+                </option>
+            @endfor
+        </select>
+
+        <div class="form-text">Toplam kapasiteye göre daraltılır.</div>
+    </div>
+
+    <hr>
+
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary">Uygula</button>
+
+        <a class="btn btn-outline-secondary" href="{{ localized_route('hotels') }}">
+            Temizle
+        </a>
     </div>
 </form>

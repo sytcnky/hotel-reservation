@@ -23,7 +23,6 @@ function initDateRangePicker() {
         // Otel controller'daki parseDateRange ile uyumlu:
         // "18.11.2025 - 22.11.2025"
         allowInput: true,
-        // İleride gerekirse burada extra seçenekleri (disable, onChange vs.) ekleyebiliriz
     });
 }
 
