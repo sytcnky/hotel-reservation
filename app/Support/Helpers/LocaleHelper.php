@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Storage;
 class LocaleHelper
 {
     /**
-     * Active language codes (canonical codes used across the app)
-     * e.g. ['tr', 'en']
+     * Aktif dil kodları (uygulama genelinde kullanılan kanonik kodlar)
+     * örn: ['tr', 'en']
      */
     public static function active(): array
     {
@@ -23,8 +23,8 @@ class LocaleHelper
     }
 
     /**
-     * Active languages map: code => locale
-     * e.g. ['tr' => 'tr_TR', 'en' => 'en_GB']
+     * Aktif diller haritası: code => locale
+     * örn: ['tr' => 'tr_TR', 'en' => 'en_GB']
      */
     public static function activeLocaleMap(): array
     {
@@ -36,23 +36,22 @@ class LocaleHelper
     }
 
     /**
-     * System default locale code.
+     * Sistem varsayılan locale kodu.
      *
-     * Contract:
-     * - Primary source: settings.default_locale (must be one of active languages)
-     * - If misconfigured: fallback to active[0]
-     * - If no active languages exist (bootstrap edge case): fallback to config('app.locale')
+     * Kontrat:
+     * - Birincil kaynak: settings.default_locale (aktif dillerden biri olmalı)
+     * - Hatalı/eksik ise: aktif[0] (ilk aktif dil) döner
+     * - Bootstrap edge-case: hiç aktif dil yoksa (seed yapılmadıysa) tek fallback: 'en'
      *
-     * Returns canonical code (e.g. 'tr', 'en').
+     * Kanonik kod döner (örn: 'tr', 'en').
      */
     public static function defaultCode(): string
     {
         $activeCodes = static::active();
 
-        // Bootstrap edge-case: no active languages yet (seed not done).
+        // Bootstrap edge-case: henüz aktif dil yoksa tek fallback 'en'
         if (empty($activeCodes)) {
-            $cfg = (string) config('app.locale'); // config/app.php already defines a value
-            return $cfg !== '' ? $cfg : 'en';
+            return 'en';
         }
 
         $candidate = Setting::get('default_locale');
@@ -64,17 +63,17 @@ class LocaleHelper
             }
         }
 
-        // If settings value is missing or not active, fallback to first active.
+        // Settings değeri yoksa veya aktif değilse, ilk aktif dile düş.
         return $activeCodes[0];
     }
 
     /**
-     * Normalize / validate a canonical locale code.
+     * Kanonik locale kodunu normalize / validate eder.
      *
-     * Rules:
-     * - Accepts canonical codes only (e.g. 'tr', 'en').
-     * - If candidate is empty or not active, returns defaultCode().
-     * - defaultCode() itself already implements "last resort" behavior.
+     * Kurallar:
+     * - Sadece kanonik kodları kabul eder (örn: 'tr', 'en').
+     * - Candidate boşsa veya aktif değilse defaultCode() döner.
+     * - defaultCode() kendi içinde "son çare" davranışını uygular.
      */
     public static function normalizeCode(?string $candidate): string
     {
@@ -86,7 +85,7 @@ class LocaleHelper
 
         $activeCodes = static::active();
 
-        // If active languages not seeded yet, defaultCode() will fallback to config/app.locale.
+        // Bootstrap edge-case: aktif dil yoksa defaultCode() zaten 'en' döner.
         if (empty($activeCodes)) {
             return static::defaultCode();
         }
@@ -99,19 +98,19 @@ class LocaleHelper
     }
 
     /**
-     * Resolve canonical language code from request's Accept-Language header.
+     * Request'in Accept-Language header'ından kanonik dil kodunu çözer.
      *
-     * Matching order:
-     * 1) Exact match against Language.locale (normalized) e.g. tr_TR / tr-TR
-     * 2) Base match against Language.code e.g. tr
+     * Eşleşme sırası:
+     * 1) Language.locale alanına exact match (normalize edilmiş) örn: tr_TR / tr-TR
+     * 2) Language.code alanına base match örn: tr
      *
-     * Returns canonical code (e.g. 'tr') or null if no match.
+     * Kanonik code (örn: 'tr') döner veya eşleşme yoksa null.
      */
     public static function codeFromBrowser(Request $request): ?string
     {
         $activeMap = static::activeLocaleMap(); // code => locale
         if (empty($activeMap)) {
-            return null; // bootstrap edge-case; caller will fallback to defaultCode()
+            return null; // bootstrap edge-case; caller defaultCode() ile devam eder
         }
 
         $header = $request->header('Accept-Language');
@@ -124,27 +123,27 @@ class LocaleHelper
             return null;
         }
 
-        // Prepare normalized locale lookup: normalizedLocale => code
+        // Normalize edilmiş locale lookup: normalizedLocale => code
         $normalizedLocaleToCode = [];
         foreach ($activeMap as $code => $locale) {
-            $norm = static::normalizeLocale((string) $locale); // e.g. tr_tr
+            $norm = static::normalizeLocale((string) $locale); // örn: tr_tr
             if ($norm !== '') {
                 $normalizedLocaleToCode[$norm] = (string) $code;
             }
         }
 
-        // 1) Exact match by locale
+        // 1) Locale ile exact match
         foreach ($candidates as $cand) {
-            $norm = static::normalizeLocale($cand); // e.g. tr_tr
+            $norm = static::normalizeLocale($cand); // örn: tr_tr
             if ($norm !== '' && isset($normalizedLocaleToCode[$norm])) {
                 return $normalizedLocaleToCode[$norm];
             }
         }
 
-        // 2) Base match by code (first part)
+        // 2) Code ile base match (ilk parça)
         $activeCodes = array_keys($activeMap);
         foreach ($candidates as $cand) {
-            $base = static::baseCode($cand); // e.g. tr
+            $base = static::baseCode($cand); // örn: tr
             if ($base !== '' && in_array($base, $activeCodes, true)) {
                 return $base;
             }
@@ -154,7 +153,7 @@ class LocaleHelper
     }
 
     /**
-     * Public options for UI (unchanged behavior).
+     * UI için public seçenekler
      */
     public static function options(): array
     {
@@ -166,7 +165,7 @@ class LocaleHelper
                 $flag = $lang->flag;
 
                 if ($flag) {
-                    // FileUpload public/flags içine yazıyor:
+                    // FileUpload public/flags içine yazar:
                     // DB tipik değer: "flags/xxxx.svg"
                     if (
                         ! str_starts_with($flag, 'http://')
@@ -188,7 +187,8 @@ class LocaleHelper
     }
 
     /**
-     * Parse Accept-Language header and return ordered list of language tags (no q needed, already sorted).
+     * Accept-Language header'ını parse eder ve sıralı dil tag listesi döner
+     * (q değerine göre sıralanır, tekrarlar ayıklanır).
      */
     private static function parseAcceptLanguage(string $header): array
     {
@@ -196,7 +196,7 @@ class LocaleHelper
 
         $items = [];
         foreach ($parts as $part) {
-            // examples: "tr-TR;q=0.9" | "en-US" | "en;q=0.7"
+            // örnekler: "tr-TR;q=0.9" | "en-US" | "en;q=0.7"
             $segments = array_map('trim', explode(';', $part));
             $tag = $segments[0] ?? '';
             if ($tag === '') {
@@ -220,9 +220,9 @@ class LocaleHelper
     }
 
     /**
-     * Normalize locale tag for comparison:
-     * - lowercases
-     * - replaces '-' with '_'
+     * Karşılaştırma için locale tag normalize eder:
+     * - lowercase
+     * - '-' karakterlerini '_' yapar
      */
     private static function normalizeLocale(string $value): string
     {
@@ -237,7 +237,7 @@ class LocaleHelper
     }
 
     /**
-     * Get base language code from tag: "tr-TR" or "tr_TR" => "tr"
+     * Tag'den base language code alır: "tr-TR" veya "tr_TR" => "tr"
      */
     private static function baseCode(string $tag): string
     {

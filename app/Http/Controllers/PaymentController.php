@@ -264,10 +264,7 @@ class PaymentController extends Controller
             $discountSnapshot = (array) ($payload['discount_snapshot'] ?? []);
 
             // locale: orders.locale NOT NULL → garanti
-            $locale = (string) (app()->getLocale() ?: '');
-            if ($locale === '') {
-                $locale = (string) LocaleHelper::defaultCode();
-            }
+            $locale = LocaleHelper::normalizeCode(app()->getLocale());
 
             // customer fields (order üzerinde donmuş olsun)
             $customerName  = null;

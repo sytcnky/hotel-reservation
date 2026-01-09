@@ -14,6 +14,8 @@ use App\Models\StaticPage;
 use App\Services\CampaignPlacementViewService;
 use App\Services\RoomRateResolver;
 use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\I18nHelper;
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
@@ -21,37 +23,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class HotelController extends Controller
 {
-    /**
-     * i18n kolonlarını normalize eder.
-     *
-     * - Düz string ise doğrudan döner.
-     * - Locale-keyed array ise aktif locale'e göre string döner.
-     * - Özel durum: notes gibi [{value:"..."}] listelerini satır satır birleştirir.
-     */
-    private function localize($value)
-    {
-        if (! is_array($value)) {
-            return $value;
-        }
-
-        $locale = App::getLocale();
-
-        $v = $value[$locale] ?? null;
-
-        if (is_string($v)) {
-            return $v;
-        }
-
-        if (is_array($v)) {
-            return collect($v)
-                ->pluck('value')
-                ->filter()
-                ->implode("\n");
-        }
-
-        return null;
-    }
-
     /**
      * Not alanını (jsonb) aktif dile göre string listesine çevirir.
      *
@@ -63,30 +34,10 @@ class HotelController extends Controller
      */
     private function localizeNotes($notes): array
     {
-        if (! is_array($notes)) {
-            return [];
-        }
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
-        $locale = App::getLocale();
-
-        $list = $notes[$locale] ?? null;
-        if (! is_array($list)) {
-            return [];
-        }
-
-        return collect($list)
-            ->map(function ($item) {
-                if (is_array($item)) {
-                    $v = $item['value'] ?? null;
-                } else {
-                    $v = $item;
-                }
-
-                return is_string($v) ? trim($v) : null;
-            })
-            ->filter()
-            ->values()
-            ->all();
+        return I18nHelper::stringList($notes, $uiLocale, $baseLocale);
     }
 
     /**
@@ -94,30 +45,23 @@ class HotelController extends Controller
      */
     private function mapFeatureGroups(Hotel $hotel): array
     {
-        $locale = App::getLocale();
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
         return $hotel->featureGroups()
             ->ordered()
             ->with('facilities')
             ->get()
-            ->map(function ($fg) use ($locale) {
-                $title = $fg->title;
-
-                if (is_array($title)) {
-                    $category = $title[$locale] ?? (reset($title) ?: null);
-                } else {
-                    $category = $title;
-                }
+            ->map(function ($fg) use ($uiLocale, $baseLocale) {
+                $category = I18nHelper::scalar($fg->title, $uiLocale, $baseLocale);
 
                 $items = $fg->facilities
-                    ->map(function ($facility) {
-                        return $facility->name_l;
-                    })
+                    ->map(fn ($facility) => $facility->name_l)
                     ->filter()
                     ->values()
                     ->all();
 
-                if ($category === null || empty($items)) {
+                if (! $category || empty($items)) {
                     return null;
                 }
 
@@ -140,25 +84,17 @@ class HotelController extends Controller
             return [];
         }
 
-        $locale = App::getLocale();
-        $base   = config('app.locale', 'tr');
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
         return collect($nearby)
-            ->map(function ($item) use ($locale, $base) {
+            ->map(function ($item) use ($uiLocale, $baseLocale) {
                 if (! is_array($item)) {
                     return null;
                 }
 
-                $labelRaw    = $item['label']    ?? null;
-                $distanceRaw = $item['distance'] ?? null;
-
-                $label = is_array($labelRaw)
-                    ? ($labelRaw[$locale] ?? $labelRaw[$base] ?? reset($labelRaw))
-                    : $labelRaw;
-
-                $distance = is_array($distanceRaw)
-                    ? ($distanceRaw[$locale] ?? $distanceRaw[$base] ?? reset($distanceRaw))
-                    : $distanceRaw;
+                $label = I18nHelper::scalar($item['label'] ?? null, $uiLocale, $baseLocale);
+                $distance = I18nHelper::scalar($item['distance'] ?? null, $uiLocale, $baseLocale);
 
                 if (! $label || ! $distance) {
                     return null;
@@ -302,11 +238,11 @@ class HotelController extends Controller
             $roomPerNight = (float) ($first['unit_amount'] ?? 0);
 
             return [
-                'mode'           => 'per_room',
-                'nights'         => $nights,
-                'total_amount'   => $total,
-                'currency'       => $currencyCode,
-                'room_per_night' => $roomPerNight,
+                'mode'             => 'per_room',
+                'nights'           => $nights,
+                'total_amount'     => $total,
+                'currency'         => $currencyCode,
+                'room_per_night'   => $roomPerNight,
                 'adult_count'      => $adults,
                 'child_count'      => $children,
                 'adult_per_night'  => null,
@@ -343,11 +279,14 @@ class HotelController extends Controller
      */
     private function mapRooms(Hotel $hotel, ?array $context = null): array
     {
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+
         return $hotel->rooms()
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(function (Room $room) use ($context) {
+            ->map(function (Room $room) use ($context, $uiLocale, $baseLocale) {
                 $images = $room->getMedia('gallery')
                     ->map(function (Media $media) use ($room) {
                         $img = \App\Support\Helpers\ImageHelper::normalize($media);
@@ -383,16 +322,16 @@ class HotelController extends Controller
                     ->all();
 
                 $data = [
-                    'id'          => $room->id,
-                    'name'        => $room->name_l,
-                    'description' => $this->localize($room->description),
-                    'images'      => $images,
-                    'size'        => $room->size_m2,
-                    'bed_type'    => $bedSummary,
-                    'capacity'    => $capacity,
-                    'view'        => $viewName,
-                    'smoking'     => (bool) $room->smoking,
-                    'facilities'  => $facilities,
+                    'id'               => $room->id,
+                    'name'             => $room->name_l,
+                    'description'      => I18nHelper::scalar($room->description, $uiLocale, $baseLocale),
+                    'images'           => $images,
+                    'size'             => $room->size_m2,
+                    'bed_type'         => $bedSummary,
+                    'capacity'         => $capacity,
+                    'view'             => $viewName,
+                    'smoking'          => (bool) $room->smoking,
+                    'facilities'       => $facilities,
                     'state'            => 'no_context',
                     'max_nights'       => null,
                     'pricing'          => null,
@@ -446,7 +385,10 @@ class HotelController extends Controller
 
     private function mapGallery(Hotel $hotel): array
     {
-        $altBase    = $this->localize($hotel->name) ?? 'Otel görseli';
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+
+        $altBase    = I18nHelper::scalar($hotel->name, $uiLocale, $baseLocale) ?? 'Otel görseli';
         $mediaItems = $hotel->getMedia('gallery');
 
         if ($mediaItems->isEmpty()) {
@@ -504,6 +446,9 @@ class HotelController extends Controller
     public function show(Request $request, string $slug, CampaignPlacementViewService $campaignService)
     {
         $locale = App::getLocale();
+
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
         $hotel = Hotel::query()
             ->with([
@@ -590,9 +535,9 @@ class HotelController extends Controller
 
         $viewData = [
             'id'             => $hotel->id,
-            'name'           => $this->localize($hotel->name),
+            'name'           => I18nHelper::scalar($hotel->name, $uiLocale, $baseLocale),
             'slug'           => $hotel->slug[$locale] ?? null,
-            'description'    => $this->localize($hotel->description),
+            'description'    => I18nHelper::scalar($hotel->description, $uiLocale, $baseLocale),
             'promo_video_id' => $hotel->promo_video_id,
             'stars'          => $stars,
             'nearby'         => $nearby,
@@ -985,8 +930,8 @@ class HotelController extends Controller
             ->get(['id', 'name']);
 
         // ---- BoardType options: sadece kayıt varsa (mevcut filtre bağlamında) ----
-// Not: board type options üretirken, mevcut board_type_id filtresini bilerek KULLANMIYORUZ
-// (yoksa select kendini kilitler).
+        // Not: board type options üretirken, mevcut board_type_id filtresini bilerek KULLANMIYORUZ
+        // (yoksa select kendini kilitler).
         $availableBoardTypeIdsQuery = \DB::table('room_rate_rules as rrr')
             ->join('rooms as r', 'r.id', '=', 'rrr.room_id')
             ->join('hotels as h', 'h.id', '=', 'r.hotel_id')
@@ -994,25 +939,25 @@ class HotelController extends Controller
             ->where('r.is_active', true)
             ->whereNotNull('rrr.board_type_id');
 
-// geçerli kural (AC-2 + AC-7)
+        // geçerli kural (AC-2 + AC-7)
         $validRule($availableBoardTypeIdsQuery);
 
-// category
+        // category
         if ($categoryId) {
             $availableBoardTypeIdsQuery->where('h.hotel_category_id', (int) $categoryId);
         }
 
-// location (city/district/area seçimine göre ürettiğin $locationIds varsa)
+        // location (city/district/area seçimine göre ürettiğin $locationIds varsa)
         if (is_array($locationIds)) {
             $availableBoardTypeIdsQuery->whereIn('h.location_id', $locationIds);
         }
 
-// guests
+        // guests
         if ($guests > 0) {
             $availableBoardTypeIdsQuery->whereRaw('(COALESCE(r.capacity_adults,0) + COALESCE(r.capacity_children,0)) >= ?', [$guests]);
         }
 
-// date range
+        // date range
         if ($checkin && $checkout) {
             $rangeStart = $checkin->toDateString();
             $rangeEnd   = (clone $checkout)->subDay()->toDateString();
@@ -1048,7 +993,6 @@ class HotelController extends Controller
                 ->whereIn('id', $availableBoardTypeIds)
                 ->orderBy('sort_order')
                 ->get(['id', 'name']);
-
 
         return view('pages.hotel.index', [
             'hotels' => $hotels,

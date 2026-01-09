@@ -3,19 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Hotel;
+use App\Models\StaticPage;
 use App\Models\Tour;
 use App\Models\TravelGuide;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
 use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
-use App\Models\StaticPage;
 
 class TravelGuideController extends Controller
 {
     public function index(Request $request)
     {
-        $locale = app()->getLocale();
+        $uiLocale   = app()->getLocale();
 
         $page = StaticPage::query()
             ->where('key', 'travel_guide_page')
@@ -23,7 +24,7 @@ class TravelGuideController extends Controller
             ->firstOrFail();
 
         $c   = $page->content ?? [];
-        $loc = app()->getLocale();
+        $loc = $uiLocale; // mevcut view contract korunur
 
         $guides = TravelGuide::query()
             ->where('is_active', true)
@@ -34,24 +35,25 @@ class TravelGuideController extends Controller
 
         return view('pages.guides.index', [
             'guides' => $guides,
-            'locale' => $locale,
-            'page' => $page,
-            'c'    => $c,
-            'loc'  => $loc,
+            'locale' => $uiLocale,
+            'page'   => $page,
+            'c'      => $c,
+            'loc'    => $loc,
         ]);
     }
 
     public function show(Request $request, string $slug, CampaignPlacementViewService $campaignService)
     {
-        $locale = app()->getLocale();
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode(); // sprint standardı (bu dosyada henüz pick yapılmadığı için sadece standart amaçlı)
 
         $guide = TravelGuide::query()
             ->where('is_active', true)
-            ->whereRaw("slug->>? = ?", [$locale, $slug])
+            ->whereRaw("slug->>? = ?", [$uiLocale, $slug])
             ->with([
-                'media',                // guide cover
-                'blocks.media',         // block image
-                'blocks',               // blocks data
+                'media',        // guide cover
+                'blocks.media', // block image
+                'blocks',       // blocks data
             ])
             ->firstOrFail();
 
@@ -100,7 +102,6 @@ class TravelGuideController extends Controller
                 ->with('media')
                 ->get()
                 ->keyBy('id');
-
         }
 
         // Sidebar turları (guide.sidebar_tour_ids sırasını koru)
@@ -130,17 +131,17 @@ class TravelGuideController extends Controller
         $currencyMeta = CurrencyHelper::options()[$currencyCode] ?? ['code' => $currencyCode, 'symbol' => $currencyCode];
 
         return view('pages.guides.show', [
-            'guide' => $guide,
-            'locale' => $locale,
+            'guide'  => $guide,
+            'locale' => $uiLocale,
 
             'hotelsById' => $hotelsById,
             'villasById' => $villasById,
 
             'sidebarTours' => $sidebarTours,
 
-            'currencyCode' => $currencyCode,
+            'currencyCode'   => $currencyCode,
             'currencySymbol' => $currencyMeta['symbol'] ?? $currencyCode,
-            'campaigns' => $campaignService->buildForPlacement('guide_detail'),
+            'campaigns'      => $campaignService->buildForPlacement('guide_detail'),
         ]);
     }
 }

@@ -6,6 +6,8 @@ use App\Models\Hotel;
 use App\Models\StaticPage;
 use App\Models\TravelGuide;
 use App\Services\CampaignPlacementViewService;
+use App\Support\Helpers\I18nHelper;
+use App\Support\Helpers\LocaleHelper;
 
 class HomeController extends Controller
 {
@@ -16,8 +18,10 @@ class HomeController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        $base = config('app.locale', 'tr');
-        $loc = app()->getLocale();
+        // Locale standardı (tek otorite)
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+
         $content = $page->content ?? [];
 
         // -----------------------------
@@ -80,9 +84,9 @@ class HomeController extends Controller
         // -----------------------------
         $travelGuides = collect();
 
-        $guideMode = data_get($content, 'travel_guides.grid.mode'); // latest | manual
+        $guideMode  = data_get($content, 'travel_guides.grid.mode'); // latest | manual
         $guideLimit = (int) (data_get($content, 'travel_guides.grid.limit') ?? 4);
-        $guideTake = max(1, $guideLimit);
+        $guideTake  = max(1, $guideLimit);
 
         if ($guideMode === 'manual') {
             $ids = collect((array) data_get($content, 'travel_guides.grid.items', []))
@@ -112,18 +116,17 @@ class HomeController extends Controller
                 ->get();
         }
 
-        // Locale picking helper (map içinden seçer)
-        $pickLocale = function ($map) use ($loc, $base) {
-            if (! is_array($map)) return null;
-            return $map[$loc] ?? $map[$base] ?? null;
+        // View’de locale-keyed map pick gerekiyorsa (hard fallback yok)
+        $pickLocale = function ($map) use ($uiLocale, $baseLocale) {
+            return I18nHelper::scalar($map, $uiLocale, $baseLocale);
         };
 
         return view('pages.home', [
-            'page' => $page,
-            'popularHotels' => $popularHotels,
+            'page'         => $page,
+            'popularHotels'=> $popularHotels,
             'travelGuides' => $travelGuides,
-            'pickLocale' => $pickLocale,
-            'campaigns' => $campaignService->buildForPlacement('homepage_banner'),
+            'pickLocale'   => $pickLocale,
+            'campaigns'    => $campaignService->buildForPlacement('homepage_banner'),
         ]);
     }
 }

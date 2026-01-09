@@ -2,38 +2,55 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StaticPage;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\TourService;
-use App\Support\Helpers\CurrencyHelper;
-use Illuminate\Support\Facades\App;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Models\StaticPage;
 use App\Services\CampaignPlacementViewService;
+use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\I18nHelper;
+use App\Support\Helpers\LocaleHelper;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class TourController extends Controller
 {
     /**
-     * Yardımcı: i18n kolonları normalize eder
+     * Yardımcı: i18n kolonları normalize eder.
+     *
+     * Sprint standardı:
+     * - uiLocale = app()->getLocale()
+     * - baseLocale = LocaleHelper::defaultCode()
+     * - pick = data[ui] ?? data[base] ?? ''
+     *
+     * Ayrıca bazı alanlar (notes gibi) locale içinde [{value:"..."}] liste olarak tutulabiliyor:
+     * - Bu durumda value'ları satır satır birleştirir.
      */
-    private function localize($value)
+    private function localize(mixed $value, string $uiLocale, string $baseLocale): mixed
     {
         if (! is_array($value)) {
             return $value;
         }
 
-        $locale = App::getLocale();
+        $picked = I18nHelper::pick($value, $uiLocale, $baseLocale);
 
-        $v = $value[$locale] ?? null;
-
-        if (is_string($v)) {
-            return $v;
+        if (is_string($picked)) {
+            return $picked;
         }
 
-        if (is_array($v)) {
-            return collect($v)
-                ->pluck('value')
-                ->filter()
+        if (is_scalar($picked)) {
+            return (string) $picked;
+        }
+
+        if (is_array($picked)) {
+            return collect($picked)
+                ->map(function ($item) {
+                    if (is_array($item)) {
+                        return $item['value'] ?? null;
+                    }
+
+                    return $item;
+                })
+                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
                 ->implode("\n");
         }
 
@@ -70,24 +87,24 @@ class TourController extends Controller
      */
     public function index()
     {
-        $locale = App::getLocale();
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
         $page = StaticPage::query()
             ->where('key', 'tour_page')
             ->where('is_active', true)
             ->firstOrFail();
 
-        $c = $page->content ?? [];
-        $loc = app()->getLocale();
+        $c   = $page->content ?? [];
+        $loc = $uiLocale;
 
         $tours = Tour::with(['category'])
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(function (Tour $t) use ($locale) {
-
+            ->map(function (Tour $t) use ($uiLocale, $baseLocale) {
                 $prices   = $t->prices ?? [];
-                $tourName = $this->localize($t->name);
+                $tourName = $this->localize($t->name, $uiLocale, $baseLocale);
 
                 // Kapak (normalize + alt)
                 $coverMedia = $t->getFirstMedia('cover');
@@ -103,8 +120,8 @@ class TourController extends Controller
                 return [
                     'id'                => $t->id,
                     'name'              => $tourName,
-                    'slug'              => $t->slug[$locale] ?? null,
-                    'short_description' => $this->localize($t->short_description),
+                    'slug'              => I18nHelper::scalar($t->slug, $uiLocale, $baseLocale),
+                    'short_description' => $this->localize($t->short_description, $uiLocale, $baseLocale),
                     'category'          => $t->category?->name_l,
                     'category_slug'     => $t->category?->slug_l,
                     'prices'            => $prices,
@@ -112,8 +129,7 @@ class TourController extends Controller
                     // Kapak
                     'cover'             => $cover,
 
-                    // Galeri (şimdilik sadece detayta kullanıyoruz ama
-                    // format aynı kalsın diye normalize edilmiş halde dönüyoruz)
+                    // Galeri (format aynı kalsın diye normalize edilmiş halde dönüyoruz)
                     'gallery'           => $this->mapMedia($t->getMedia('gallery')),
                 ];
             });
@@ -133,11 +149,11 @@ class TourController extends Controller
             ->values();
 
         return view('pages.excursion.index', [
-            'tours'      => $tours,
-            'categories' => $categories,
-            'page' => $page,
-            'c' => $c,
-            'loc' => $loc,
+            'tours'       => $tours,
+            'categories'  => $categories,
+            'page'        => $page,
+            'c'           => $c,
+            'loc'         => $loc,
         ]);
     }
 
@@ -146,16 +162,17 @@ class TourController extends Controller
      */
     public function show(string $slug, CampaignPlacementViewService $campaignService)
     {
-        $locale   = app()->getLocale();
-        $currency = strtoupper(CurrencyHelper::currentCode());
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+        $currency   = strtoupper(CurrencyHelper::currentCode());
 
         $tour = Tour::query()
             ->with(['category', 'media'])
             ->where('is_active', true)
-            ->where("slug->{$locale}", $slug)
+            ->where("slug->{$uiLocale}", $slug)
             ->firstOrFail();
 
-        $tourName = $this->localize($tour->name);
+        $tourName = $this->localize($tour->name, $uiLocale, $baseLocale);
 
         // KAPAK (normalize + alt)
         $coverMedia = $tour->getFirstMedia('cover');
@@ -208,18 +225,13 @@ class TourController extends Controller
                 ->keyBy('id');
         }
 
-        $localizeService = function ($id) use ($services, $locale): ?string {
+        $localizeService = function ($id) use ($services, $uiLocale, $baseLocale): ?string {
             $service = $services[$id] ?? null;
             if (! $service) {
                 return null;
             }
 
-            $name = $service->name;
-            if (is_array($name)) {
-                return $name[$locale] ?? null;
-            }
-
-            return (string) $name;
+            return I18nHelper::scalar($service->name, $uiLocale, $baseLocale);
         };
 
         $includedServices = collect($includedIds)
@@ -236,11 +248,11 @@ class TourController extends Controller
 
         $viewData = [
             'id'                => $tour->id,
-            'slug'              => $tour->slug[$locale] ?? null,
+            'slug'              => I18nHelper::scalar($tour->slug, $uiLocale, $baseLocale),
             'name'              => $tourName,
-            'short_description' => $this->localize($tour->short_description),
-            'long_description'  => $this->localize($tour->long_description),
-            'notes'             => $this->localize($tour->notes),
+            'short_description' => $this->localize($tour->short_description, $uiLocale, $baseLocale),
+            'long_description'  => $this->localize($tour->long_description, $uiLocale, $baseLocale),
+            'notes'             => $this->localize($tour->notes, $uiLocale, $baseLocale),
             'prices'            => $tour->prices ?? [],
             'duration'          => $tour->duration,
             'start_time'        => $tour->start_time ? $tour->start_time->format('H:i') : null,
@@ -258,8 +270,8 @@ class TourController extends Controller
         ];
 
         return view('pages.excursion.excursion-detail', [
-            'tour'     => $viewData,
-            'currency' => $currency,
+            'tour'      => $viewData,
+            'currency'  => $currency,
             'campaigns' => $campaignService->buildForPlacement('tour_detail'),
         ]);
     }

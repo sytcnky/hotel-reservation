@@ -2,62 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StaticPage;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\ImageHelper;
-use App\Models\StaticPage;
+use App\Support\Helpers\LocaleHelper;
+use Illuminate\Http\Request;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class VillaController extends Controller
 {
-    /**
-     * Basit i18n helper:
-     * - Düz string ise direkt döner
-     * - Locale-keyed array ise aktif dil / base dil / ilk eleman sırasıyla döner
-     */
-    private function localizeScalar(mixed $value, string $locale, string $base): ?string
-    {
-        if (! is_array($value)) {
-            return $value !== null ? (string) $value : null;
-        }
-
-        $v = $value[$locale] ?? $value[$base] ?? reset($value);
-
-        return is_string($v) ? $v : (is_scalar($v) ? (string) $v : null);
-    }
-
-    /**
-     * Repeater tarzı alanları (ör: highlights, stay_info) aktif dilde düz listeye çevirir.
-     */
-    private function localizeList(mixed $value, string $locale, string $base): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $list = $value[$locale] ?? $value[$base] ?? [];
-
-        if (! is_array($list)) {
-            return [];
-        }
-
-        return collect($list)
-            ->map(function ($item) {
-                if (is_array($item)) {
-                    $v = $item['value'] ?? null;
-                } else {
-                    $v = $item;
-                }
-
-                return is_string($v) ? trim($v) : null;
-            })
-            ->filter()
-            ->values()
-            ->all();
-    }
-
     /**
      * Media'yi x-responsive-image için normalize eder.
      */
@@ -77,9 +32,9 @@ class VillaController extends Controller
      */
     public function index(Request $request)
     {
-        $locale        = app()->getLocale();
-        $baseLang      = config('app.locale', 'tr');
-        $currencyCode  = \App\Support\Helpers\CurrencyHelper::currentCode();
+        $locale       = app()->getLocale();              // uiLocale
+        $baseLang     = LocaleHelper::defaultCode();     // baseLocale
+        $currencyCode = \App\Support\Helpers\CurrencyHelper::currentCode();
 
         $villas = Villa::query()
             ->with(['location.parent.parent', 'category', 'media', 'rateRules.currency'])
@@ -89,20 +44,10 @@ class VillaController extends Controller
             ->map(function (Villa $villa) use ($locale, $baseLang, $currencyCode) {
 
                 // İsim (jsonb)
-                $nameSource = $villa->name;
-                if (is_array($nameSource)) {
-                    $name = $nameSource[$locale] ?? ($nameSource[$baseLang] ?? reset($nameSource));
-                } else {
-                    $name = $nameSource;
-                }
+                $name = I18nHelper::scalar($villa->name, $locale, $baseLang);
 
                 // Slug (jsonb)
-                $slugSource = $villa->slug;
-                if (is_array($slugSource)) {
-                    $slug = $slugSource[$locale] ?? ($slugSource[$baseLang] ?? reset($slugSource));
-                } else {
-                    $slug = $slugSource;
-                }
+                $slug = I18nHelper::scalar($villa->slug, $locale, $baseLang);
 
                 // Kapak görseli → normalize (placeholder dahil)
                 $coverMedia = $villa->getFirstMedia('cover');
@@ -119,7 +64,7 @@ class VillaController extends Controller
                 return [
                     'id'             => $villa->id,
                     'slug'           => $slug,
-                    'name'           => $name ?? 'Villa',    // listelemede direkt string kullanalım
+                    'name'           => $name ?? 'Villa', // mevcut davranış korunur
                     'max_guests'     => $villa->max_guests,
                     'bedroom_count'  => $villa->bedroom_count,
                     'bathroom_count' => $villa->bathroom_count,
@@ -128,7 +73,7 @@ class VillaController extends Controller
                         'region' => $region,
                     ],
                     'category_name'  => $villa->category?->name_l,
-                    'cover'          => $cover,           // x-responsive-image uyumlu
+                    'cover'          => $cover,
                     'price'          => $price,
                     'currency'       => $currencyCode,
                 ];
@@ -137,7 +82,7 @@ class VillaController extends Controller
             ->all();
 
         // -------------------------------------------------
-        // Static Page (Transfer)
+        // Static Page (Villa)
         // -------------------------------------------------
 
         $page = StaticPage::query()
@@ -145,7 +90,7 @@ class VillaController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        $base = config('app.locale', 'tr');
+        $base = LocaleHelper::defaultCode();
         $loc  = app()->getLocale();
 
         $pickLocale = function ($map) use ($loc, $base) {
@@ -185,8 +130,8 @@ class VillaController extends Controller
      */
     public function show(string $slug, CampaignPlacementViewService $campaignService)
     {
-        $locale   = App::getLocale();
-        $baseLang = config('app.locale', 'tr');
+        $locale   = app()->getLocale();              // uiLocale
+        $baseLang = LocaleHelper::defaultCode();     // baseLocale
 
         $villa = Villa::query()
             ->with([
@@ -207,13 +152,13 @@ class VillaController extends Controller
         $region = $location?->parent?->parent?->name;
 
         // İsim / açıklama i18n
-        $name        = $this->localizeScalar($villa->name, $locale, $baseLang) ?? 'Villa';
-        $description = $this->localizeScalar($villa->description, $locale, $baseLang);
+        $name        = I18nHelper::scalar($villa->name, $locale, $baseLang) ?? 'Villa'; // mevcut davranış korunur
+        $description = I18nHelper::scalar($villa->description, $locale, $baseLang);
 
         // Kategori → badge
         $categoryLabel = null;
         if ($villa->category) {
-            $categoryLabel = $this->localizeScalar($villa->category->name, $locale, $baseLang);
+            $categoryLabel = I18nHelper::scalar($villa->category->name, $locale, $baseLang);
         }
 
         // === FİYAT + MIN/MAX NIGHTS ===
@@ -264,18 +209,8 @@ class VillaController extends Controller
                 continue;
             }
 
-            $labelSrc    = $item['label']    ?? null;
-            $distanceSrc = $item['distance'] ?? null;
-
-            $label =
-                is_array($labelSrc)
-                    ? ($labelSrc[$locale] ?? $labelSrc[$baseLang] ?? reset($labelSrc))
-                    : $labelSrc;
-
-            $distance =
-                is_array($distanceSrc)
-                    ? ($distanceSrc[$locale] ?? $distanceSrc[$baseLang] ?? reset($distanceSrc))
-                    : $distanceSrc;
+            $label    = I18nHelper::scalar($item['label'] ?? null, $locale, $baseLang);
+            $distance = I18nHelper::scalar($item['distance'] ?? null, $locale, $baseLang);
 
             if (! $label && ! $distance) {
                 continue;
@@ -289,8 +224,8 @@ class VillaController extends Controller
         }
 
         // Öne çıkanlar / konaklama bilgisi aktif dilde düz liste
-        $highlights        = $this->localizeList($villa->highlights, $locale, $baseLang);
-        $accommodationInfo = $this->localizeList($villa->stay_info, $locale, $baseLang);
+        $highlights        = I18nHelper::stringList($villa->highlights, $locale, $baseLang);
+        $accommodationInfo = I18nHelper::stringList($villa->stay_info, $locale, $baseLang);
 
         $viewData = [
             'id'             => $villa->id,
@@ -318,16 +253,15 @@ class VillaController extends Controller
             'highlights'         => $highlights,
             'accommodation_info' => $accommodationInfo,
 
-            'promo_video_id'  => $villa->promo_video_id,
-            'nearby_places'   => $nearbyPlaces,
-            'latitude'        => $villa->latitude,
-            'longitude'       => $villa->longitude,
+            'promo_video_id' => $villa->promo_video_id,
+            'nearby_places'  => $nearbyPlaces,
+            'latitude'       => $villa->latitude,
+            'longitude'      => $villa->longitude,
         ];
 
         return view('pages.villa.villa-detail', [
-            'villa' => $viewData,
-            'campaigns' => $campaignService->buildForPlacement('villa_detail'),
+            'villa'      => $viewData,
+            'campaigns'  => $campaignService->buildForPlacement('villa_detail'),
         ]);
     }
-
 }

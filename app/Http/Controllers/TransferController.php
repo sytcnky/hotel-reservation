@@ -7,7 +7,9 @@ use App\Models\StaticPage;
 use App\Models\TransferRoute;
 use App\Models\TransferVehicle;
 use App\Support\Helpers\CurrencyHelper;
+use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\ImageHelper;
+use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,13 +25,16 @@ class TransferController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        $base = config('app.locale', 'tr');
-        $loc  = app()->getLocale();
-        $c    = $page->content ?? [];
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+        $c          = $page->content ?? [];
 
-        $pickLocale = function ($map) use ($loc, $base) {
-            if (! is_array($map)) return null;
-            return $map[$loc] ?? $map[$base] ?? null;
+        $pickLocale = function ($map) use ($uiLocale, $baseLocale) {
+            if (! is_array($map)) {
+                return null;
+            }
+
+            return $map[$uiLocale] ?? $map[$baseLocale] ?? null;
         };
 
         // -------------------------------------------------
@@ -37,11 +42,11 @@ class TransferController extends Controller
         // -------------------------------------------------
         $transferOffer = null;
 
-        $direction      = $request->get('direction', 'oneway') === 'roundtrip' ? 'roundtrip' : 'oneway';
-        $fromId         = $request->integer('from_location_id');
-        $toId           = $request->integer('to_location_id');
-        $departureDate  = $request->input('departure_date');
-        $returnDate     = $request->input('return_date');
+        $direction     = $request->get('direction', 'oneway') === 'roundtrip' ? 'roundtrip' : 'oneway';
+        $fromId        = $request->integer('from_location_id');
+        $toId          = $request->integer('to_location_id');
+        $departureDate = $request->input('departure_date');
+        $returnDate    = $request->input('return_date');
 
         $adults   = max(0, $request->integer('adults', 2));
         $children = max(0, $request->integer('children', 0));
@@ -107,7 +112,7 @@ class TransferController extends Controller
                             'estimated_duration_min' => $route->duration_minutes,
 
                             'vehicle_id'             => $vehicle->id,
-                            'vehicle_name'           => $this->localizeJson($vehicle->name),
+                            'vehicle_name'           => I18nHelper::scalar($vehicle->name, $uiLocale, $baseLocale),
                             'capacity_total'         => $vehicle->capacity_total,
 
                             'price_total'            => $pricing['total'],
@@ -196,8 +201,8 @@ class TransferController extends Controller
             return null;
         }
 
-        $adultPrice  = (float) ($cfg['adult']  ?? 0);
-        $childPrice  = (float) ($cfg['child']  ?? 0);
+        $adultPrice  = (float) ($cfg['adult'] ?? 0);
+        $childPrice  = (float) ($cfg['child'] ?? 0);
         $infantPrice = (float) ($cfg['infant'] ?? 0);
 
         $oneWay = ($adults * $adultPrice)
@@ -241,7 +246,10 @@ class TransferController extends Controller
 
             return $locations
                 ->map(function (Location $location) {
-                    $label = $this->localizeJson($location->name ?? []);
+                    $uiLocale   = app()->getLocale();
+                    $baseLocale = LocaleHelper::defaultCode();
+
+                    $label = I18nHelper::scalar($location->name ?? [], $uiLocale, $baseLocale);
 
                     return [
                         'id'    => $location->id,
@@ -259,23 +267,9 @@ class TransferController extends Controller
             return (string) $value;
         }
 
-        $locale   = app()->getLocale();
-        $fallback = config('app.fallback_locale', 'en');
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
-        if (! empty($value[$locale])) {
-            return (string) $value[$locale];
-        }
-
-        if (! empty($value[$fallback])) {
-            return (string) $value[$fallback];
-        }
-
-        foreach ($value as $v) {
-            if (! empty($v)) {
-                return (string) $v;
-            }
-        }
-
-        return '';
+        return I18nHelper::scalar($value, $uiLocale, $baseLocale) ?? '';
     }
 }
