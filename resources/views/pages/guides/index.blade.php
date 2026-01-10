@@ -30,14 +30,18 @@
                         $slug = $g->slug[$locale] ?? null;
 
                         $cover = $g->cover_image ?? [];
-                        $bg = $cover['large'] ?? '/images/samples/popular-marmaris.jpg';
+                        $bgImage = $g->cover_image;
                     @endphp
 
                     <div class="col-md-6">
-                        <div
-                            class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4"
-                            style="background-image: url('{{ $bg }}'); background-size: cover; background-position: center;"
-                        >
+                        <div class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4">
+                            {{-- Arka plan görsel --}}
+                            <x-responsive-image
+                                :image="$bgImage"
+                                preset="listing-card"
+                                class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover z-0"
+                            />
+
                             <div class="position-relative z-2">
                                 <h3 class="fw-bold display-6 mt-5">{{ $title }}</h3>
 
@@ -47,12 +51,13 @@
                                     <p class="mb-4">&nbsp;</p>
                                 @endif
 
-                                <a href="{{ localized_route('guides.show', ['slug' => $slug]) }}" class="btn btn-outline-light">
+                                <a href="{{ localized_route('guides.show', ['slug' => $slug]) }}"
+                                   class="btn btn-outline-light">
                                     Gezi Rehberini İncele
                                 </a>
                             </div>
 
-                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50 z-1"></div>
                         </div>
                     </div>
                 @endforeach

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Helpers\ImageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,6 +74,6 @@ class PageBlock extends Model implements HasMedia
     {
         $media = $this->getFirstMedia('promo_image');
 
-        return \App\Support\Helpers\ImageHelper::normalize($media);
+        return ImageHelper::normalize($media);
     }
 }

@@ -6,27 +6,11 @@ use App\Models\StaticPage;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
 use App\Support\Helpers\I18nHelper;
-use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class VillaController extends Controller
 {
-    /**
-     * Media'yi x-responsive-image için normalize eder.
-     */
-    private function mapImage(?Media $media, string $fallbackAlt = ''): array
-    {
-        $img = ImageHelper::normalize($media);
-
-        if ($fallbackAlt && empty($img['alt'])) {
-            $img['alt'] = $fallbackAlt;
-        }
-
-        return $img;
-    }
-
     /**
      * Villa listeleme
      */
@@ -49,16 +33,15 @@ class VillaController extends Controller
                 // Slug (jsonb)
                 $slug = I18nHelper::scalar($villa->slug, $locale, $baseLang);
 
-                // Kapak görseli → normalize (placeholder dahil)
-                $coverMedia = $villa->getFirstMedia('cover');
-                $cover      = ImageHelper::normalize($coverMedia);
+                // Kapak görseli (standart accessor: normalize + placeholder + alt policy helper içinde)
+                $cover = $villa->cover_image;
 
                 // Lokasyon
                 $area   = $villa->location;
                 $city   = $area?->parent?->name;
                 $region = $area?->parent?->parent?->name;
 
-                // Fiyat (liste için de aynı helper)
+                // Fiyat (liste için helper)
                 $price = $villa->getBasePrice($currencyCode);
 
                 return [
@@ -110,23 +93,6 @@ class VillaController extends Controller
 
     /**
      * Villa detay
-     *
-     * Blade'deki beklenen yapı:
-     * - $villa['name']                string
-     * - $villa['max_guests']          int|null
-     * - $villa['bedroom_count']       int|null
-     * - $villa['bathroom_count']      int|null
-     * - $villa['location']['city']    string|null
-     * - $villa['location']['region']  string|null
-     * - $villa['gallery']             array<image-array> (x-responsive-image formatında)
-     * - $villa['base_price']          float|null
-     * - $villa['currency']            string
-     * - $villa['description']         string|null
-     * - $villa['highlights']          array<string>
-     * - $villa['accommodation_info']  array<string>
-     * - $villa['nearby_places']       array<['icon','label','value']>
-     * - $villa['promo_video_id']      string|null
-     * - $villa['latitude'], ['longitude']
      */
     public function show(string $slug, CampaignPlacementViewService $campaignService)
     {
@@ -184,23 +150,12 @@ class VillaController extends Controller
             $maxNights = $rule->max_nights ?: null;
         }
 
-        // Galeri (Media Library → normalize)
-        $galleryMedia = $villa->getMedia('gallery');
-
-        if ($galleryMedia->isEmpty()) {
-            $coverMedia = $villa->getFirstMedia('cover');
-            if ($coverMedia) {
-                $gallery = [$this->mapImage($coverMedia, $name)];
-            } else {
-                // Global placeholder
-                $gallery = [ImageHelper::normalize(null)];
-            }
-        } else {
-            $gallery = $galleryMedia
-                ->map(fn (Media $media) => $this->mapImage($media, $name))
-                ->values()
-                ->all();
-        }
+        // Görseller (standart accessor'lar)
+        // - cover_image: normalize + placeholder + alt policy helper içinde
+        // - gallery_images: normalize edilmiş dizi, BOŞ gelebilir
+        // Gallery boşsa cover gösterme kararı controller'da değil, Blade tarafında ele alınacak.
+        $cover   = $villa->cover_image;
+        $gallery = $villa->gallery_images;
 
         // Yakındaki yerler
         $nearbyPlaces = [];
@@ -223,7 +178,7 @@ class VillaController extends Controller
             ];
         }
 
-        // Öne çıkanlar / konaklama bilgisi aktif dilde düz liste
+        // Öne çıkanlar / konaklama bilgisi
         $highlights        = I18nHelper::stringList($villa->highlights, $locale, $baseLang);
         $accommodationInfo = I18nHelper::stringList($villa->stay_info, $locale, $baseLang);
 
@@ -241,7 +196,10 @@ class VillaController extends Controller
                 'region' => $region,
             ],
 
+            // NOTE: mevcut anahtarları koruyoruz; cover ek anahtar (blade sprintinde kullanırız)
+            'cover'           => $cover,
             'gallery'         => $gallery,
+
             'base_price'      => $basePrice,
             'currency'        => $currency,
             'prepayment_rate' => (float) $villa->prepayment_rate,
@@ -260,8 +218,8 @@ class VillaController extends Controller
         ];
 
         return view('pages.villa.villa-detail', [
-            'villa'      => $viewData,
-            'campaigns'  => $campaignService->buildForPlacement('villa_detail'),
+            'villa'     => $viewData,
+            'campaigns' => $campaignService->buildForPlacement('villa_detail'),
         ]);
     }
 }

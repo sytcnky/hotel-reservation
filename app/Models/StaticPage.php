@@ -129,7 +129,6 @@ class StaticPage extends Model implements HasMedia
     {
         return $this->getMedia('villa_content_images')
             ->map(fn (Media $media) => ImageHelper::normalize($media))
-            ->values()
-            ->all();
+            ->toArray();
     }
 }

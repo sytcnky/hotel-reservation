@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -95,13 +96,13 @@ class Tour extends Model implements HasMedia
     {
         $media = $this->getFirstMedia('cover');
 
-        return \App\Support\Helpers\ImageHelper::normalize($media);
+        return ImageHelper::normalize($media);
     }
 
     public function getGalleryImagesAttribute(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn (Media $media) => \App\Support\Helpers\ImageHelper::normalize($media))
+            ->map(fn (Media $media) => ImageHelper::normalize($media))
             ->toArray();
     }
 

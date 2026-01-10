@@ -53,6 +53,7 @@ class HomeController extends Controller
                     ->where('is_active', true)
                     ->withoutTrashed()
                     ->whereIn('id', $ids)
+                    ->with('media')
                     ->get()
                     ->sortBy(fn ($h) => array_search($h->id, $ids, true))
                     ->values();
@@ -65,6 +66,7 @@ class HomeController extends Controller
                     ->where('is_active', true)
                     ->withoutTrashed()
                     ->where('location_id', (int) $locationId)
+                    ->with('media')
                     ->latest('id')
                     ->take($hotelTake)
                     ->get();
@@ -74,6 +76,7 @@ class HomeController extends Controller
             $popularHotels = Hotel::query()
                 ->where('is_active', true)
                 ->withoutTrashed()
+                ->with('media')
                 ->latest('id')
                 ->take($hotelTake)
                 ->get();
@@ -102,6 +105,7 @@ class HomeController extends Controller
                     ->where('is_active', true)
                     ->withoutTrashed()
                     ->whereIn('id', $ids)
+                    ->with('media')
                     ->get()
                     ->sortBy(fn ($g) => array_search($g->id, $ids, true))
                     ->values();
@@ -111,6 +115,7 @@ class HomeController extends Controller
             $travelGuides = TravelGuide::query()
                 ->where('is_active', true)
                 ->withoutTrashed()
+                ->with('media')
                 ->latest('id')
                 ->take($guideTake)
                 ->get();
@@ -122,11 +127,11 @@ class HomeController extends Controller
         };
 
         return view('pages.home', [
-            'page'         => $page,
-            'popularHotels'=> $popularHotels,
-            'travelGuides' => $travelGuides,
-            'pickLocale'   => $pickLocale,
-            'campaigns'    => $campaignService->buildForPlacement('homepage_banner'),
+            'page'          => $page,
+            'popularHotels' => $popularHotels,
+            'travelGuides'  => $travelGuides,
+            'pickLocale'    => $pickLocale,
+            'campaigns'     => $campaignService->buildForPlacement('homepage_banner'),
         ]);
     }
 }

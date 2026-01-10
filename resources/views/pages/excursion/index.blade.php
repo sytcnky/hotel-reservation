@@ -44,10 +44,10 @@
         @foreach ($tours as $tour)
 
         @php
-        $activeCategory = request('category');
+            $activeCategory = request('category');
 
         if ($activeCategory && $tour['category_slug'] !== $activeCategory) {
-        continue;
+            continue;
         }
 
         $prices   = $tour['prices'] ?? [];
@@ -57,18 +57,17 @@
         $adultPrice = null;
 
         if (isset($prices[$currency]['adult'])) {
-        $adultPrice = $prices[$currency]['adult'];
+            $adultPrice = $prices[$currency]['adult'];
         } elseif (isset($prices['TRY']['adult'])) {
-        $adultPrice = $prices['TRY']['adult'];
-        $currency   = 'TRY';
+            $adultPrice = $prices['TRY']['adult'];
+            $currency   = 'TRY';
         } elseif (!empty($prices)) {
-        $firstCurrency = array_key_first($prices);
-        $adultPrice    = $prices[$firstCurrency]['adult'] ?? null;
-        $currency      = $firstCurrency;
+            $firstCurrency = array_key_first($prices);
+            $adultPrice    = $prices[$firstCurrency]['adult'] ?? null;
+            $currency      = $firstCurrency;
         }
 
-        // Cover normalize (yoksa placeholder)
-        $cover = $tour['cover'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
+        $cover = $tour['cover'] ?? null;
         @endphp
 
         <div class="col-sm-6 col-lg-4">
@@ -120,11 +119,7 @@
                 </div>
             </div>
         </div>
-
         @endforeach
-
     </div>
-
 </section>
-
 @endsection

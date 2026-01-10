@@ -495,7 +495,7 @@ class Order extends Model
 
     protected function resolveItemImageFromSnapshot(array $s): ?string
     {
-        foreach (['hotel_image', 'villa_image', 'vehicle_image', 'cover_image'] as $key) {
+        foreach (['hotel_image', 'villa_image', 'vehicle_cover', 'cover_image'] as $key) {
             if (! array_key_exists($key, $s) || blank($s[$key])) {
                 continue;
             }

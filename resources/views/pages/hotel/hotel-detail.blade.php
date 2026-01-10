@@ -33,10 +33,17 @@
         <div class="col-xl-8">
             <!-- Galeri -->
             <div class="gallery">
+                @php
+                    $galleryImages = $hotel['hotel_gallery'] ?? [];
+
+                    if (empty($galleryImages)) {
+                        $galleryImages = [$hotel['cover']];
+                    }
+                @endphp
                 <div
                     class="main-gallery position-relative mb-3 bg-black d-flex align-items-center justify-content-center rounded-3"
                     style="height: 420px;">
-                    @foreach ($hotel['images'] as $index => $img)
+                    @foreach ($galleryImages as $index => $img)
                     <x-responsive-image
                         :image="$img"
                         preset="gallery"
@@ -62,7 +69,7 @@
 
                 <!-- Thumbnail Satırı -->
                 <div class="d-flex overflow-auto gap-2 pb-2 thumbnail-scroll data-gallery-thumbs">
-                    @foreach ($hotel['images'] as $index => $img)
+                    @foreach ($galleryImages as $index => $img)
                     <div class="flex-shrink-0 overflow-hidden bg-black rounded"
                          style="width: 92px; height: 92px; cursor: pointer;"
                          data-gallery-thumb>

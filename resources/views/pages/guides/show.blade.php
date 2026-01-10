@@ -10,27 +10,31 @@
         $excerpt = $guide->excerpt[$locale] ?? ($guide->excerpt[$base] ?? '');
         $tags = $guide->tags[$locale] ?? ($guide->tags[$base] ?? []);
 
-        $cover = $guide->cover_image ?? [];
-        $heroBg = $cover['large'] ?? '/images/samples/slide-summer.jpg';
+        $heroImage = $guide->cover_image;
     @endphp
-    <section>
+    <section class="pt-5">
         <div class="container">
-            <div
-                class="position-relative text-white rounded overflow-hidden p-3 p-lg-5 align-content-end"
-                style="background-image:url('{{ $heroBg }}');background-size:cover;background-position:center;min-height:420px;"
-            >
-                <div class="position-relative z-1 text-center">
+            <div class="position-relative text-white rounded overflow-hidden p-3 p-lg-5 align-content-end" style="min-height:420px;">
+                <x-responsive-image
+                    :image="$heroImage"
+                    preset="gallery"
+                    sizes="100vw"
+                    class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover z-0"
+                />
+
+                <div class="position-relative z-2 text-center">
                     <h1 class="display-5 fw-bold mb-1">{{ $title }}</h1>
                     @if($excerpt)
                         <p class="mb-0 text-white">{{ $excerpt }}</p>
                     @endif
                 </div>
-                <div class="position-absolute top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,.45);"></div>
+
+                <div class="position-absolute top-0 start-0 w-100 h-100 z-1" style="background:rgba(0,0,0,.45);"></div>
             </div>
         </div>
     </section>
 
-    <section class="py-5">
+    <section class="pt-5">
         <div class="container">
             <div class="row">
                 {{-- SOL --}}
@@ -47,21 +51,20 @@
                                     $bTitle = data_get($block->data, "title.$locale") ?: data_get($block->data, "title.$base");
                                     $bBody  = data_get($block->data, "body.$locale") ?: data_get($block->data, "body.$base");
 
-                                    $img = $block->image_asset ?? [];
-                                    $imgUrl = $img['large'] ?? null;
+                                    $img = $block->image_asset;
                                 @endphp
 
                                 @if($layout === 'media_left')
-                                    <div class="row mt-5 align-items-center">
+                                    <div class="row mb-5 align-items-center">
                                         <div class="col-12 col-xl-6">
-                                            @if($imgUrl)
-                                                <div class="ratio ratio-4x3">
-                                                    <img
-                                                        src="{{ $imgUrl }}"
-                                                        class="w-100 object-fit-cover rounded"
-                                                        alt="{{ $bTitle ?: $title }}"
-                                                        loading="lazy"
-                                                    >
+                                            @if($img)
+                                                <div class="ratio ratio-4x3 mb-3">
+                                                    <x-responsive-image
+                                                        :image="$img"
+                                                        preset="gallery"
+                                                        class="w-100 h-100 object-fit-cover rounded"
+                                                        sizes="(max-width: 1200px) 100vw, 50vw"
+                                                    />
                                                 </div>
                                             @endif
                                         </div>
@@ -71,20 +74,21 @@
                                         </div>
                                     </div>
                                 @else
-                                    <div class="mt-5">
+                                    <div class="mb-5">
                                         @if($bTitle)<h2 class="h4 mb-3">{{ $bTitle }}</h2>@endif
                                         @if($bBody)<div class="text-muted">{!! nl2br(e($bBody)) !!}</div>@endif
 
-                                        @if($imgUrl)
-                                            <div class="ratio ratio-21x9 mt-3">
-                                                <img
-                                                    src="{{ $imgUrl }}"
-                                                    class="w-100 object-fit-cover rounded"
-                                                    alt="{{ $bTitle ?: $title }}"
-                                                    loading="lazy"
-                                                >
-                                            </div>
-                                        @endif
+                                            @if($img)
+                                                <div class="ratio ratio-21x9 mt-3">
+                                                    <x-responsive-image
+                                                        :image="$img"
+                                                        preset="gallery"
+                                                        class="w-100 h-100 object-fit-cover rounded"
+                                                        sizes="100vw"
+                                                    />
+                                                </div>
+                                            @endif
+
                                     </div>
                                 @endif
                             @endif
@@ -103,11 +107,10 @@
                                         @php
                                             $hName = $hotel->name[$locale] ?? ($hotel->name[$base] ?? '');
                                             $hSlug = $hotel->slug[$locale] ?? ($hotel->slug[$base] ?? null);
-                                            $hCover = $hotel->cover_image ?? [];
-                                            $hCoverUrl = $hCover['thumb'] ?? '/images/default.jpg';
+                                            $hCoverImage = $hotel->cover_image;
                                         @endphp
 
-                                        <section class="mt-5">
+                                        <section class="mb-5">
                                             <h2 class="h5 mb-3">Önerilen Otel</h2>
 
                                             <div class="card h-100 shadow-sm">
@@ -116,10 +119,20 @@
                                                         <div class="col-xl-3 mb-3 mb-lg-0">
                                                             @if($hSlug)
                                                                 <a href="{{ localized_route('hotel.detail', ['slug' => $hSlug]) }}">
-                                                                    <img src="{{ $hCoverUrl }}" class="img-fluid rounded" alt="otel görseli">
+                                                                    <x-responsive-image
+                                                                        :image="$hCoverImage"
+                                                                        preset="listing-card"
+                                                                        class="img-fluid rounded"
+                                                                        sizes="160px"
+                                                                    />
                                                                 </a>
                                                             @else
-                                                                <img src="{{ $hCoverUrl }}" class="img-fluid rounded" alt="otel görseli">
+                                                                <x-responsive-image
+                                                                    :image="$hCoverImage"
+                                                                    preset="listing-card"
+                                                                    class="img-fluid rounded"
+                                                                    sizes="160px"
+                                                                />
                                                             @endif
                                                         </div>
 
@@ -175,11 +188,10 @@
                                         @php
                                             $vName = $villa->name[$locale] ?? ($villa->name[$base] ?? '');
                                             $vSlug = $villa->slug[$locale] ?? ($villa->slug[$base] ?? null);
-                                            $vCover = $villa->cover_image ?? [];
-                                            $vCoverUrl = $vCover['thumb'] ?? '/images/default.jpg';
+                                            $vCoverImage = $villa->cover_image;
                                         @endphp
 
-                                        <section class="mt-4">
+                                        <section class="mb-4">
                                             <h2 class="h5 mb-3">Önerilen Villa</h2>
 
                                             <div class="card shadow-sm">
@@ -188,10 +200,20 @@
                                                         <div class="col-xl-3 mb-3 mb-lg-0">
                                                             @if($vSlug)
                                                                 <a href="{{ localized_route('villa.villa-detail', ['slug' => $vSlug]) }}">
-                                                                    <img src="{{ $vCoverUrl }}" class="img-fluid rounded" alt="villa görseli">
+                                                                    <x-responsive-image
+                                                                        :image="$vCoverImage"
+                                                                        preset="listing-card"
+                                                                        class="img-fluid rounded"
+                                                                        sizes="160px"
+                                                                    />
                                                                 </a>
                                                             @else
-                                                                <img src="{{ $vCoverUrl }}" class="img-fluid rounded" alt="villa görseli">
+                                                                <x-responsive-image
+                                                                    :image="$vCoverImage"
+                                                                    preset="listing-card"
+                                                                    class="img-fluid rounded"
+                                                                    sizes="160px"
+                                                                />
                                                             @endif
                                                         </div>
 
@@ -232,7 +254,6 @@
                                                                 </div>
                                                             @endif
                                                         </div>
-
 
                                                         <div class="col-xl-4 text-xl-end">
                                                             <div class="d-grid mt-1">
@@ -279,8 +300,7 @@
                             @php
                                 $tName   = $tour->name[$locale] ?? ($tour->name[$base] ?? '');
                                 $tSlug   = $tour->slug[$locale] ?? ($tour->slug[$base] ?? null);
-                                $tCover  = $tour->cover_image ?? [];
-                                $tImg    = $tCover['thumb'] ?? '/images/default.jpg';
+                                $tCoverImage = $tour->cover_image;
 
                                 $priceAdult = data_get($tour->prices, "{$currencyCode}.adult");
                                 $priceChild = data_get($tour->prices, "{$currencyCode}.child");
@@ -292,12 +312,12 @@
                                 <div class="position-relative">
                                     @if($tSlug)
                                         <a href="{{ localized_route('excursions.detail', ['slug' => $tSlug]) }}">
-                                            <img
-                                                src="{{ $tImg }}"
+                                            <x-responsive-image
+                                                :image="$tCoverImage"
+                                                preset="listing-card"
                                                 class="card-img-top object-fit-cover"
-                                                alt="{{ $tName }}"
-                                                height="200"
-                                            >
+                                                sizes="(max-width: 1200px) 100vw, 360px"
+                                            />
                                         </a>
                                     @else
                                         <img

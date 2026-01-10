@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\TransferBookingRequest;
-use App\Http\Requests\TourBookingRequest;
 use App\Http\Requests\HotelBookingRequest;
+use App\Http\Requests\TourBookingRequest;
+use App\Http\Requests\TransferBookingRequest;
 use App\Http\Requests\VillaBookingRequest;
 use App\Models\Hotel;
-use App\Models\UserCoupon;
+use App\Models\TransferVehicle;
 use App\Models\Villa;
-use App\Services\CouponViewModelService;
-use App\Services\CampaignViewModelService;
-use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 
 class CheckoutController extends Controller
@@ -44,11 +41,23 @@ class CheckoutController extends Controller
         // Validasyon
         $data = $request->validated();
 
-        // Formdan gelen (validation dışında kalan) ek alanları da snapshot'a ekle
-        foreach (['from_label', 'to_label', 'vehicle_image', 'vehicle_name'] as $extraKey) {
+        // Formdan gelen (validation dışında kalan) ek alanları snapshot'a ekle
+        // NOT: vehicle_image artık client’tan taşınmaz (image policy). Görsel DB’den cover_image ile gelir.
+        foreach (['from_label', 'to_label', 'vehicle_name'] as $extraKey) {
             if ($request->filled($extraKey)) {
                 $data[$extraKey] = $request->input($extraKey);
             }
+        }
+
+        // Controller image policy üretmez: model accessor’dan normalize edilmiş image taşınır
+        $vehicle = TransferVehicle::query()
+            ->with('media')
+            ->findOrFail((int) $data['vehicle_id']);
+
+        $img = $vehicle->cover_image ?? null;
+        if (is_array($img) && ($img['exists'] ?? false)) {
+            // Snapshot standardına uygun şekilde (mevcut key’i koruyarak)
+            $data['vehicle_cover'] = $img;
         }
 
         $snapshot = $data;
@@ -65,7 +74,6 @@ class CheckoutController extends Controller
             $snapshot,
         );
 
-        // Sepete yönlendir + başarı mesajı
         return redirect()
             ->to(localized_route('cart'))
             ->with('ok', 'validated');
@@ -120,20 +128,14 @@ class CheckoutController extends Controller
             $snapshot['location_label'] = $request->input('location_label');
         }
 
-        // Otel cover görselini çek → yoksa galeriden al
+        // Controller image policy üretmez: model accessor’dan normalize edilmiş image taşınır
         $hotel = Hotel::query()
             ->with('media')
             ->findOrFail($data['hotel_id']);
 
-        $media = $hotel->getFirstMedia('cover')
-            ?: $hotel->getFirstMedia('gallery');
-
-        if ($media) {
-            $snapshot['hotel_image'] = [
-                'thumb'   => $media->getUrl('thumb'),
-                'thumb2x' => $media->getUrl('thumb2x'),
-                'alt'     => $data['hotel_name'],
-            ];
+        $img = $hotel->cover_image ?? null;
+        if (is_array($img) && ($img['exists'] ?? false)) {
+            $snapshot['hotel_image'] = $img;
         }
 
         $this->addToCart(
@@ -164,20 +166,14 @@ class CheckoutController extends Controller
             $data['location_label'] = $request->input('location_label');
         }
 
-        // Villa cover / gallery görseli → snapshot.villa_image
+        // Controller image policy üretmez: model accessor’dan normalize edilmiş image taşınır
         $villa = Villa::query()
             ->with('media')
             ->findOrFail($data['villa_id']);
 
-        $media = $villa->getFirstMedia('cover')
-            ?: $villa->getFirstMedia('gallery');
-
-        if ($media) {
-            $data['villa_image'] = [
-                'thumb'   => $media->getUrl('thumb'),
-                'thumb2x' => $media->getUrl('thumb2x'),
-                'alt'     => $data['villa_name'],
-            ];
+        $img = $villa->cover_image ?? null;
+        if (is_array($img) && ($img['exists'] ?? false)) {
+            $data['villa_image'] = $img;
         }
 
         // Sepette “şimdi ödenecek” tutar olarak ön ödemeyi kullanıyoruz

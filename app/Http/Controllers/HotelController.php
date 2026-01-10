@@ -19,7 +19,6 @@ use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class HotelController extends Controller
 {
@@ -276,35 +275,25 @@ class HotelController extends Controller
 
     /**
      * Otelin odalarını view'e uygun yapı + form context state'i ile map eder.
+     *
+     * Not: show() içinde 'rooms', 'rooms.media', 'rooms.viewType', 'rooms.facilities', 'rooms.beds'
+     * eager-load edildiği için burada tekrar query atmayız; $hotel->rooms collection'ı üzerinden ilerleriz.
      */
     private function mapRooms(Hotel $hotel, ?array $context = null): array
     {
         $uiLocale   = app()->getLocale();
         $baseLocale = LocaleHelper::defaultCode();
 
-        return $hotel->rooms()
+        $rooms = $hotel->rooms
             ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get()
+            ->sortBy('sort_order')
+            ->values();
+
+        return $rooms
             ->map(function (Room $room) use ($context, $uiLocale, $baseLocale) {
-                $images = $room->getMedia('gallery')
-                    ->map(function (Media $media) use ($room) {
-                        $img = \App\Support\Helpers\ImageHelper::normalize($media);
-
-                        if ($room->name_l) {
-                            $img['alt'] = $room->name_l;
-                        }
-
-                        return $img;
-                    })
-                    ->values()
-                    ->all();
-
-                if (empty($images)) {
-                    $placeholder = \App\Support\Helpers\ImageHelper::normalize(null);
-                    $placeholder['alt'] = $room->name_l ?? 'Oda görseli';
-                    $images = [$placeholder];
-                }
+                // Görseller: standart accessor (Room::gallery_images)
+                // Controller içinde alt/placeholder override yok.
+                $images = $room->gallery_images;
 
                 $capacity = [
                     'adults'   => $room->capacity_adults ?? 0,
@@ -367,43 +356,6 @@ class HotelController extends Controller
             ->all();
     }
 
-    /**
-     * Otel galeri görsellerini conversion'larla birlikte map eder.
-     */
-    private function mapHotelImage(Media $media, string $fallbackAlt): array
-    {
-        return [
-            'thumb'   => $media->getUrl('thumb'),
-            'thumb2x' => $media->getUrl('thumb2x'),
-            'small'   => $media->getUrl('small'),
-            'small2x' => $media->getUrl('small2x'),
-            'large'   => $media->getUrl('large'),
-            'large2x' => $media->getUrl('large2x'),
-            'alt'     => $media->getCustomProperty('alt') ?? $fallbackAlt,
-        ];
-    }
-
-    private function mapGallery(Hotel $hotel): array
-    {
-        $uiLocale   = app()->getLocale();
-        $baseLocale = LocaleHelper::defaultCode();
-
-        $altBase    = I18nHelper::scalar($hotel->name, $uiLocale, $baseLocale) ?? 'Otel görseli';
-        $mediaItems = $hotel->getMedia('gallery');
-
-        if ($mediaItems->isEmpty()) {
-            $cover = $hotel->getFirstMedia('cover');
-
-            return $cover
-                ? [$this->mapHotelImage($cover, $altBase)]
-                : [];
-        }
-
-        return $mediaItems
-            ->map(fn (Media $media) => $this->mapHotelImage($media, $altBase))
-            ->values()
-            ->all();
-    }
 
     /**
      * Lokasyon bilgisini (region / city) map eder.
@@ -491,7 +443,7 @@ class HotelController extends Controller
             }
         }
 
-        $gallery   = $this->mapGallery($hotel);
+        $gallery = $hotel->gallery_images;
         $location  = $this->mapLocation($hotel->location);
         $features  = $this->mapFeatureGroups($hotel);
         $notes     = $this->localizeNotes($hotel->notes);
@@ -544,7 +496,8 @@ class HotelController extends Controller
             'location'       => $location,
             'latitude'       => $latitude,
             'longitude'      => $longitude,
-            'images'         => ! empty($gallery) ? $gallery : ['/images/default.jpg'],
+            'hotel_gallery'  => $gallery,
+            'cover'          => $hotel->cover_image,
             'rooms'          => $rooms,
             'features'       => $features,
             'notes'          => $notes,

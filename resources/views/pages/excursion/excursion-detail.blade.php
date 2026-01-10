@@ -21,13 +21,11 @@
             {{-- Galeri --}}
             <div class="gallery">
                 @php
-                $galleryImages = $tour['gallery'] ?? [];
+                    $galleryImages = $tour['gallery'] ?? [];
 
-                if (empty($galleryImages)) {
-                $galleryImages = [
-                \App\Support\Helpers\ImageHelper::normalize(null),
-                ];
-                }
+                    if (empty($galleryImages)) {
+                        $galleryImages = [$tour['cover']]; // cover yoksa burada patlar
+                    }
                 @endphp
                 <div class="main-gallery position-relative mb-3 bg-black d-flex align-items-center justify-content-center rounded-3"
                      style="height: 420px;">

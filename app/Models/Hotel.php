@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Helpers\ImageHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -71,10 +72,6 @@ class Hotel extends Model implements HasMedia
     private mixed $code;
 
     private mixed $name;
-
-    private static function max(string $string) {}
-
-    // app/Models/Hotel.php
 
     public function getNameLAttribute(): ?string
     {
@@ -228,13 +225,13 @@ class Hotel extends Model implements HasMedia
     public function getCoverImageAttribute(): array
     {
         $media = $this->getFirstMedia('cover');
-        return \App\Support\Helpers\ImageHelper::normalize($media);
+        return ImageHelper::normalize($media);
     }
 
     public function getGalleryImagesAttribute(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn($m) => \App\Support\Helpers\ImageHelper::normalize($m))
+            ->map(fn($m) => ImageHelper::normalize($m))
             ->toArray();
     }
 

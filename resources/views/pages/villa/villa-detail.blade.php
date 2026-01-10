@@ -46,10 +46,11 @@
             <!-- Galeri -->
             <div class="gallery">
                 @php
-                $galleryImages = $villa['gallery'];
-                if (empty($galleryImages)) {
-                $galleryImages = [$villa['cover'] ?? '/images/default.jpg'];
-                }
+                    $galleryImages = $villa['gallery'] ?? [];
+
+                    if (empty($galleryImages)) {
+                        $galleryImages = [$villa['cover']];
+                    }
                 @endphp
 
                 <div class="main-gallery position-relative mb-3 bg-black d-flex align-items-center justify-content-center rounded-3"

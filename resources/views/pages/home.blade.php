@@ -141,9 +141,6 @@
         </div>
     </section>
 
-
-
-
     {{-- POPÜLER OTELLER --}}
     <section class="container my-5">
         <div class="row align-items-end">
@@ -293,5 +290,4 @@
             </div>
         </div>
     </section>
-
 @endsection

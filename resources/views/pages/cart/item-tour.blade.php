@@ -1,18 +1,21 @@
 {{-- resources/views/partials/cart/item-tour.blade.php --}}
 
 @php
-$s = (array) ($ci['snapshot'] ?? []);
+    $s = (array) ($ci['snapshot'] ?? []);
 
-$amount   = (float)($ci['amount'] ?? 0);
-$currency = $ci['currency'] ?? null;
+    $amount   = (float) ($ci['amount'] ?? 0);
+    $currency = $ci['currency'] ?? null;
 
-$thumb   = $s['cover_image']['thumb']   ?? null;
-$thumb2x = $s['cover_image']['thumb2x'] ?? null;
-$alt     = $s['cover_image']['alt']     ?? ($s['tour_name'] ?? 'Tur');
+    $cover = $s['cover_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
-$a = (int)($s['adults']   ?? 0);
-$c = (int)($s['children'] ?? 0);
-$i = (int)($s['infants']  ?? 0);
+    // Alt override (varsa), yoksa snapshot alt'ı kalsın
+    if (is_array($cover)) {
+        $cover['alt'] = $cover['alt'] ?? ($s['tour_name'] ?? 'Tur');
+    }
+
+    $a = (int) ($s['adults']   ?? 0);
+    $c = (int) ($s['children'] ?? 0);
+    $i = (int) ($s['infants']  ?? 0);
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -31,12 +34,12 @@ $i = (int)($s['infants']  ?? 0);
 
             {{-- Görsel --}}
             <div class="col-4 col-md-3">
-                @if ($thumb)
-                <img src="{{ $thumb }}"
-                     srcset="{{ $thumb }} 1x, {{ $thumb2x }} 2x"
-                     class="img-fluid rounded object-fit-cover"
-                     alt="{{ $alt }}">
-                @endif
+                <x-responsive-image
+                    :image="$cover"
+                    preset="listing-card"
+                    class="img-fluid rounded object-fit-cover"
+                    sizes="(min-width: 768px) 160px, 33vw"
+                />
             </div>
 
             {{-- Metinler --}}
@@ -44,7 +47,7 @@ $i = (int)($s['infants']  ?? 0);
                 <div class="small text-uppercase text-muted mb-1">
                     Günlük Tur
                     @if (!empty($s['category_name']))
-                    <small>({{ $s['category_name'] }})</small>
+                        <small>({{ $s['category_name'] }})</small>
                     @endif
                 </div>
 
@@ -54,19 +57,19 @@ $i = (int)($s['infants']  ?? 0);
 
                 <div class="text-muted small">
                     @if (!empty($s['date']))
-                    <div>
-                        <i class="fi fi-rr-calendar"></i>
-                        {{ $s['date'] }}
-                    </div>
+                        <div>
+                            <i class="fi fi-rr-calendar"></i>
+                            {{ $s['date'] }}
+                        </div>
                     @endif
 
                     @if ($a || $c || $i)
-                    <div>
-                        <i class="fi fi-rr-users"></i>
-                        {{ $a }} Yetişkin
-                        @if ($c) , {{ $c }} Çocuk @endif
-                        @if ($i) , {{ $i }} Bebek @endif
-                    </div>
+                        <div>
+                            <i class="fi fi-rr-users"></i>
+                            {{ $a }} Yetişkin
+                            @if ($c) , {{ $c }} Çocuk @endif
+                            @if ($i) , {{ $i }} Bebek @endif
+                        </div>
                     @endif
                 </div>
             </div>
@@ -76,7 +79,7 @@ $i = (int)($s['infants']  ?? 0);
                 <div class="fw-bold fs-5 text-primary">
                     {{ number_format($amount, 0, ',', '.') }}
                     @if ($currency)
-                    {{ $currency }}
+                        {{ $currency }}
                     @endif
                 </div>
             </div>

@@ -1,26 +1,27 @@
 <div class="room-card border rounded overflow-hidden mb-4">
     @php
-    $state   = $room['state'] ?? 'no_context';
-    $pricing = $room['pricing'] ?? null;
-    $canBook = $state === 'priced';
+        $state   = $room['state'] ?? 'no_context';
+        $pricing = $room['pricing'] ?? null;
+        $canBook = $state === 'priced';
     @endphp
 
     <!-- Oda görsel, başlık, fiyat -->
     <div class="d-flex flex-wrap p-3 gap-3">
         <!-- Sol: Görsel -->
         @php
-        // İlk görseli al; yoksa ImageHelper üzerinden placeholder üret
-        $coverImage = $room['images'][0] ?? \App\Support\Helpers\ImageHelper::normalize(null);
-        $coverImage['alt'] = $room['name'] ?? ($coverImage['alt'] ?? '');
+            $images = (array) ($room['images'] ?? []);
+            $hasImages = !empty($images);
         @endphp
 
-        <div>
-            <x-responsive-image
-                :image="$coverImage"
-                class="room-thumb rounded img-fluid"
-                sizes="150px"
-            />
-        </div>
+        @if($hasImages)
+            <div>
+                <x-responsive-image
+                    :image="$images[0]"
+                    class="room-thumb rounded img-fluid"
+                    sizes="150px"
+                />
+            </div>
+        @endif
 
         <div class="d-flex flex-fill align-items-xl-center">
             <!-- Oda Bilgileri -->
@@ -112,43 +113,44 @@
         <div class="room-details collapse-content p-3">
             <div class="row">
                 {{-- Galeri --}}
-                <div class="col-md-7">
-                    <div class="gallery">
-                        <!-- Ana görseller -->
-                        <div class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
-                             style="height: 300px;">
-                            @foreach ($room['images'] as $index => $image)
-                            <x-responsive-image
-                                :image="$image"
-                                preset="gallery"
-                                class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
-                                style="object-fit: contain;"
-                                :data-index="$index"
-                            />
-                            @endforeach
-                        </div>
-
-                        <!-- Thumbnails -->
-                        <div class="d-flex gap-2 overflow-auto thumbnail-scroll">
-                            @foreach ($room['images'] as $index => $image)
-                            <div class="flex-shrink-0 rounded overflow-hidden bg-black"
-                                 data-gallery-thumb
-                                 style="width: 72px; height: 72px; cursor: pointer;">
-                                <x-responsive-image
-                                    :image="$image"
-                                    class="w-100 h-100"
-                                    preset="gallery-thumb"
-                                    style="object-fit: cover;"
-                                    sizes="72px"
-                                />
+                @if($hasImages)
+                    <div class="col-md-7">
+                        <div class="gallery">
+                            <div class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
+                                 style="height: 300px;">
+                                @foreach ($images as $index => $image)
+                                    <x-responsive-image
+                                        :image="$image"
+                                        preset="gallery"
+                                        class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
+                                        style="object-fit: contain;"
+                                        :data-index="$index"
+                                    />
+                                @endforeach
                             </div>
-                            @endforeach
+
+                            <div class="d-flex gap-2 overflow-auto thumbnail-scroll">
+                                @foreach ($images as $index => $image)
+                                    <div class="flex-shrink-0 rounded overflow-hidden bg-black"
+                                         data-gallery-thumb
+                                         style="width: 72px; height: 72px; cursor: pointer;">
+                                        <x-responsive-image
+                                            :image="$image"
+                                            class="w-100 h-100"
+                                            preset="gallery-thumb"
+                                            style="object-fit: cover;"
+                                            sizes="72px"
+                                        />
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
+
 
                 {{-- Sağ: Bilgiler --}}
-                <div class="col-md-5">
+                <div class="{{ $hasImages ? 'col-md-5' : 'col-12' }}">
                     <h4 class="my-3 text-primary">Oda Özellikleri:</h4>
 
                     <ul class="list-unstyled mb-3 small">
@@ -219,13 +221,13 @@
                 @csrf
 
                 @php
-                // searchParams, parent view'den geliyor (HotelController::show)
-                $ctx = $searchParams ?? null;
-                $pricing = $room['pricing'] ?? null;
+                    // searchParams, parent view'den geliyor (HotelController::show)
+                    $ctx = $searchParams ?? null;
+                    $pricing = $room['pricing'] ?? null;
 
-                // checkin/checkout Carbon → Y-m-d
-                $checkin  = $ctx['checkin']  ?? null;
-                $checkout = $ctx['checkout'] ?? null;
+                    // checkin/checkout Carbon → Y-m-d
+                    $checkin  = $ctx['checkin']  ?? null;
+                    $checkout = $ctx['checkout'] ?? null;
                 @endphp
 
                 <input type="hidden" name="hotel_id"   value="{{ $hotel['id'] }}">
@@ -234,23 +236,23 @@
                 <input type="hidden" name="room_name"  value="{{ $room['name'] }}">
 
                 @if($checkin && $checkout)
-                <input type="hidden" name="checkin"  value="{{ $checkin->format('Y-m-d') }}">
-                <input type="hidden" name="checkout" value="{{ $checkout->format('Y-m-d') }}">
-                <input type="hidden" name="nights"   value="{{ $ctx['nights'] ?? 1 }}">
+                    <input type="hidden" name="checkin"  value="{{ $checkin->format('Y-m-d') }}">
+                    <input type="hidden" name="checkout" value="{{ $checkout->format('Y-m-d') }}">
+                    <input type="hidden" name="nights"   value="{{ $ctx['nights'] ?? 1 }}">
                 @endif
 
                 <input type="hidden" name="adults"   value="{{ $ctx['adults']   ?? 2 }}">
                 <input type="hidden" name="children" value="{{ $ctx['children'] ?? 0 }}">
 
                 @if(!empty($ctx['board_type_id']))
-                <input type="hidden" name="board_type_id" value="{{ $ctx['board_type_id'] }}">
+                    <input type="hidden" name="board_type_id" value="{{ $ctx['board_type_id'] }}">
                 @endif
 
-                <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
+                    <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
 
                 @if($pricing)
-                <input type="hidden" name="currency"    value="{{ $pricing['currency'] ?? 'TRY' }}">
-                <input type="hidden" name="price_total" value="{{ $pricing['total_amount'] ?? 0 }}">
+                    <input type="hidden" name="currency"    value="{{ $pricing['currency'] ?? 'TRY' }}">
+                    <input type="hidden" name="price_total" value="{{ $pricing['total_amount'] ?? 0 }}">
                 @endif
 
                 <button type="submit"
@@ -260,7 +262,5 @@
                 </button>
             </form>
         </div>
-
     </div>
-
 </div>

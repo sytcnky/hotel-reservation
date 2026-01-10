@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\RoomRateResolver;
+use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -131,7 +132,7 @@ class Room extends Model implements HasMedia
     public function getGalleryImagesAttribute(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn($m) => \App\Support\Helpers\ImageHelper::normalize($m))
+            ->map(fn($m) => ImageHelper::normalize($m))
             ->toArray();
     }
 }

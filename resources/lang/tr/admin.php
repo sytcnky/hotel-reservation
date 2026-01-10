@@ -405,6 +405,7 @@ return [
             'description'          => 'Açıklama',
             'active'               => 'Aktif',
             'sort_order'           => 'Sıra',
+            'cover'                => 'Kapak Görseli',
             'capacity_total'       => 'Toplam',
             'capacity_adult_max'   => 'Yetişkin Maks',
             'capacity_child_max'   => 'Çocuk Maks',

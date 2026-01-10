@@ -1,25 +1,25 @@
 {{-- resources/views/partials/cart/item-hotel.blade.php --}}
 
 @php
-$s = (array) ($ci['snapshot'] ?? []);
+    $s = (array) ($ci['snapshot'] ?? []);
 
-$amount   = (float)($ci['amount'] ?? 0);
-$currency = $ci['currency'] ?? null;
+    $amount   = (float)($ci['amount'] ?? 0);
+    $currency = $ci['currency'] ?? null;
 
-$img     = $s['hotel_image'] ?? null;
-$thumb   = $img['thumb']   ?? null;
-$thumb2x = $img['thumb2x'] ?? null;
-$alt     = $img['alt']     ?? ($s['hotel_name'] ?? 'Otel');
+    $img = $s['hotel_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
-$checkin  = !empty($s['checkin']) ? \Illuminate\Support\Carbon::parse($s['checkin']) : null;
-$checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
-$nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
+    // Tarih / gece
+    $checkin  = !empty($s['checkin']) ? \Illuminate\Support\Carbon::parse($s['checkin']) : null;
+    $checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
+    $nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
 
-$adults   = (int)($s['adults']   ?? 0);
-$children = (int)($s['children'] ?? 0);
+    // Kişi sayıları
+    $adults   = (int)($s['adults']   ?? 0);
+    $children = (int)($s['children'] ?? 0);
 
-$roomName      = $s['room_name'] ?? null;
-$boardTypeName = $s['board_type_name'] ?? null;
+    // Fiyatlar
+    $roomName      = $s['room_name'] ?? null;
+    $boardTypeName = $s['board_type_name'] ?? null;
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -38,12 +38,12 @@ $boardTypeName = $s['board_type_name'] ?? null;
 
             {{-- Görsel --}}
             <div class="col-4 col-md-3">
-                @if ($thumb)
-                <img src="{{ $thumb }}"
-                     srcset="{{ $thumb }} 1x, {{ $thumb2x }} 2x"
-                     class="img-fluid rounded object-fit-cover"
-                     alt="{{ $alt }}">
-                @endif
+                <x-responsive-image
+                    :image="$img"
+                    preset="listing-card"
+                    class="img-fluid rounded object-fit-cover"
+                    sizes="(min-width: 768px) 160px, 33vw"
+                />
             </div>
 
             {{-- Metinler --}}

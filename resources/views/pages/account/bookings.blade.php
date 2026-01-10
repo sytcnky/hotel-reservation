@@ -182,6 +182,7 @@
                                 };
 
                                 $img = $it['image'] ?? null;
+                                $imageObj = \App\Support\Helpers\ImageHelper::normalize($img);
                                 $pax = $it['pax'] ?? null;
                             @endphp
 
@@ -191,13 +192,11 @@
                                         <span class="badge bg-secondary-subtle text-secondary position-absolute ms-1 mt-1 fw-medium">{{ $titleBadge }}</span>
                                     @endif
 
-                                    @if($img)
-                                        <img src="{{ $img }}" class="booking-thumb" alt="küçük görsel">
-                                    @else
-                                        <div class="booking-thumb bg-light d-flex align-items-center justify-content-center text-muted">
-                                            Görsel yok
-                                        </div>
-                                    @endif
+                                    <x-responsive-image
+                                        :image="$imageObj"
+                                        preset="listing-card"
+                                        class="booking-thumb"
+                                    />
                                 </div>
 
                                 <div class="col">

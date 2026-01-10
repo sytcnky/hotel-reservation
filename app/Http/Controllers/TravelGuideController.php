@@ -9,14 +9,13 @@ use App\Models\TravelGuide;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
 use App\Support\Helpers\CurrencyHelper;
-use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 
 class TravelGuideController extends Controller
 {
     public function index(Request $request)
     {
-        $uiLocale   = app()->getLocale();
+        $uiLocale = app()->getLocale();
 
         $page = StaticPage::query()
             ->where('key', 'travel_guide_page')
@@ -44,16 +43,14 @@ class TravelGuideController extends Controller
 
     public function show(Request $request, string $slug, CampaignPlacementViewService $campaignService)
     {
-        $uiLocale   = app()->getLocale();
-        $baseLocale = LocaleHelper::defaultCode(); // sprint standardı (bu dosyada henüz pick yapılmadığı için sadece standart amaçlı)
+        $uiLocale = app()->getLocale();
 
         $guide = TravelGuide::query()
             ->where('is_active', true)
             ->whereRaw("slug->>? = ?", [$uiLocale, $slug])
             ->with([
                 'media',        // guide cover
-                'blocks.media', // block image
-                'blocks',       // blocks data
+                'blocks.media', // block image (blocks relation da gelir)
             ])
             ->firstOrFail();
 
@@ -99,7 +96,7 @@ class TravelGuideController extends Controller
             $villasById = Villa::query()
                 ->whereIn('id', $villaIds)
                 ->where('is_active', true)
-                ->with('media')
+                ->with('media') // cover_image accessor
                 ->get()
                 ->keyBy('id');
         }

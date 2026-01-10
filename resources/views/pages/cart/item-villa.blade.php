@@ -1,34 +1,30 @@
 {{-- resources/views/partials/cart/item-villa.blade.php --}}
 
 @php
-$s = (array) ($ci['snapshot'] ?? []);
+    $s = (array) ($ci['snapshot'] ?? []);
 
-$amount   = (float)($ci['amount'] ?? 0);
-$currency = $ci['currency'] ?? null;
+    $amount   = (float)($ci['amount'] ?? 0);
+    $currency = $ci['currency'] ?? null;
 
-// Görsel (villa_image snapshot alanı varsayımı)
-$img     = $s['villa_image'] ?? null;
-$thumb   = $img['thumb']   ?? null;
-$thumb2x = $img['thumb2x'] ?? null;
-$alt     = $img['alt']     ?? ($s['villa_name'] ?? 'Villa');
+    $img = $s['villa_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
-// Tarih / gece
-$checkin  = !empty($s['checkin'])  ? \Illuminate\Support\Carbon::parse($s['checkin'])  : null;
-$checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
-$nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
+    // Tarih / gece
+    $checkin  = !empty($s['checkin'])  ? \Illuminate\Support\Carbon::parse($s['checkin'])  : null;
+    $checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
+    $nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
 
-// Kişi sayıları
-$adults   = (int)($s['adults']   ?? 0);
-$children = (int)($s['children'] ?? 0);
+    // Kişi sayıları
+    $adults   = (int)($s['adults']   ?? 0);
+    $children = (int)($s['children'] ?? 0);
 
-// Fiyatlar
-$nightly      = (float)($s['price_nightly']    ?? 0);
-$prepayment   = (float)($s['price_prepayment'] ?? $amount);
-$total        = (float)($s['price_total']      ?? $amount);
-$remaining    = max($total - $prepayment, 0);
+    // Fiyatlar
+    $nightly      = (float)($s['price_nightly']    ?? 0);
+    $prepayment   = (float)($s['price_prepayment'] ?? $amount);
+    $total        = (float)($s['price_total']      ?? $amount);
+    $remaining    = max($total - $prepayment, 0);
 
-// Lokasyon etiketi (opsiyonel)
-$locationLabel = $s['location_label'] ?? null;
+    // Lokasyon etiketi (opsiyonel)
+    $locationLabel = $s['location_label'] ?? null;
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -47,12 +43,12 @@ $locationLabel = $s['location_label'] ?? null;
 
             {{-- Görsel --}}
             <div class="col-12 col-lg-3">
-                @if ($thumb)
-                <img src="{{ $thumb }}"
-                     srcset="{{ $thumb }} 1x, {{ $thumb2x }} 2x"
-                     class="img-fluid rounded object-fit-cover"
-                     alt="{{ $alt }}">
-                @endif
+                <x-responsive-image
+                    :image="$img"
+                    preset="listing-card"
+                    class="img-fluid rounded object-fit-cover"
+                    sizes="(min-width: 768px) 160px, 33vw"
+                />
             </div>
 
             {{-- Metinler --}}

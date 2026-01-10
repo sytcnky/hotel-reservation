@@ -152,8 +152,8 @@
                                                 <div class="badge text-bg-primary mt-1">{{ $badgeLabel }}</div>
                                             @endif
                                             <span class="coupon-info text-secondary">
-                                <i class="fi fi-rr-info"></i>
-                            </span>
+                                                <i class="fi fi-rr-info"></i>
+                                            </span>
                                         </div>
 
                                         <div class="flex-grow-1 align-self-end">

@@ -8,7 +8,6 @@ use App\Models\TransferRoute;
 use App\Models\TransferVehicle;
 use App\Support\Helpers\CurrencyHelper;
 use App\Support\Helpers\I18nHelper;
-use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -85,19 +84,8 @@ class TransferController extends Controller
                     );
 
                     if ($pricing) {
-                        $mediaItems = $vehicle->getMedia('gallery');
-
-                        $vehicleGallery = $mediaItems
-                            ->map(fn ($media) => ImageHelper::normalize($media))
-                            ->values()
-                            ->all();
-
-                        if (empty($vehicleGallery)) {
-                            $placeholder    = ImageHelper::normalize(null);
-                            $vehicleGallery = [$placeholder];
-                        }
-
-                        $vehicleImage = $vehicleGallery[0]['thumb'] ?? null;
+                        // Cover tek otorite: accessor zaten normalize + placeholder döner.
+                        $cover = $vehicle->cover_image;
 
                         $transferOffer = [
                             'route_id'               => $route->id,
@@ -118,8 +106,8 @@ class TransferController extends Controller
                             'price_total'            => $pricing['total'],
                             'currency'               => $pricing['currency'],
 
-                            'vehicle_gallery'        => $vehicleGallery,
-                            'vehicle_image'          => $vehicleImage,
+                            'vehicle_cover'          => $cover,
+                            'vehicle_gallery'        => $vehicle->gallery_images,
                         ];
                     }
                 }
@@ -164,6 +152,7 @@ class TransferController extends Controller
         }
 
         return TransferVehicle::query()
+            ->with('media') // eager-load for accessors (cover_image / gallery_images)
             ->where('is_active', true)
             ->where('capacity_total', '>=', $totalPassengers)
             ->orderBy('capacity_total')

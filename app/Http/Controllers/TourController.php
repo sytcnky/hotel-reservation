@@ -10,19 +10,18 @@ use App\Services\CampaignPlacementViewService;
 use App\Support\Helpers\CurrencyHelper;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class TourController extends Controller
 {
     /**
      * Yardımcı: i18n kolonları normalize eder.
      *
-     * Sprint standardı:
+     * Standart:
      * - uiLocale = app()->getLocale()
      * - baseLocale = LocaleHelper::defaultCode()
-     * - pick = data[ui] ?? data[base] ?? ''
+     * - pick = data[ui] ?? data[base] ?? ...
      *
-     * Ayrıca bazı alanlar (notes gibi) locale içinde [{value:"..."}] liste olarak tutulabiliyor:
+     * Not: Bazı alanlar (notes gibi) locale içinde [{value:"..."}] liste olarak tutulabiliyor.
      * - Bu durumda value'ları satır satır birleştirir.
      */
     private function localize(mixed $value, string $uiLocale, string $baseLocale): mixed
@@ -60,26 +59,13 @@ class TourController extends Controller
     /**
      * Tur günlerini map eder (şimdilik sadece lower-case)
      */
-    private function mapDays($days)
+    private function mapDays($days): array
     {
         if (! is_array($days)) {
             return [];
         }
 
         return array_map(fn ($d) => strtolower($d), $days);
-    }
-
-    /**
-     * Ortak media map (ImageHelper.normalize)
-     */
-    private function mapMedia($mediaItems): array
-    {
-        return collect($mediaItems)
-            ->map(function (Media $media) {
-                return \App\Support\Helpers\ImageHelper::normalize($media);
-            })
-            ->values()
-            ->all();
     }
 
     /**
@@ -98,7 +84,8 @@ class TourController extends Controller
         $c   = $page->content ?? [];
         $loc = $uiLocale;
 
-        $tours = Tour::with(['category'])
+        $tours = Tour::query()
+            ->with(['category', 'media'])
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
@@ -106,17 +93,10 @@ class TourController extends Controller
                 $prices   = $t->prices ?? [];
                 $tourName = $this->localize($t->name, $uiLocale, $baseLocale);
 
-                // Kapak (normalize + alt)
-                $coverMedia = $t->getFirstMedia('cover');
-
-                $cover = $coverMedia
-                    ? \App\Support\Helpers\ImageHelper::normalize($coverMedia)
-                    : null;
-
-                if ($cover && $tourName) {
-                    $cover['alt'] = $tourName;
-                }
-
+                // NOTE:
+                // - cover_image accessor'ı her zaman ImageHelper::normalize(...) formatı döner (yoksa placeholder).
+                // - gallery_images accessor'ı yoksa [] döner.
+                // - Controller'da alt/placeholder/fallback üretilmez.
                 return [
                     'id'                => $t->id,
                     'name'              => $tourName,
@@ -126,16 +106,15 @@ class TourController extends Controller
                     'category_slug'     => $t->category?->slug_l,
                     'prices'            => $prices,
 
-                    // Kapak
-                    'cover'             => $cover,
-
-                    // Galeri (format aynı kalsın diye normalize edilmiş halde dönüyoruz)
-                    'gallery'           => $this->mapMedia($t->getMedia('gallery')),
+                    // Media (standart accessor)
+                    'cover'             => $t->cover_image,
+                    'gallery'           => $t->gallery_images,
                 ];
             });
 
         // Kategoriler (boş olmayanlar)
-        $categories = TourCategory::where('is_active', true)
+        $categories = TourCategory::query()
+            ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
             ->filter(function ($cat) use ($tours) {
@@ -149,11 +128,11 @@ class TourController extends Controller
             ->values();
 
         return view('pages.excursion.index', [
-            'tours'       => $tours,
-            'categories'  => $categories,
-            'page'        => $page,
-            'c'           => $c,
-            'loc'         => $loc,
+            'tours'      => $tours,
+            'categories' => $categories,
+            'page'       => $page,
+            'c'          => $c,
+            'loc'        => $loc,
         ]);
     }
 
@@ -174,43 +153,11 @@ class TourController extends Controller
 
         $tourName = $this->localize($tour->name, $uiLocale, $baseLocale);
 
-        // KAPAK (normalize + alt)
-        $coverMedia = $tour->getFirstMedia('cover');
-
-        $cover = $coverMedia
-            ? \App\Support\Helpers\ImageHelper::normalize($coverMedia)
-            : null;
-
-        if ($cover && $tourName) {
-            $cover['alt'] = $tourName;
-        }
-
-        // GALERİ (normalize + fallback mantığı)
-        $galleryMedia = $tour->getMedia('gallery');
-
-        if ($galleryMedia->isEmpty()) {
-            if ($cover) {
-                // Galeri yoksa kapak üzerinden tek elemanlı galeri
-                $gallery = [$cover];
-            } else {
-                // Kapak da yoksa placeholder
-                $placeholder = \App\Support\Helpers\ImageHelper::normalize(null);
-                $placeholder['alt'] = $tourName ?? 'Tur görseli';
-                $gallery = [$placeholder];
-            }
-        } else {
-            $gallery = $this->mapMedia($galleryMedia);
-
-            // Alt text boş gelmişse tur adıyla dolduralım (opsiyonel ama mantıklı)
-            if ($tourName) {
-                foreach ($gallery as &$img) {
-                    if (empty($img['alt'])) {
-                        $img['alt'] = $tourName;
-                    }
-                }
-                unset($img);
-            }
-        }
+        // NOTE:
+        // - Gallery boşsa cover gösterimi Blade'de çözülecek.
+        // - cover_image accessor'ı placeholder döndürdüğü için "cover boşsa placeholder" otomatik.
+        $cover   = $tour->cover_image;
+        $gallery = $tour->gallery_images;
 
         // Hizmet isimleri (dahil / hariç)
         $includedIds = $tour->included_service_ids ?? [];
@@ -261,7 +208,7 @@ class TourController extends Controller
             'category_name'     => $tour->category?->name_l,
             'category_slug'     => $tour->category?->slug_l,
 
-            // Kapak + galeri (normalize edilmiş)
+            // Media (standart accessor)
             'cover'             => $cover,
             'gallery'           => $gallery,
 

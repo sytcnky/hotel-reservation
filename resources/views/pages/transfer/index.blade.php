@@ -240,12 +240,8 @@
                 $fromLabel = collect($locations)->firstWhere('id', $transferOffer['from_location_id'])['label'] ?? '';
                 $toLabel   = collect($locations)->firstWhere('id', $transferOffer['to_location_id'])['label'] ?? '';
 
-                $gallery = $transferOffer['vehicle_gallery'] ?? [];
-                if (empty($gallery)) {
-                $placeholder = \App\Support\Helpers\ImageHelper::normalize(null);
-                $placeholder['alt'] = $transferOffer['vehicle_name'] ?? 'Araç görseli';
-                $gallery = [$placeholder];
-                }
+                $cover   = $transferOffer['vehicle_cover'] ?? null; // yeni cover (normalize image objesi)
+                $gallery = $transferOffer['vehicle_gallery'] ?? []; // galeri aynen kalır, fallback yok
             @endphp
 
             <div class="bg-white p-4 rounded shadow-sm mb-4 mt-3">
@@ -253,6 +249,12 @@
                     {{-- Sol: Galeri --}}
                     <div class="col-lg-5 pe-lg-5 mb-4">
                         <div class="gallery">
+                            @php
+                                $gallery = $transferOffer['vehicle_gallery'] ?? [];
+                                if (empty($gallery)) {
+                                    $gallery = [$transferOffer['vehicle_cover']];
+                                }
+                            @endphp
                             <h4 class="fw-bold">{{ $transferOffer['vehicle_name'] }}</h4>
                             <p class="small text-muted">
                                 Konforlu ve geniş araçlarımızla havalimanından konaklama noktanıza güvenli transfer.
@@ -262,11 +264,12 @@
                                 class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
                                 style="height: 260px;">
                                 @foreach($gallery as $index => $image)
-                                    <img src="{{ $image['large'] }}"
-                                         srcset="{{ $image['large'] }} 1x, {{ $image['large2x'] }} 2x"
-                                         class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
-                                         style="object-fit: contain;"
-                                         alt="{{ $image['alt'] }}">
+                                    <x-responsive-image
+                                        :image="$image"
+                                        preset="gallery"
+                                        class="gallery-image position-absolute top-0 start-0 w-100 h-100 {{ $index !== 0 ? 'd-none' : '' }}"
+                                        style="object-fit: contain;"
+                                    />
                                 @endforeach
                             </div>
 
@@ -275,11 +278,12 @@
                                     <div class="flex-shrink-0 rounded overflow-hidden bg-black"
                                          data-gallery-thumb
                                          style="width: 72px; height: 72px; cursor: pointer;">
-                                        <img src="{{ $image['thumb'] }}"
-                                             srcset="{{ $image['thumb'] }} 1x, {{ $image['thumb2x'] }} 2x"
-                                             class="w-100 h-100"
-                                             style="object-fit: cover;"
-                                             alt="{{ $image['alt'] }}">
+                                        <x-responsive-image
+                                            :image="$image"
+                                            preset="gallery-thumb"
+                                            class="w-100 h-100"
+                                            style="object-fit: cover;"
+                                        />
                                     </div>
                                 @endforeach
                             </div>
@@ -385,7 +389,6 @@
                             <input type="hidden" name="currency" value="{{ $transferOffer['currency'] }}">
                             <input type="hidden" name="from_label" value="{{ $fromLabel }}">
                             <input type="hidden" name="to_label" value="{{ $toLabel }}">
-                            <input type="hidden" name="vehicle_image" value="{{ $transferOffer['vehicle_image'] ?? '' }}">
                             <input type="hidden" name="vehicle_name" value="{{ $transferOffer['vehicle_name'] ?? '' }}">
 
                             <div class="bg-light p-3 mt-3 rounded">
@@ -511,9 +514,15 @@
             </div>
         </div>
 
-        <div class="rounded"
-             style="min-height: 500px; background-image: url('{{ $transferBgUrl }}'); background-repeat: no-repeat; background-position: bottom; background-size: cover">
-            <div class="row">
+        <div class="rounded position-relative overflow-hidden" style="min-height: 500px;">
+            {{-- Arka plan görsel --}}
+            <x-responsive-image
+                :image="$page->transfer_content_image"
+                preset="gallery"
+                sizes="100vw"
+                class="position-absolute bottom-0 start-0 w-100 h-100 object-fit-cover z-0"
+            />
+            <div class="row position-relative z-1">
                 <div class="col-lg-6 offset-lg-3 mb-2 mt-5">
                     @php
                         $icons = (array) ($c['page_content']['icons'] ?? []);
@@ -525,7 +534,6 @@
                                 @php
                                     $raw = trim((string) ($it['icon'] ?? ''));
                                     $cls = $raw;
-                                    // icon picker bazen "fi fi-..." bazen "fi-..." döndürebilir
                                     if ($cls !== '' && !str_contains($cls, 'fi ')) {
                                         $cls = 'fi ' . $cls;
                                     }

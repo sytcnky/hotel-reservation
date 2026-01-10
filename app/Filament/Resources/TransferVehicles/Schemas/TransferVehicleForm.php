@@ -2,16 +2,16 @@
 
 namespace App\Filament\Resources\TransferVehicles\Schemas;
 
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Schemas\Schema;
 
 class TransferVehicleForm
 {
@@ -71,17 +71,54 @@ class TransferVehicleForm
                                     Section::make(__('admin.vehicles.sections.status'))
                                         ->columns(1)
                                         ->schema([
-                                            Toggle::make('is_active')->label(__('admin.vehicles.form.active'))->default(true),
-                                            TextInput::make('sort_order')->label(__('admin.vehicles.form.sort_order'))->numeric()->default(0),
+                                            Toggle::make('is_active')
+                                                ->label(__('admin.vehicles.form.active'))
+                                                ->default(true),
+
+                                            TextInput::make('sort_order')
+                                                ->label(__('admin.vehicles.form.sort_order'))
+                                                ->numeric()
+                                                ->default(0),
                                         ]),
 
                                     Section::make(__('admin.vehicles.sections.capacity'))
                                         ->columns(2)
                                         ->schema([
-                                            TextInput::make('capacity_total')->label(__('admin.vehicles.form.capacity_total'))->numeric()->minValue(1)->required(),
-                                            TextInput::make('capacity_adult_max')->label(__('admin.vehicles.form.capacity_adult_max'))->numeric()->minValue(0)->nullable(),
-                                            TextInput::make('capacity_child_max')->label(__('admin.vehicles.form.capacity_child_max'))->numeric()->minValue(0)->nullable(),
-                                            TextInput::make('capacity_infant_max')->label(__('admin.vehicles.form.capacity_infant_max'))->numeric()->minValue(0)->nullable(),
+                                            TextInput::make('capacity_total')
+                                                ->label(__('admin.vehicles.form.capacity_total'))
+                                                ->numeric()
+                                                ->minValue(1)
+                                                ->required(),
+
+                                            TextInput::make('capacity_adult_max')
+                                                ->label(__('admin.vehicles.form.capacity_adult_max'))
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->nullable(),
+
+                                            TextInput::make('capacity_child_max')
+                                                ->label(__('admin.vehicles.form.capacity_child_max'))
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->nullable(),
+
+                                            TextInput::make('capacity_infant_max')
+                                                ->label(__('admin.vehicles.form.capacity_infant_max'))
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->nullable(),
+                                        ]),
+
+                                    // Kapak görseli (cover) - sağ kolonda en alt
+                                    Section::make(__('admin.vehicles.form.cover'))
+                                        ->columns(1)
+                                        ->schema([
+                                            SpatieMediaLibraryFileUpload::make('cover')
+                                                ->hiddenLabel()
+                                                ->collection('cover')
+                                                ->preserveFilenames()
+                                                ->image()
+                                                ->maxFiles(1),
                                         ]),
                                 ]),
                         ]),

@@ -251,7 +251,7 @@ class HotelForm
                                             TextInput::make('code')->label(__('admin.hotels.form.code'))->disabled()->helperText('Otomatik üretilir.'),
                                         ]),
 
-                                    // Kapak görseli buraya taşındı
+                                    // Kapak görseli
                                     Section::make(__('admin.hotels.form.cover'))
                                         ->columns(1)
                                         ->schema([
