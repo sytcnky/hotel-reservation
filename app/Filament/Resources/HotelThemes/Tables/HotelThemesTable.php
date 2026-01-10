@@ -2,19 +2,14 @@
 
 namespace App\Filament\Resources\HotelThemes\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Forms\Components\Select as FormSelect;
+use Filament\Tables\Table;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Session;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
 
 class HotelThemesTable
 {
@@ -32,25 +27,8 @@ class HotelThemesTable
             ])
             ->filters([
                 TrashedFilter::make(),
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options(collect(config('app.supported_locales', ['en', 'tr']))
-                                ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])->toArray())
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
             ])
-            ->recordActions([EditAction::make()])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

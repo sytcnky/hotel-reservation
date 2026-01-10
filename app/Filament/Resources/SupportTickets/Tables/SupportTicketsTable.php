@@ -5,24 +5,16 @@ namespace App\Filament\Resources\SupportTickets\Tables;
 use App\Models\SupportTicket;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Forms\Components\Select as FormSelect;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Session;
 
 class SupportTicketsTable
 {
     public static function configure(Table $table): Table
     {
-        $localeOptions = collect(config('app.supported_locales', ['en', 'tr']))
-            ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])
-            ->toArray();
 
         return $table
             ->columns([
@@ -88,26 +80,6 @@ class SupportTicketsTable
             ->defaultSort('last_message_at', 'desc')
             ->filters([
                 TrashedFilter::make(),
-
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options($localeOptions)
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Customers\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
@@ -24,7 +23,7 @@ class CustomersTable
                 TextColumn::make('created_at')->label('Oluşturulma')->since(),
             ])
             ->filters([ TrashedFilter::make() ])
-            ->recordActions([ EditAction::make() ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

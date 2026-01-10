@@ -24,33 +24,15 @@ class ViewTypesTable
             ->columns([
                 TextColumn::make('name_l')->label(__('admin.field.name'))->sortable()->searchable(),
                 TextColumn::make('slug_l')->label(__('admin.field.slug'))->sortable()->searchable(),
-                IconColumn::make('is_active')->label(__('admin.field.is_active'))->boolean(),
-                TextColumn::make('sort_order')->label(__('admin.field.sort_order'))->numeric()->sortable(),
                 TextColumn::make('created_at')->label(__('admin.field.created_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->label(__('admin.field.updated_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('deleted_at')->label(__('admin.field.deleted_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sort_order')->label(__('admin.field.sort_order'))->numeric()->sortable(),
+                IconColumn::make('is_active')->label(__('admin.field.is_active'))->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options(collect(config('app.supported_locales', ['en', 'tr']))
-                                ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])->toArray())
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
             ])
-            ->recordActions([EditAction::make()])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

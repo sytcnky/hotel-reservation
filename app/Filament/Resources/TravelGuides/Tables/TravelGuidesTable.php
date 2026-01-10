@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\TravelGuides\Tables;
 
+use App\Support\Helpers\I18nHelper;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
@@ -16,72 +17,36 @@ class TravelGuidesTable
 {
     public static function configure(Table $table): Table
     {
-        $uiLocale = app()->getLocale();
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
-        $toArray = function ($value): ?array {
+        $decodeJsonIfNeeded = static function (mixed $value): mixed {
             if (is_array($value)) {
                 return $value;
             }
 
             if (is_string($value) && $value !== '') {
                 $decoded = json_decode($value, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                if (json_last_error() === JSON_ERROR_NONE) {
                     return $decoded;
                 }
             }
 
-            return null;
-        };
-
-        $pick = function ($value) use ($uiLocale, $locales, $toArray): string {
-            $json = $toArray($value);
-
-            if (! is_array($json)) {
-                return '—';
-            }
-
-            $candidates = array_values(array_unique(array_filter(array_merge([$uiLocale], $locales))));
-            foreach ($candidates as $loc) {
-                $v = $json[$loc] ?? null;
-                if (is_string($v) && trim($v) !== '') {
-                    return trim($v);
-                }
-            }
-
-            foreach ($json as $v) {
-                if (is_string($v) && trim($v) !== '') {
-                    return trim($v);
-                }
-            }
-
-            return '—';
+            return $value;
         };
 
         return $table
             ->columns([
                 TextColumn::make('title')
                     ->label(__('admin.travel_guides.fields.title'))
-                    ->state(function ($record) use ($pick) {
-                        // sadece record üzerinden tek değer üret
-                        return $pick($record->getRawOriginal('title') ?? $record->title);
+                    ->state(function ($record) use ($uiLocale, $baseLocale, $decodeJsonIfNeeded): string {
+                        // Kaynağı ham al (jsonb olabilir), gerekirse decode et.
+                        $raw = $record->getRawOriginal('title') ?? $record->title;
+                        $raw = $decodeJsonIfNeeded($raw);
+
+                        return I18nHelper::scalar($raw, $uiLocale, $baseLocale) ?: '—';
                     })
                     ->searchable(),
-
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('published_at')
-                    ->label(__('admin.travel_guides.fields.published_at'))
-                    ->dateTime()
-                    ->sortable(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
@@ -100,12 +65,18 @@ class TravelGuidesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\SetLocaleAdminPanel;
+use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -45,6 +46,34 @@ class AdminPanelProvider extends PanelProvider
                 FilamentInfoWidget::class,
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
+
+            // User menu: Panel locale switch (single item; always shows the other language)
+            ->userMenuItems([
+                'panel_locale_switch' => Action::make('panel_locale_switch')
+                    ->label(function (): string {
+                        $current = (string) session('panel_locale', 'en');
+                        $current = in_array($current, ['tr', 'en'], true) ? $current : 'en';
+
+                        $target = $current === 'tr' ? 'en' : 'tr';
+
+                        return $target === 'tr'
+                            ? 'Türkçe'
+                            : 'English';
+                    })
+                    ->icon('heroicon-o-language')
+                    ->url(function (): string {
+                        $current = (string) session('panel_locale', 'en');
+                        $current = in_array($current, ['tr', 'en'], true) ? $current : 'en';
+
+                        $target = $current === 'tr' ? 'en' : 'tr';
+
+                        // Relative current path + query (safe for redirect check)
+                        $redirect = request()->getRequestUri();
+
+                        return route('admin.panel-locale.set', ['locale' => $target]) . '?redirect=' . urlencode($redirect);
+                    })
+            ])
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -56,7 +85,6 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
 
-                // Admin panel locale: user.locale -> config('app.locale') -> (tr/en guard)
                 SetLocaleAdminPanel::class,
             ])
             ->authMiddleware([
@@ -91,7 +119,6 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label(fn (): string => __('admin.nav.tour_group'))
                     ->icon('heroicon-o-map'),
-
 
                 NavigationGroup::make()
                     ->label(fn (): string => __('admin.nav.content'))

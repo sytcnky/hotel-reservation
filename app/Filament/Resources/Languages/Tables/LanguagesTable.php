@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Languages\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
@@ -45,15 +44,6 @@ class LanguagesTable
                     ->sortable()
                     ->searchable(),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
-
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
                     ->dateTime()
@@ -71,13 +61,20 @@ class LanguagesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->recordActions([
-                EditAction::make(),
-            ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

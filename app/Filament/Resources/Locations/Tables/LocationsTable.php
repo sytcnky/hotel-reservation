@@ -2,16 +2,14 @@
 
 namespace App\Filament\Resources\Locations\Tables;
 
+use Filament\Tables\Table;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Table;
 
 class LocationsTable
 {
@@ -27,7 +25,8 @@ class LocationsTable
                 TextColumn::make('slug')
                     ->label(__('admin.field.slug'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('type')
                     ->label(__('admin.field.type'))
@@ -42,29 +41,19 @@ class LocationsTable
                     ->label(__('admin.field.code'))
                     ->toggleable(),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
                 TextColumn::make('sort_order')
                     ->label(__('admin.field.sort_order'))
                     ->numeric()
                     ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
-                SelectFilter::make('type')
-                    ->label('Tür')
-                    ->options([
-                        'country' => 'Ülke',
-                        'province' => 'İl',
-                        'district' => 'İlçe',
-                        'area' => 'Bölge / Mahalle',
-                    ]),
                 TrashedFilter::make(),
             ])
-            ->recordActions([
-                EditAction::make(),
-            ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

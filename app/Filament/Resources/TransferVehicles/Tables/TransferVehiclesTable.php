@@ -20,17 +20,14 @@ class TransferVehiclesTable
             ->columns([
                 TextColumn::make('name.tr')->label('Ad')->sortable()->searchable(),
                 TextColumn::make('capacity_total')->label('Kapasite')->sortable(),
-                IconColumn::make('is_active')->label('Aktif')->boolean(),
-                TextColumn::make('sort_order')->label('Sıra')->sortable(),
                 TextColumn::make('created_at')->label('Oluşturma')->dateTime()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->label('Güncelleme')->dateTime()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('deleted_at')->label('Silinmiş')->dateTime()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sort_order')->label('Sıra')->sortable(),
+                IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

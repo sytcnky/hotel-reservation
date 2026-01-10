@@ -11,9 +11,11 @@ trait HasLocalizedColumns
 {
     public static function preferredLocale(): string
     {
-        if ($v = Session::get('display_locale')) {
+        // Panel tek otorite (admin)
+        if ($v = Session::get('panel_locale')) {
             return $v;
         }
+
         if ($v = optional(Auth::user())->locale) {
             return $v;
         }

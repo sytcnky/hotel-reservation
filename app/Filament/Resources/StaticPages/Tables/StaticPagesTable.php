@@ -24,10 +24,6 @@ class StaticPagesTable
                     )
                     ->searchable(),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
                 TextColumn::make('sort_order')
                     ->label(__('admin.field.sort_order'))
                     ->numeric()
@@ -44,12 +40,10 @@ class StaticPagesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->recordActions([
-                EditAction::make(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

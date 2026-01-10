@@ -2,17 +2,13 @@
 
 namespace App\Filament\Resources\Hotels\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select as FormSelect;
+use Filament\Tables\Table;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Session;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 
 class HotelsTable
 {
@@ -73,7 +69,7 @@ class HotelsTable
                 TextColumn::make('starRating.name_l')
                     ->label(__('admin.hotels.form.star_rating'))
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 // Bölge
                 TextColumn::make('area')
@@ -114,20 +110,6 @@ class HotelsTable
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // İptal politikası (tekli ilişki)
-                TextColumn::make('cancellationPolicy.name_l')
-                    ->label(__('admin.hotels.form.cancellation_policy'))
-                    ->toggleable(),
-
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
-
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
                     ->dateTime()
@@ -145,31 +127,20 @@ class HotelsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-
-                // Görüntü dili seçimi (session’a yazar)
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options($localeOptions)
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
             ])
-            ->recordActions([
-                EditAction::make(),
-            ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

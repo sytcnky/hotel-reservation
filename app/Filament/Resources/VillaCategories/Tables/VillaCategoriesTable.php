@@ -4,15 +4,12 @@ namespace App\Filament\Resources\VillaCategories\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class VillaCategoriesTable
 {
@@ -31,15 +28,6 @@ class VillaCategoriesTable
                     ->sortable()
                     ->searchable(),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
-
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
                     ->dateTime()
@@ -57,30 +45,20 @@ class VillaCategoriesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
 
             ->filters([
                 TrashedFilter::make(),
-
-                SelectFilter::make('locale')
-                    ->label(__('admin.filter.language'))
-                    ->options([
-                        'tr' => 'TR',
-                        'en' => 'EN',
-                    ])
-                    ->query(function (Builder $query, $value) {
-                        if (!$value) {
-                            return;
-                        }
-
-                        $query->orderByRaw("name->>'$value' ASC");
-                    }),
             ])
-
-            ->recordActions([
-                EditAction::make(),
-            ])
-
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

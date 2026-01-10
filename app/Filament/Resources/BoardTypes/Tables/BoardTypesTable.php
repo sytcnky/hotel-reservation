@@ -2,27 +2,19 @@
 
 namespace App\Filament\Resources\BoardTypes\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Forms\Components\Select as FormSelect;
+use Filament\Tables\Table;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Table;
-use Illuminate\Support\Facades\Session;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
 
 class BoardTypesTable
 {
     public static function configure(Table $table): Table
     {
-        $localeOptions = collect(config('app.supported_locales', ['en', 'tr']))
-            ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])
-            ->toArray();
-
         return $table
             ->columns([
                 TextColumn::make('name_l')
@@ -43,15 +35,6 @@ class BoardTypesTable
                         query: fn ($query, string $search) => $query->whereLocalizedLike('slug', $search)
                     ),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
-
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
                     ->dateTime()
@@ -69,31 +52,20 @@ class BoardTypesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-
-                // Gösterim dili filtresi (seçim session'a yazılır)
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options($localeOptions)
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function ($query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
             ])
-            ->recordActions([
-                EditAction::make(),
-            ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

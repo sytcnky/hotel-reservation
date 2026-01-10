@@ -44,12 +44,12 @@ class TransferRoutesTable
 
                 TextColumn::make('duration_minutes')->label('Süre (dk)')->sortable(),
                 TextColumn::make('distance_km')->label('Km')->sortable(),
-                IconColumn::make('is_active')->label('Aktif')->boolean(),
-                TextColumn::make('sort_order')->label('Sıra')->numeric()->sortable(),
 
                 TextColumn::make('created_at')->label('Oluşturma')->dateTime()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->label('Güncelleme')->dateTime()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('deleted_at')->label('Silinmiş')->dateTime()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sort_order')->label('Sıra')->numeric()->sortable(),
+                IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),

@@ -30,9 +30,6 @@ class RoomsTable
             return is_string($val) ? $val : null;
         };
 
-        $localeOptions = collect(config('app.supported_locales', ['tr', 'en']))
-            ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])->toArray();
-
         return $table
             ->columns([
                 // Ad
@@ -54,40 +51,23 @@ class RoomsTable
                     ->state(fn ($record) => $loc($record?->viewType?->name))
                     ->toggleable(),
 
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
+                TextColumn::make('created_at')
+                    ->label(__('admin.field.created_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sort_order')
                     ->label(__('admin.field.sort_order'))
                     ->numeric()
                     ->sortable(),
 
-                TextColumn::make('created_at')
-                    ->label(__('admin.field.created_at'))
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options($localeOptions)
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                            app()->setLocale((string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -430,3 +430,30 @@ if (app()->environment('local')) {
         return $mailMessage->render();
     })->middleware('auth');
 }
+
+/*
+|--------------------------------------------------------------------------
+| Admin panel locale switch (TR / EN)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])
+    ->get('/admin/panel-locale/{locale}', function (Request $request, string $locale) {
+        $locale = in_array($locale, ['tr', 'en'], true) ? $locale : 'en';
+
+        session()->put('panel_locale', $locale);
+
+        $redirect = $request->query('redirect');
+
+        // Prevent open redirect: allow only same-app relative paths.
+        if (is_string($redirect)) {
+            $redirect = trim($redirect);
+
+            if ($redirect !== '' && str_starts_with($redirect, '/')) {
+                return redirect($redirect);
+            }
+        }
+
+        return redirect('/admin');
+    })
+    ->name('admin.panel-locale.set');
+

@@ -17,23 +17,13 @@ class SetLocaleAdminPanel
 
     public function handle(Request $request, Closure $next): Response
     {
-        // 1) user.locale
-        $locale = null;
+        // Tek otorite: session('panel_locale')
+        $locale = (string) session('panel_locale', 'en');
+        $locale = strtolower(trim($locale));
 
-        if ($user = $request->user()) {
-            $locale = is_string($user->locale) ? $user->locale : null;
-        }
-
-        // 2) fallback: config('app.locale')
-        if (! is_string($locale) || trim($locale) === '') {
-            $locale = (string) config('app.locale', 'tr');
-        }
-
-        $locale = strtolower(trim((string) $locale));
-
-        // Admin panel guard: TR/EN dışına çıkma.
+        // Guard: sadece tr / en
         if (! in_array($locale, self::ALLOWED, true)) {
-            $locale = 'tr';
+            $locale = 'en';
         }
 
         App::setLocale($locale);
@@ -46,4 +36,5 @@ class SetLocaleAdminPanel
 
         return $next($request);
     }
+
 }
