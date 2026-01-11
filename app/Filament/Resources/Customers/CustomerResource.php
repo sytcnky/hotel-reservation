@@ -2,14 +2,13 @@
 
 namespace App\Filament\Resources\Customers;
 
-use App\Filament\Resources\Customers\RelationManagers\UserCouponsRelationManager;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
+use App\Filament\Resources\Customers\RelationManagers\UserCouponsRelationManager;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Models\User;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -20,8 +19,6 @@ class CustomerResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';
-
     public static function getNavigationGroup(): ?string
     {
         return __('admin.nav.settings_group');
@@ -29,17 +26,17 @@ class CustomerResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Müşteriler';
+        return __('admin.customer.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Müşteri';
+        return __('admin.customer.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Müşteriler';
+        return __('admin.customer.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -52,10 +49,6 @@ class CustomerResource extends Resource
         return CustomersTable::configure($table);
     }
 
-    /**
-     * Müşteri detay sayfasında görünecek ilişkiler.
-     * Buraya UserCouponsRelationManager eklendi.
-     */
     public static function getRelations(): array
     {
         return [

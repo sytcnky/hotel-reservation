@@ -2,34 +2,89 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasLocalizedColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Currency extends Model
 {
-    use HasFactory, HasLocalizedColumns, SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'slug', 'description', 'code', 'symbol', 'exponent', 'is_active', 'sort_order'];
-
-    protected $casts = [
-        'name' => 'array',
-        'slug' => 'array',
-        'description' => 'array',
-        'is_active' => 'boolean',
-        'exponent' => 'integer',
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'code',
+        'symbol',
+        'exponent',
+        'is_active',
+        'sort_order',
     ];
 
-    protected $appends = ['name_l', 'slug_l'];
+    protected $casts = [
+        'name'        => 'array',
+        'slug'        => 'array',
+        'description' => 'array',
+        'is_active'   => 'boolean',
+        'exponent'    => 'integer',
+    ];
 
-    public function getNameLAttribute(): string
+    protected $appends = [
+        'name_l',
+        'slug_l',
+    ];
+
+    public function getNameLAttribute(): ?string
     {
-        return $this->getLocalized('name');
+        $raw = $this->getAttribute('name');
+
+        if ($raw === null) {
+            return null;
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                return trim($raw) !== '' ? $raw : null;
+            }
+        }
+
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $ui = app()->getLocale();
+        $val = $raw[$ui] ?? null;
+
+        return is_string($val) && $val !== '' ? $val : null;
     }
 
-    public function getSlugLAttribute(): string
+    public function getSlugLAttribute(): ?string
     {
-        return $this->getLocalized('slug');
+        $raw = $this->getAttribute('slug');
+
+        if ($raw === null) {
+            return null;
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                return trim($raw) !== '' ? $raw : null;
+            }
+        }
+
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $ui = app()->getLocale();
+        $val = $raw[$ui] ?? null;
+
+        return is_string($val) && $val !== '' ? $val : null;
     }
 }

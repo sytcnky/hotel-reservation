@@ -19,7 +19,9 @@ class CurrencyResource extends Resource
 {
     protected static ?string $model = Currency::class;
 
-    public static function getNavigationGroup(): ?string {  return __('admin.nav.taxonomies'); }
+    protected static ?string $recordTitleAttribute = 'name_l';
+
+    public static function getNavigationGroup(): ?string { return __('admin.nav.taxonomies'); }
     public static function getNavigationLabel(): string { return __('admin.ent.currency.plural'); }
     public static function getModelLabel(): string { return __('admin.ent.currency.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.ent.currency.plural'); }
@@ -46,20 +48,17 @@ class CurrencyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListCurrencies::route('/'),
+            'index'  => ListCurrencies::route('/'),
             'create' => CreateCurrency::route('/create'),
-            'edit' => EditCurrency::route('/{record}/edit'),
+            'edit'   => EditCurrency::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

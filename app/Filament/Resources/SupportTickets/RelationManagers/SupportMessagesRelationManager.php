@@ -44,7 +44,6 @@ class SupportMessagesRelationManager extends RelationManager
                 TextColumn::make('attachments')
                     ->label(__('admin.support_tickets.messages.attachments'))
                     ->state(function (SupportMessage $record): array {
-                        // Spatie Media Library: attachments koleksiyonu
                         return $record->getMedia('attachments')->map(fn ($m) => [
                             'name' => $m->file_name,
                             'url'  => $m->getUrl(),
@@ -115,8 +114,6 @@ class SupportMessagesRelationManager extends RelationManager
                                     ->toMediaCollection('attachments');
                             }
 
-                            // Agent yazdı → müşteri bekleniyor
-                            // Closed ise reopen
                             $ticket->forceFill([
                                 'status'          => SupportTicket::STATUS_WAITING_CUSTOMER,
                                 'closed_at'       => null,

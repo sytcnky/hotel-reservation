@@ -4,9 +4,11 @@ namespace App\Filament\Resources\TravelGuides\Schemas;
 
 use App\Models\Hotel;
 use App\Models\Tour;
-use App\Models\Villa;
 use App\Models\TravelGuide;
+use App\Models\Villa;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TagsInput;
@@ -22,36 +24,22 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
-use Filament\Forms\Components\Repeater;
 
 class TravelGuideForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
         $uiLocale = app()->getLocale();
+        $locales  = LocaleHelper::active();
 
-        $pickLabel = function (?array $json) use ($uiLocale, $locales): string {
+        $pickLabel = function (?array $json) use ($uiLocale): string {
             if (! is_array($json)) {
-                return '—';
+                return '';
             }
 
-            $candidates = array_values(array_unique(array_filter(array_merge([$uiLocale], $locales))));
-            foreach ($candidates as $loc) {
-                $v = $json[$loc] ?? null;
-                if (is_string($v) && trim($v) !== '') {
-                    return trim($v);
-                }
-            }
+            $v = $json[$uiLocale] ?? null;
 
-            foreach ($json as $v) {
-                if (is_string($v) && trim($v) !== '') {
-                    return trim($v);
-                }
-            }
-
-            return '—';
+            return is_string($v) ? trim($v) : '';
         };
 
         return $schema->components([
@@ -68,28 +56,30 @@ class TravelGuideForm
                                 ->schema([
                                     Tabs::make('i18n')
                                         ->tabs(
-                                            collect($locales)->map(function (string $loc) use ($base) {
-                                                $isBase = $loc === $base;
-
+                                            collect($locales)->map(function (string $loc) {
                                                 return Tab::make(strtoupper($loc))->schema([
                                                     TextInput::make("title.$loc")
+                                                        ->label(__('admin.travel_guides.fields.title'))
+                                                        ->required()
+                                                        ->maxLength(255)
                                                         ->live(debounce: 350)
-                                                        ->afterStateUpdated(function (?string $state, Set $set) use ($loc, $base) {
-                                                            if (! filled($state)) return;
-
-                                                            $set("slug.$loc", Str::slug($state));
-
-                                                            if ($loc === $base) {
-                                                                $set('canonical_slug', Str::slug($state));
+                                                        ->afterStateUpdated(function (?string $state, Set $set) use ($loc): void {
+                                                            if (! filled($state)) {
+                                                                return;
                                                             }
+
+                                                            $set("slug.$loc", Str::slug((string) $state));
                                                         }),
 
                                                     TextInput::make("slug.$loc")
                                                         ->label(__('admin.travel_guides.fields.slug'))
-                                                        ->required($isBase)
-                                                        ->dehydrateStateUsing(fn (?string $state) =>
-                                                        $state ? Str::slug($state) : null
-                                                        ),
+                                                        ->required()
+                                                        ->maxLength(255)
+                                                        ->live(debounce: 300)
+                                                        ->afterStateUpdated(function (Set $set, ?string $state) use ($loc): void {
+                                                            $set("slug.$loc", $state ? Str::slug((string) $state) : null);
+                                                        })
+                                                        ->dehydrateStateUsing(fn (?string $state) => $state ? Str::slug((string) $state) : null),
 
                                                     Textarea::make("excerpt.$loc")
                                                         ->label(__('admin.travel_guides.fields.excerpt'))
@@ -118,14 +108,14 @@ class TravelGuideForm
                                                 ->collapsible()
                                                 ->defaultItems(0)
                                                 ->addActionLabel(__('admin.travel_guides.actions.add_block'))
-                                                ->itemLabel(function (array $state) use ($uiLocale, $base) {
+                                                ->itemLabel(function (array $state) use ($uiLocale): string {
                                                     $type = $state['type'] ?? null;
 
                                                     if ($type === 'content_section') {
-                                                        $t = data_get($state, "data.title.$uiLocale")
-                                                            ?: data_get($state, "data.title.$base");
-
-                                                        return $t ? (string) $t : __('admin.travel_guides.blocks.content_section');
+                                                        $t = data_get($state, "data.title.$uiLocale");
+                                                        return (is_string($t) && trim($t) !== '')
+                                                            ? (string) $t
+                                                            : __('admin.travel_guides.blocks.content_section');
                                                     }
 
                                                     if ($type === 'recommendation') {
@@ -145,9 +135,7 @@ class TravelGuideForm
                                                         ->required()
                                                         ->live(),
 
-                                                    // =========================
-                                                    // 1) CONTENT SECTION BLOĞU
-                                                    // =========================
+                                                    // 1) CONTENT SECTION
                                                     Group::make()
                                                         ->visible(fn (Get $get) => $get('type') === 'content_section')
                                                         ->schema([
@@ -161,15 +149,14 @@ class TravelGuideForm
                                                                 ->required()
                                                                 ->default('stacked'),
 
-                                                            Tabs::make('block_i18n')
+                                                            Tabs::make('i18n')
                                                                 ->tabs(
-                                                                    collect($locales)->map(function (string $loc) use ($base) {
-                                                                        $isBase = $loc === $base;
-
+                                                                    collect($locales)->map(function (string $loc) {
                                                                         return Tab::make(strtoupper($loc))->schema([
                                                                             TextInput::make("data.title.$loc")
                                                                                 ->label(__('admin.travel_guides.blocks.title'))
-                                                                                ->required($isBase),
+                                                                                ->required()
+                                                                                ->maxLength(255),
 
                                                                             Textarea::make("data.body.$loc")
                                                                                 ->label(__('admin.travel_guides.blocks.body'))
@@ -178,7 +165,6 @@ class TravelGuideForm
                                                                     })->all()
                                                                 ),
 
-                                                            // Blok görseli: TravelGuideBlock modelindeki 'image' koleksiyonuna gider
                                                             SpatieMediaLibraryFileUpload::make('image')
                                                                 ->label(__('admin.travel_guides.blocks.image'))
                                                                 ->collection('image')
@@ -187,9 +173,7 @@ class TravelGuideForm
                                                                 ->maxFiles(1),
                                                         ]),
 
-                                                    // =========================
-                                                    // 2) RECOMMENDATION BLOĞU
-                                                    // =========================
+                                                    // 2) RECOMMENDATION
                                                     Group::make()
                                                         ->visible(fn (Get $get) => $get('type') === 'recommendation')
                                                         ->schema([
@@ -209,7 +193,7 @@ class TravelGuideForm
                                                                 ->searchable()
                                                                 ->preload()
                                                                 ->required()
-                                                                ->options(function (Get $get) use ($uiLocale, $base) {
+                                                                ->options(function (Get $get) use ($pickLabel): array {
                                                                     $type = $get('data.product_type');
 
                                                                     if ($type === 'hotel') {
@@ -218,9 +202,9 @@ class TravelGuideForm
                                                                             ->orderBy('sort_order')
                                                                             ->limit(500)
                                                                             ->get(['id', 'name'])
-                                                                            ->mapWithKeys(function (Hotel $h) use ($uiLocale, $base) {
-                                                                                $label = $h->name[$uiLocale] ?? ($h->name[$base] ?? null);
-                                                                                return [$h->id => (string) $label];
+                                                                            ->mapWithKeys(function (Hotel $h) use ($pickLabel) {
+                                                                                $label = $pickLabel(is_array($h->name) ? $h->name : null);
+                                                                                return [$h->id => $label];
                                                                             })
                                                                             ->filter(fn ($v) => is_string($v) && trim($v) !== '')
                                                                             ->all();
@@ -232,9 +216,9 @@ class TravelGuideForm
                                                                             ->orderBy('sort_order')
                                                                             ->limit(500)
                                                                             ->get(['id', 'name'])
-                                                                            ->mapWithKeys(function (Villa $v) use ($uiLocale, $base) {
-                                                                                $label = $v->name[$uiLocale] ?? ($v->name[$base] ?? null);
-                                                                                return [$v->id => (string) $label];
+                                                                            ->mapWithKeys(function (Villa $v) use ($pickLabel) {
+                                                                                $label = $pickLabel(is_array($v->name) ? $v->name : null);
+                                                                                return [$v->id => $label];
                                                                             })
                                                                             ->filter(fn ($v) => is_string($v) && trim($v) !== '')
                                                                             ->all();
@@ -246,7 +230,6 @@ class TravelGuideForm
                                                         ]),
                                                 ]),
                                         ]),
-
                                 ]),
 
                             // SAĞ (4)
@@ -267,10 +250,6 @@ class TravelGuideForm
                                                 ->label(__('admin.field.sort_order'))
                                                 ->numeric()
                                                 ->default(0),
-
-                                            TextInput::make('canonical_slug')
-                                                ->hidden()
-                                                ->dehydrated(false),
                                         ]),
 
                                     Section::make(__('admin.travel_guides.sections.cover'))
@@ -299,7 +278,11 @@ class TravelGuideForm
                                                         ->orderBy('sort_order')
                                                         ->limit(1000)
                                                         ->get(['id', 'name'])
-                                                        ->mapWithKeys(fn (Tour $t) => [$t->id => $pickLabel(is_array($t->name) ? $t->name : null)])
+                                                        ->mapWithKeys(function (Tour $t) use ($pickLabel) {
+                                                            $label = $pickLabel(is_array($t->name) ? $t->name : null);
+                                                            return [$t->id => $label];
+                                                        })
+                                                        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
                                                         ->all();
                                                 }),
                                         ]),

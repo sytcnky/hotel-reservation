@@ -4,36 +4,41 @@ namespace App\Filament\Resources\Villas\Schemas;
 
 use App\Forms\Components\IconPicker;
 use App\Models\CancellationPolicy;
+use App\Models\Currency;
 use App\Models\Location;
+use App\Models\Villa;
 use App\Models\VillaAmenity;
 use App\Models\VillaCategory;
+use App\Models\VillaRateRule;
+use App\Support\Helpers\LocaleHelper;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Html;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
-
-use App\Models\Currency;
-use App\Models\Villa;
-use App\Models\VillaRateRule;
-use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Hidden;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Utilities\Get;
 
 class VillaForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $uiLocale = app()->getLocale();
+        $locales  = LocaleHelper::active();
+
         $currencies = Currency::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -42,17 +47,17 @@ class VillaForm
 
         // Hafta günleri (1=Mon ... 7=Sun)
         $weekdayOptions = [
-            1 => __('admin.weekdays.mon') ?? 'Pzt',
-            2 => __('admin.weekdays.tue') ?? 'Sal',
-            3 => __('admin.weekdays.wed') ?? 'Çar',
-            4 => __('admin.weekdays.thu') ?? 'Per',
-            5 => __('admin.weekdays.fri') ?? 'Cum',
-            6 => __('admin.weekdays.sat') ?? 'Cmt',
-            7 => __('admin.weekdays.sun') ?? 'Paz',
+            1 => __('admin.weekdays.mon'),
+            2 => __('admin.weekdays.tue'),
+            3 => __('admin.weekdays.wed'),
+            4 => __('admin.weekdays.thu'),
+            5 => __('admin.weekdays.fri'),
+            6 => __('admin.weekdays.sat'),
+            7 => __('admin.weekdays.sun'),
         ];
 
         $currencyTabs = $currencies->map(function (Currency $c) use ($weekdayOptions) {
-            $title = trim($c->code . ' – ' . ($c->name_l ?: ''));
+            $title = trim($c->code . ' – ' . ((string) ($c->name_l ?? '')));
 
             $rulesRepeater = Repeater::make('rates_' . $c->id)
                 ->hiddenLabel()
@@ -63,7 +68,6 @@ class VillaForm
                 ->addActionLabel(__('admin.rooms.form.prices.add_price_rule'))
                 ->schema([
                     Grid::make()->columns(12)->schema([
-
                         Hidden::make('id'),
                         Hidden::make('currency_id')->default($c->id),
 
@@ -93,7 +97,7 @@ class VillaForm
                                     ->label(__('admin.rooms.form.prices.date_end'))
                                     ->native(false)
                                     ->displayFormat('Y-m-d')
-                                    ->minDate(fn ($get) => $get('date_start'))
+                                    ->minDate(fn (Get $get) => $get('date_start'))
                                     ->columnSpan(6),
 
                                 CheckboxList::make('weekdays')
@@ -116,7 +120,6 @@ class VillaForm
                             ->disabled(fn (Get $get) => (bool) $get('closed'))
                             ->columnSpan(12),
 
-                        // Min / max gece sayısı
                         TextInput::make('min_nights')
                             ->label(__('admin.villas.form.min_nights'))
                             ->numeric()
@@ -130,7 +133,7 @@ class VillaForm
                             ->columnSpan(6),
 
                         Toggle::make('closed')
-                            ->label('Kapalı')
+                            ->label(__('admin.rooms.form.prices.closed'))
                             ->helperText(__('admin.rooms.form.prices.closed_helper'))
                             ->live()
                             ->columnSpan(4),
@@ -245,15 +248,8 @@ class VillaForm
                         ->delete();
                 });
 
-
-            return Tab::make($title)->schema([
-                $rulesRepeater,
-            ]);
+            return Tab::make($title)->schema([$rulesRepeater]);
         })->all();
-
-        $base     = config('app.locale', 'tr');
-        $locales  = config('app.supported_locales', [$base]);
-        $uiLocale = app()->getLocale();
 
         return $schema->components([
             Group::make()
@@ -263,41 +259,38 @@ class VillaForm
                         ->columns(['default' => 1, 'lg' => 12])
                         ->gap(6)
                         ->schema([
-                            // SOL KOLON (8)
+                            // SOL (8)
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 8])
                                 ->schema([
-                                    // Dil tabları – isim, slug, açıklama, öne çıkan özellikler, konaklama hakkında
                                     Tabs::make('i18n')->tabs(
-                                        collect($locales)->map(function (string $loc) use ($base) {
+                                        collect($locales)->map(function (string $loc) {
                                             return Tab::make(strtoupper($loc))->schema([
-                                                // Villa adı
                                                 TextInput::make("name.$loc")
                                                     ->label(__('admin.villas.form.name'))
                                                     ->required()
                                                     ->live(debounce: 350)
-                                                    ->afterStateUpdated(function (?string $state, callable $set) use ($loc) {
-                                                        if (! filled($state)) {
-                                                            return;
-                                                        }
+                                                    ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($loc) {
+                                                        $currentSlug = (string) ($get("slug.$loc") ?? '');
+                                                        $oldSlugFromName = Str::slug((string) ($old ?? ''));
 
-                                                        $set("slug_ui.$loc", Str::slug($state));
+                                                        if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
+                                                            $set("slug.$loc", Str::slug((string) ($state ?? '')));
+                                                        }
                                                     }),
 
-                                                // Slug (UI)
                                                 TextInput::make("slug.$loc")
                                                     ->label(__('admin.villas.form.slug'))
                                                     ->required()
-                                                    ->dehydrateStateUsing(function (?string $state) {
-                                                        return $state ? \Illuminate\Support\Str::slug($state) : null;
+                                                    ->live(debounce: 350)
+                                                    ->afterStateUpdated(function (Set $set, ?string $state) use ($loc) {
+                                                        $set("slug.$loc", $state ? Str::slug((string) $state) : null);
                                                     }),
 
-                                                // Açıklama
                                                 Textarea::make("description.$loc")
                                                     ->label(__('admin.villas.form.description'))
                                                     ->rows(4),
 
-                                                // Öne Çıkan Özellikler – repeater
                                                 Repeater::make("highlights.$loc")
                                                     ->label(__('admin.villas.form.highlights'))
                                                     ->simple(
@@ -307,7 +300,6 @@ class VillaForm
                                                     ->addActionLabel(__('admin.villas.form.add_highlight'))
                                                     ->reorderable(),
 
-                                                // Konaklama Hakkında – repeater
                                                 Repeater::make("stay_info.$loc")
                                                     ->label(__('admin.villas.form.stay_info'))
                                                     ->simple(
@@ -320,23 +312,6 @@ class VillaForm
                                         })->all()
                                     ),
 
-                                    /*
-                                     * ÖNEMLİ: slug_ui → slug map’i
-                                     * - slug_ui boşsa mevcut slug değerini korur.
-                                     * - slug_ui doluysa tamamını slug kolonuna yazar (JSON).
-                                     */
-                                    Hidden::make('slug')
-                                        ->dehydrateStateUsing(function (Get $get, $state) {
-                                            $ui = $get('slug_ui');
-
-                                            if (is_array($ui) && array_filter($ui, fn ($v) => filled($v))) {
-                                                return $ui;
-                                            }
-
-                                            return $state;
-                                        }),
-
-                                    // Özellik Grupları (VillaAmenity ile)
                                     Section::make(__('admin.villas.sections.features'))
                                         ->columns(1)
                                         ->schema([
@@ -348,39 +323,34 @@ class VillaForm
                                                 ->defaultItems(0)
                                                 ->addActionLabel(__('admin.villas.form.add_feature_group'))
                                                 ->itemLabel(fn (array $state): ?string =>
-                                                data_get($state, "title.$base") ?: __('admin.villas.form.feature_group_untitled')
+                                                (data_get($state, 'title.' . app()->getLocale()) ?: __('admin.villas.form.feature_group_untitled'))
                                                 )
                                                 ->schema([
-                                                    // Grup başlığı i18n
-                                                    Tabs::make('fg_i18n')->tabs(
+                                                    Tabs::make('i18n')->tabs(
                                                         collect($locales)->map(
                                                             fn (string $loc) => Tab::make(strtoupper($loc))
                                                                 ->schema([
                                                                     TextInput::make("title.$loc")
                                                                         ->label(__('admin.villas.form.feature_group_title'))
-                                                                        ->required($loc === $base)
+                                                                        ->required()
                                                                         ->live(onBlur: true),
                                                                 ])
                                                         )->all()
                                                     ),
 
-                                                    // VillaAmenity seçimi
                                                     Select::make('amenities')
                                                         ->label(__('admin.villas.form.amenities'))
                                                         ->multiple()
                                                         ->preload()
                                                         ->searchable()
                                                         ->relationship('amenities', 'id')
-                                                        ->getOptionLabelFromRecordUsing(
-                                                            fn (VillaAmenity $r) =>
-                                                                $r->name[app()->getLocale()]
-                                                                ?? array_values($r->name ?? [])[0]
-                                                                ?? '—'
-                                                        ),
+                                                        ->getOptionLabelFromRecordUsing(function (VillaAmenity $r): string {
+                                                            $ui = app()->getLocale();
+                                                            return (string) ($r->name[$ui] ?? '');
+                                                        }),
                                                 ]),
                                         ]),
 
-                                    // Kapasiteler
                                     Section::make(__('admin.villas.sections.capacities'))
                                         ->columns(3)
                                         ->schema([
@@ -388,17 +358,18 @@ class VillaForm
                                                 ->label(__('admin.villas.form.max_guests'))
                                                 ->numeric()
                                                 ->required(),
+
                                             TextInput::make('bedroom_count')
                                                 ->label(__('admin.villas.form.bedroom_count'))
                                                 ->numeric()
                                                 ->required(),
+
                                             TextInput::make('bathroom_count')
                                                 ->label(__('admin.villas.form.bathroom_count'))
                                                 ->numeric()
                                                 ->required(),
                                         ]),
 
-                                    // Konum
                                     Section::make(__('admin.villas.sections.location'))
                                         ->columns(1)
                                         ->schema([
@@ -416,10 +387,10 @@ class VillaForm
                                                         ->limit(50)
                                                         ->get()
                                                         ->mapWithKeys(function (Location $r) {
-                                                            $parts  = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+                                                            $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
                                                             $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
 
-                                                            return [$r->id => $r->name . $suffix];
+                                                            return [$r->id => ((string) $r->name) . $suffix];
                                                         })
                                                         ->all();
                                                 })
@@ -429,10 +400,10 @@ class VillaForm
                                                         return null;
                                                     }
 
-                                                    $parts  = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+                                                    $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
                                                     $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
 
-                                                    return $r->name . $suffix;
+                                                    return ((string) $r->name) . $suffix;
                                                 }),
 
                                             TextInput::make('address_line')
@@ -444,13 +415,13 @@ class VillaForm
                                                     TextInput::make('latitude')
                                                         ->label(__('admin.villas.form.latitude'))
                                                         ->numeric(),
+
                                                     TextInput::make('longitude')
                                                         ->label(__('admin.villas.form.longitude'))
                                                         ->numeric(),
                                                 ]),
                                         ]),
 
-                                    // Yakın Çevre
                                     Section::make(__('admin.villas.sections.nearby'))
                                         ->columns(1)
                                         ->schema([
@@ -460,7 +431,7 @@ class VillaForm
                                                 ->collapsed()
                                                 ->addActionLabel(__('admin.villas.form.add_nearby'))
                                                 ->itemLabel(fn (array $state): string =>
-                                                (string) ($state['label'][$uiLocale] ?? $state['label'][$base] ?? '—')
+                                                (string) (($state['label'][app()->getLocale()] ?? '') ?: '—')
                                                 )
                                                 ->schema([
                                                     IconPicker::make('icon')
@@ -468,7 +439,7 @@ class VillaForm
                                                         ->variant('outline')
                                                         ->columnSpan(2),
 
-                                                    Tabs::make('nearby_i18n')
+                                                    Tabs::make('i18n')
                                                         ->columnSpan(10)
                                                         ->tabs(
                                                             collect($locales)->map(function (string $loc) {
@@ -486,18 +457,17 @@ class VillaForm
                                                 ]),
                                         ]),
 
-                                    // İletişim
                                     Section::make(__('admin.villas.sections.contact'))
                                         ->columns(2)
                                         ->schema([
                                             TextInput::make('phone')
                                                 ->label(__('admin.villas.form.phone')),
+
                                             TextInput::make('email')
                                                 ->label(__('admin.villas.form.email'))
                                                 ->email(),
                                         ]),
 
-                                    // Galeri
                                     Section::make(__('admin.villas.sections.gallery'))
                                         ->columns(1)
                                         ->schema([
@@ -517,11 +487,9 @@ class VillaForm
                                                 ->columnSpan(12),
                                         ]),
 
-                                    // Fiyatlar
                                     Section::make(__('admin.rooms.sections.prices'))
                                         ->columns(1)
                                         ->schema([
-                                            // Her durumda görünen --> Ön ödeme oranı
                                             TextInput::make('prepayment_rate')
                                                 ->label(__('admin.villas.form.prepayment_rate'))
                                                 ->numeric()
@@ -529,21 +497,18 @@ class VillaForm
                                                 ->maxValue(100)
                                                 ->suffix('%'),
 
-                                            // Currency var mı yok mu?
                                             ! empty($currencyTabs)
                                                 ? Tabs::make('villa_prices')->columnSpan(12)->tabs($currencyTabs)
                                                 : TextEntry::make('no_currency_info')
                                                 ->label(' ')
                                                 ->state(__('admin.rooms.form.prices.no_active_price')),
                                         ]),
-
                                 ]),
 
-                            // SAĞ KOLON (4)
+                            // SAĞ (4)
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 4])
                                 ->schema([
-                                    // Durum
                                     Section::make(__('admin.villas.sections.status'))
                                         ->columns(1)
                                         ->schema([
@@ -559,10 +524,9 @@ class VillaForm
                                             TextInput::make('code')
                                                 ->label(__('admin.villas.form.code'))
                                                 ->disabled()
-                                                ->helperText('Otomatik üretilir.'),
+                                                ->helperText(__('admin.field.auto_generated')),
                                         ]),
 
-                                    // Kapak görseli
                                     Section::make(__('admin.villas.form.cover'))
                                         ->columns(1)
                                         ->schema([
@@ -574,7 +538,6 @@ class VillaForm
                                                 ->maxFiles(1),
                                         ]),
 
-                                    // Sınıflandırma
                                     Section::make(__('admin.villas.sections.classification'))
                                         ->columns(1)
                                         ->schema([
@@ -584,7 +547,7 @@ class VillaForm
                                                 ->preload()
                                                 ->options(
                                                     VillaCategory::query()
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
                                                         ->orderBy('label')
                                                         ->pluck('label', 'id')
                                                 ),
@@ -596,7 +559,7 @@ class VillaForm
                                                 ->options(
                                                     CancellationPolicy::query()
                                                         ->where('is_active', true)
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
                                                         ->orderBy('sort_order')
                                                         ->pluck('label', 'id')
                                                 ),

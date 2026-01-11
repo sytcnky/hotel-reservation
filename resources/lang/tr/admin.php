@@ -116,6 +116,7 @@ return [
         'district' => 'İlçe',
         'province' => 'Şehir',
         'hotel' => 'Otel',
+        'status'=> 'Durum'
     ],
     'user' => [
         'singular' => 'Kullanıcı',
@@ -141,6 +142,15 @@ return [
         'deleted' => 'Silindi',
         'properties' => 'Özellikler',
     ],
+    'weekdays' => [
+        'mon' => 'Pt',
+        'tue' => 'Sa',
+        'wed' => 'Ça',
+        'thu' => 'Pe',
+        'fri' => 'Cu',
+        'sat' => 'Ct',
+        'sun' => 'Pa'
+    ],
     'role' => [
         'singular' => 'Rol',
         'plural' => 'Roller',
@@ -155,6 +165,30 @@ return [
     ],
     'filter' => [
         'display_locale' => 'Gösterim dili',
+    ],
+    'languages' => [
+        'sections' => [
+            'general' => 'Genel Bilgiler',
+            'flag'    => 'Bayrak',
+        ],
+
+        'form' => [
+            'code'        => 'Kod',
+            'code_help'   => 'Örn: tr, en, de',
+            'locale'      => 'Locale',
+            'locale_help' => 'Örn: tr_TR, en_GB',
+            'name'        => 'Ad',
+            'native_name' => 'Yerel Ad',
+            'flag'        => 'Bayrak',
+        ],
+
+        'table' => [
+            'flag'        => 'Bayrak',
+            'code'        => 'Kod',
+            'locale'      => 'Locale',
+            'name'        => 'Ad',
+            'native_name' => 'Yerel Ad',
+        ],
     ],
     'hotels' => [
         'singular' => 'Otel',
@@ -412,15 +446,6 @@ return [
             'capacity_infant_max'  => 'Bebek Maks',
         ],
     ],
-    'weekdays' => [
-        'mon' => 'Pt',
-        'tue' => 'Sa',
-        'wed' => 'Ça',
-        'thu' => 'Pe',
-        'fri' => 'Cu',
-        'sat' => 'Ct',
-        'sun' => 'Pa'
-    ],
     'orders' => [
         'singular' => 'Sipariş',
         'plural'   => 'Siparişler',
@@ -547,7 +572,6 @@ return [
             'infant' => '{1}:count Bebek|[2,*]:count Bebek',
         ],
     ],
-
     'coupons' => [
         'singular' => 'Kupon',
         'plural'   => 'Kuponlar',
@@ -563,7 +587,6 @@ return [
             'is_exclusive'       => 'Tek Başına',
             'max_uses_per_user'  => 'Kullanıcı başı limit',
             'created_at'         => 'Oluşturma',
-
             'filter_active'      => 'Aktif durum',
         ],
 
@@ -616,6 +639,8 @@ return [
 
             'max_uses_per_user'       => 'Kullanıcı Başına Kullanım Limiti',
             'max_uses_per_user_help'  => 'Boş bırakılırsa sınırsızdır.',
+
+            'assign_coupon'           => 'Kupon Ata',
         ],
 
         'sections' => [
@@ -673,7 +698,6 @@ return [
             'notification_done'         => 'İşlem başarıyla tamamlandı.',
         ],
     ],
-
     'campaigns' => [
         'singular' => 'Kampanya',
         'plural'   => 'Kampanyalar',
@@ -845,7 +869,6 @@ return [
         ],
 
     ],
-
     'payment_attempts' => [
         'singular' => 'Ödeme',
         'plural'   => 'Ödemeler',
@@ -984,7 +1007,6 @@ return [
             'roles'          => 'İlgili Roller',
         ],
     ],
-
     'travel_guides' => [
         'singular' => 'Gezi Rehberi',
         'plural'   => 'Gezi Rehberleri',
@@ -1036,7 +1058,6 @@ return [
             'slug_unique' => 'Bu slug bu dil için zaten kullanılıyor.',
         ],
     ],
-
     'static_page_labels' => [
 
         // Sayfa anahtarları
@@ -1066,7 +1087,6 @@ return [
             'travel_guides' => 'Gezi Rehberleri',
         ],
     ],
-
     'static_pages' => [
         'singular' => 'Statik Sayfa',
         'plural'   => 'Statik Sayfalar',
@@ -1203,5 +1223,26 @@ return [
             ],
         ],
     ],
+    'translations' => [
+        'singular' => 'Çeviri',
+        'plural'   => 'Çeviriler',
 
+        'fields' => [
+            'group'  => 'Grup',
+            'key'    => 'Anahtar',
+            'values' => 'Değerler',
+        ],
+
+        'actions' => [
+            'create' => 'Çeviri Oluştur',
+        ],
+
+        'modals' => [
+            'create_heading' => 'Yeni Çeviri',
+        ],
+
+        'filters' => [
+            'group' => 'Grup',
+        ],
+    ],
 ];

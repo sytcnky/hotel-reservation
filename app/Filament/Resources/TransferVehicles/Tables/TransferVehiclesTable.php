@@ -4,27 +4,68 @@ namespace App\Filament\Resources\TransferVehicles\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TransferVehiclesTable
 {
     public static function configure(Table $table): Table
     {
+        $uiLocale = app()->getLocale();
+
         return $table
             ->columns([
-                TextColumn::make('name.tr')->label('Ad')->sortable()->searchable(),
-                TextColumn::make('capacity_total')->label('Kapasite')->sortable(),
-                TextColumn::make('created_at')->label('Oluşturma')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')->label('Güncelleme')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')->label('Silinmiş')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('sort_order')->label('Sıra')->sortable(),
-                IconColumn::make('is_active')->label('Aktif')->boolean(),
+                TextColumn::make('name_l')
+                    ->label(__('admin.field.name'))
+                    ->state(fn ($record): string => (string) ($record->name_l ?? ''))
+                    ->sortable(
+                        query: fn (Builder $q, string $dir) =>
+                        $q->orderByRaw("NULLIF(name->>'{$uiLocale}', '') {$dir}")
+                    )
+                    ->searchable(
+                        query: fn (Builder $q, string $search) =>
+                        $q->whereRaw(
+                            "NULLIF(name->>'{$uiLocale}', '') ILIKE ?",
+                            ['%' . $search . '%']
+                        )
+                    ),
+
+                TextColumn::make('capacity_total')
+                    ->label(__('admin.vehicles.form.capacity_total'))
+                    ->numeric()
+                    ->sortable(),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
+
+                TextColumn::make('created_at')
+                    ->label(__('admin.field.created_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                    ->label(__('admin.field.updated_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('deleted_at')
+                    ->label(__('admin.field.deleted_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TrashedFilter::make(),

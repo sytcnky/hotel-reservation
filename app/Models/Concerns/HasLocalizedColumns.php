@@ -3,48 +3,86 @@
 namespace App\Models\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 
 trait HasLocalizedColumns
 {
-    public static function preferredLocale(): string
+    /**
+     * Admin panel locale için tek otorite.
+     */
+    protected static function uiLocale(): string
     {
-        // Panel tek otorite (admin)
-        if ($v = Session::get('panel_locale')) {
-            return $v;
-        }
-
-        if ($v = optional(Auth::user())->locale) {
-            return $v;
-        }
-
-        return App::getLocale() ?: 'en';
+        return app()->getLocale();
     }
 
-    /** UI access */
-    protected function getLocalized(string $attr): string
+    /**
+     * JSON i18n kolonundan UI locale değerini döner.
+     * - Fallback yok (en yok, ilk eleman yok).
+     * - Boş string => null.
+     * - Edge-case: attr string ise JSON decode denenir; değilse string döner (trimlenmiş, boşsa null).
+     */
+    protected function getLocalized(string $attr): ?string
     {
-        $pref = static::preferredLocale();
-        $data = (array) ($this->{$attr} ?? []);
+        $raw = $this->getAttribute($attr);
 
-        return $data[$pref] ?? ($data['en'] ?? (is_array($data) ? (string) reset($data) : ''));
+        if ($raw === null) {
+            return null;
+        }
+
+        // Edge-case: DB'den string gelirse (cast bozulmuş / eski veri)
+        if (is_string($raw)) {
+            $s = trim($raw);
+
+            // JSON string olabilir
+            $decoded = json_decode($s, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                return $s !== '' ? $s : null;
+            }
+        }
+
+        // Array değilse scalar olarak döndür.
+        if (! is_array($raw)) {
+            $s = trim((string) $raw);
+
+            return $s !== '' ? $s : null;
+        }
+
+        $ui = static::uiLocale();
+
+        $val = $raw[$ui] ?? null;
+
+        if (! is_string($val)) {
+            return null;
+        }
+
+        $val = trim($val);
+
+        return $val !== '' ? $val : null;
     }
 
-    /** -------- Local scopes (temiz kullanım için) -------- */
+    /*
+    |--------------------------------------------------------------------------
+    | Local scopes (admin tablo arama/sıralama için)
+    |--------------------------------------------------------------------------
+    | Sadece uiLocale
+    | Boş string -> NULL kabul edilir.
+    */
+
     public function scopeOrderByLocalized(Builder $query, string $column, string $direction = 'asc'): Builder
     {
-        $pref = static::preferredLocale();
+        $ui = static::uiLocale();
         $dir = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
 
-        return $query->orderByRaw("COALESCE({$column}->>?, {$column}->>'en') {$dir}", [$pref]);
+        // Postgres: NULLS LAST ile boş/eksik çeviriler en sona gider.
+        return $query->orderByRaw("NULLIF({$column}->>?, '') {$dir} NULLS LAST", [$ui]);
     }
 
     public function scopeWhereLocalizedLike(Builder $query, string $column, string $needle): Builder
     {
-        $pref = static::preferredLocale();
+        $ui = static::uiLocale();
 
-        return $query->whereRaw("COALESCE({$column}->>?, {$column}->>'en') ILIKE ?", [$pref, "%{$needle}%"]);
+        // NULLIF(...,'') => boş string eşleşmesin
+        return $query->whereRaw("NULLIF({$column}->>?, '') ILIKE ?", [$ui, "%{$needle}%"]);
     }
 }

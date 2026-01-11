@@ -36,12 +36,12 @@ class EditVilla extends EditRecord
             ->toArray();
 
         $previewAction = Action::make('previewRates')
-            ->label('Fiyat Önizleme')
+            ->label(__('admin.villas.actions.preview_rates'))
             ->icon('heroicon-o-eye')
             ->schema([
                 Grid::make()->columns(12)->schema([
                     Select::make('currency_id')
-                        ->label('Para Birimi')
+                        ->label(__('admin.field.currency'))
                         ->options($currencyOptions)
                         ->required()
                         ->default(array_key_first($currencyOptions))
@@ -49,7 +49,7 @@ class EditVilla extends EditRecord
                         ->columnSpan(3),
 
                     DatePicker::make('date_start')
-                        ->label('Başlangıç')
+                        ->label(__('admin.field.date_start'))
                         ->native(false)
                         ->displayFormat('Y-m-d')
                         ->required()
@@ -57,7 +57,7 @@ class EditVilla extends EditRecord
                         ->columnSpan(3),
 
                     DatePicker::make('date_end')
-                        ->label('Bitiş')
+                        ->label(__('admin.field.date_end'))
                         ->native(false)
                         ->displayFormat('Y-m-d')
                         ->required()
@@ -70,7 +70,7 @@ class EditVilla extends EditRecord
                         ->content(
                             '<div class="flex" style="height:100%">
                                 <button type="submit" class="fi-btn fi-btn-primary w-full py-2 px-3 text-sm" style="align-self:end">
-                                    Göster
+                                    ' . e(__('admin.villas.actions.preview_rates')) . '
                                 </button>
                             </div>'
                         ),
@@ -105,7 +105,7 @@ class EditVilla extends EditRecord
                     }),
             ])
             ->modalWidth('7xl')
-            ->modalHeading('Fiyat Önizleme')
+            ->modalHeading(__('admin.villas.actions.preview_rates'))
             ->modalSubmitAction(false)
             ->modalCancelAction(false)
             ->modalFooterActions([])

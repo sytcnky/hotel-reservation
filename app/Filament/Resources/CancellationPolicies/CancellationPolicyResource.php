@@ -13,20 +13,24 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Throwable;
 
 class CancellationPolicyResource extends Resource
 {
     protected static ?string $model = CancellationPolicy::class;
 
+    protected static ?string $recordTitleAttribute = 'name_l';
+
     public static function getNavigationGroup(): ?string { return __('admin.nav.taxonomies'); }
     public static function getNavigationLabel(): string { return __('admin.ent.cancellation_policy.plural'); }
     public static function getModelLabel(): string { return __('admin.ent.cancellation_policy.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.ent.cancellation_policy.plural'); }
+
     public static function getNavigationBadge(): ?string
     {
         try {
             return (string) static::getModel()::query()->count();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -44,19 +48,16 @@ class CancellationPolicyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListCancellationPolicies::route('/'),
+            'index'  => ListCancellationPolicies::route('/'),
             'create' => CreateCancellationPolicy::route('/create'),
-            'edit' => EditCancellationPolicy::route('/{record}/edit'),
+            'edit'   => EditCancellationPolicy::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return static::getModel()::query()->withoutGlobalScopes([
+            SoftDeletingScope::class,
+        ]);
     }
 }

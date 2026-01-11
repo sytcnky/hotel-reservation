@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources\TravelGuides\Tables;
 
-use App\Support\Helpers\I18nHelper;
-use App\Support\Helpers\LocaleHelper;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
@@ -12,41 +10,38 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TravelGuidesTable
 {
     public static function configure(Table $table): Table
     {
-        $uiLocale   = app()->getLocale();
-        $baseLocale = LocaleHelper::defaultCode();
-
-        $decodeJsonIfNeeded = static function (mixed $value): mixed {
-            if (is_array($value)) {
-                return $value;
-            }
-
-            if (is_string($value) && $value !== '') {
-                $decoded = json_decode($value, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    return $decoded;
-                }
-            }
-
-            return $value;
-        };
+        $uiLocale = app()->getLocale();
 
         return $table
             ->columns([
-                TextColumn::make('title')
+                /**
+                 * Başlık
+                 * Kontrat: fallback yok. Sadece UI locale key'i.
+                 */
+                TextColumn::make('title_l')
                     ->label(__('admin.travel_guides.fields.title'))
-                    ->state(function ($record) use ($uiLocale, $baseLocale, $decodeJsonIfNeeded): string {
-                        // Kaynağı ham al (jsonb olabilir), gerekirse decode et.
-                        $raw = $record->getRawOriginal('title') ?? $record->title;
-                        $raw = $decodeJsonIfNeeded($raw);
+                    ->state(fn ($record): string => (string) ($record->title_l ?? ''))
+                    ->sortable(
+                        query: function (Builder $q, string $dir) use ($uiLocale) {
+                            return $q->orderByRaw("NULLIF(title->>'{$uiLocale}', '') {$dir}");
+                        }
+                    )
+                    ->searchable(
+                        query: function (Builder $q, string $search) use ($uiLocale) {
+                            $like = '%' . $search . '%';
 
-                        return I18nHelper::scalar($raw, $uiLocale, $baseLocale) ?: '—';
-                    })
-                    ->searchable(),
+                            return $q->whereRaw(
+                                "NULLIF(title->>'{$uiLocale}', '') ILIKE ?",
+                                [$like]
+                            );
+                        }
+                    ),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))

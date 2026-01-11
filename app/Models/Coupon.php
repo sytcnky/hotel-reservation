@@ -2,15 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
-    use HasFactory;
-
-    // İstersen burada açıkça belirtmeyebiliriz; Laravel otomatik "coupons" kullanır.
-    // protected $table = 'coupons';
+    use HasFactory, HasLocalizedColumns;
 
     protected $fillable = [
         'is_active',
@@ -40,25 +38,39 @@ class Coupon extends Model
     ];
 
     protected $casts = [
-        'is_active'          => 'bool',
-        'is_exclusive'       => 'bool',
+        'is_active'         => 'bool',
+        'is_exclusive'      => 'bool',
 
-        'title'              => 'array',
-        'description'        => 'array',
-        'badge_label'        => 'array',
+        'title'             => 'array',
+        'description'       => 'array',
+        'badge_label'       => 'array',
 
-        'valid_from'         => 'datetime',
-        'valid_until'        => 'datetime',
+        'valid_from'        => 'datetime',
+        'valid_until'       => 'datetime',
 
-        'max_uses_per_user'  => 'integer',
-        'percent_value'      => 'float',
+        'max_uses_per_user' => 'integer',
+        'percent_value'     => 'float',
 
-        'product_types'      => 'array',
-        'product_id'         => 'integer',
-        'min_nights'         => 'integer',
+        'product_types'     => 'array',
+        'product_id'        => 'integer',
+        'min_nights'        => 'integer',
 
-        'currency_data'      => 'array',
+        'currency_data'     => 'array',
     ];
+
+    protected $appends = [
+        'title_l',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin localized accessor (NO fallback)
+    |--------------------------------------------------------------------------
+    */
+    public function getTitleLAttribute(): ?string
+    {
+        return $this->getLocalized('title');
+    }
 
     /*
      |--------------------------------------------------------------------------
@@ -73,7 +85,6 @@ class Coupon extends Model
 
     public function users()
     {
-        // Eğer ileride doğrudan BelongsToMany kullanmak istersen hazır olsun.
         return $this->belongsToMany(User::class, 'user_coupons')
             ->using(UserCoupon::class)
             ->withPivot([

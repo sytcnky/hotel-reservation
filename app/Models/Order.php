@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
@@ -263,7 +264,7 @@ class Order extends Model
     | Relations
     |--------------------------------------------------------------------------
     */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class);
     }
@@ -278,12 +279,12 @@ class Order extends Model
         return $this->belongsTo(\App\Models\User::class, 'cancelled_by');
     }
 
-    public function items()
+    public function items(): HasMany
     {
         return $this->hasMany(\App\Models\OrderItem::class);
     }
 
-    public function paymentAttempts()
+    public function paymentAttempts(): HasMany
     {
         return $this->hasMany(\App\Models\PaymentAttempt::class);
     }
@@ -313,7 +314,7 @@ class Order extends Model
         );
     }
 
-    public function supportTickets()
+    public function supportTickets(): HasMany
     {
         return $this->hasMany(\App\Models\SupportTicket::class);
     }
@@ -329,11 +330,10 @@ class Order extends Model
     | Infolist Accessors (mevcut)
     |--------------------------------------------------------------------------
     */
-
     public function getItemsForInfolistAttribute(): array
     {
         return $this->items
-            ->map(function (OrderItem $item): array {
+            ->map(function (\App\Models\OrderItem $item): array {
                 $s        = (array) ($item->snapshot ?? []);
                 $type     = $item->product_type;
                 $currency = strtoupper($item->currency ?? $this->currency ?? '');

@@ -2,38 +2,44 @@
 
 namespace App\Filament\Resources\BoardTypes\Tables;
 
-use Filament\Tables\Table;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class BoardTypesTable
 {
     public static function configure(Table $table): Table
     {
+        $uiLocale = app()->getLocale();
+
         return $table
             ->columns([
                 TextColumn::make('name_l')
                     ->label(__('admin.field.name'))
-                    ->sortable(
-                        query: fn ($query, string $direction) => $query->orderByLocalized('name', $direction)
-                    )
-                    ->searchable(
-                        query: fn ($query, string $search) => $query->whereLocalizedLike('name', $search)
-                    ),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(name->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(name->>? ILIKE ?)", [$uiLocale, $like]);
+                    }),
 
                 TextColumn::make('slug_l')
                     ->label(__('admin.field.slug'))
-                    ->sortable(
-                        query: fn ($query, string $direction) => $query->orderByLocalized('slug', $direction)
-                    )
-                    ->searchable(
-                        query: fn ($query, string $search) => $query->whereLocalizedLike('slug', $search)
-                    ),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(slug->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(slug->>? ILIKE ?)", [$uiLocale, $like]);
+                    })
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))

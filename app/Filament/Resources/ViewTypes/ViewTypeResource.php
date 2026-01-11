@@ -45,20 +45,15 @@ class ViewTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListViewTypes::route('/'),
+            'index'  => ListViewTypes::route('/'),
             'create' => CreateViewType::route('/create'),
-            'edit' => EditViewType::route('/{record}/edit'),
+            'edit'   => EditViewType::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

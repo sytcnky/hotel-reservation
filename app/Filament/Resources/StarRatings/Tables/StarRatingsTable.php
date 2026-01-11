@@ -16,32 +16,62 @@ class StarRatingsTable
 {
     public static function configure(Table $table): Table
     {
+        $uiLocale = app()->getLocale();
+
         return $table
             ->columns([
                 TextColumn::make('name_l')
                     ->label(__('admin.field.name'))
-                    ->sortable(
-                        query: fn (Builder $query, string $direction) => $query->orderByLocalized('name', $direction)
-                    )
-                    ->searchable(
-                        query: fn (Builder $query, string $search) => $query->whereLocalizedLike('name', $search)
-                    ),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(name->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(name->>? ILIKE ?)", [$uiLocale, $like]);
+                    }),
 
                 TextColumn::make('slug_l')
                     ->label(__('admin.field.slug'))
-                    ->sortable(
-                        query: fn (Builder $query, string $direction) => $query->orderByLocalized('slug', $direction)
-                    )
-                    ->searchable(
-                        query: fn (Builder $query, string $search) => $query->whereLocalizedLike('slug', $search)
-                    ),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(slug->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(slug->>? ILIKE ?)", [$uiLocale, $like]);
+                    })
+                    ->toggleable(),
 
+                TextColumn::make('rating_value')
+                    ->label(__('admin.field.rating_value'))
+                    ->numeric()
+                    ->sortable(),
 
-                TextColumn::make('created_at')->label(__('admin.field.created_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')->label(__('admin.field.updated_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')->label(__('admin.field.deleted_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('sort_order')->label(__('admin.field.sort_order'))->numeric()->sortable(),
-                IconColumn::make('is_active')->label(__('admin.field.is_active'))->boolean(),
+                TextColumn::make('created_at')
+                    ->label(__('admin.field.created_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                    ->label(__('admin.field.updated_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('deleted_at')
+                    ->label(__('admin.field.deleted_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),

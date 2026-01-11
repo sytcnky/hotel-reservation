@@ -18,20 +18,14 @@ class CampaignsTable
 {
     public static function configure(Table $table): Table
     {
-        $base = config('app.locale', 'tr');
-        $ui   = app()->getLocale();
+        $uiLocale = app()->getLocale();
 
         return $table
             ->columns([
-                IconColumn::make('is_active')
-                    ->label(__('admin.campaigns.table.active'))
-                    ->boolean()
-                    ->sortable(),
-
                 TextColumn::make('title')
                     ->label(__('admin.campaigns.table.title'))
-                    ->getStateUsing(function (Campaign $record) use ($ui, $base) {
-                        return self::resolveLocalizedTitle($record->content ?? [], $ui, $base);
+                    ->getStateUsing(function (Campaign $record) use ($uiLocale) {
+                        return self::resolveLocalizedTitle($record->content ?? [], $uiLocale);
                     })
                     ->limit(40)
                     ->searchable(),
@@ -44,11 +38,6 @@ class CampaignsTable
                 TextColumn::make('end_date')
                     ->label(__('admin.campaigns.table.end_date'))
                     ->date()
-                    ->sortable(),
-
-                TextColumn::make('priority')
-                    ->label(__('admin.campaigns.table.priority'))
-                    ->numeric()
                     ->sortable(),
 
                 IconColumn::make('visible_on_web')
@@ -79,6 +68,16 @@ class CampaignsTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('priority')
+                    ->label(__('admin.campaigns.table.priority'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.campaigns.table.active'))
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
@@ -97,32 +96,20 @@ class CampaignsTable
     }
 
     /**
-     * content[locale]['title'] yapısından locale'e göre başlığı çözer.
+     * content[locale]['title'] içinden sadece UI locale title çözer.
+     * Kontrat: fallback YOK.
      */
-    protected static function resolveLocalizedTitle(mixed $content, string $ui, string $base): ?string
+    protected static function resolveLocalizedTitle(mixed $content, string $uiLocale): ?string
     {
         if (! is_array($content) || $content === []) {
             return null;
         }
 
-        // Önce UI locale
-        if (isset($content[$ui]['title']) && $content[$ui]['title'] !== '') {
-            return (string) $content[$ui]['title'];
-        }
+        $title = $content[$uiLocale]['title'] ?? null;
 
-        // Sonra base locale
-        if (isset($content[$base]['title']) && $content[$base]['title'] !== '') {
-            return (string) $content[$base]['title'];
-        }
-
-        // Son çare: ilk locale'in title'ı
-        foreach ($content as $localeData) {
-            if (is_array($localeData) && isset($localeData['title']) && $localeData['title'] !== '') {
-                return (string) $localeData['title'];
-            }
-        }
-
-        return null;
+        return ($title !== null && $title !== '')
+            ? (string) $title
+            : null;
     }
 
     /**
@@ -140,7 +127,6 @@ class CampaignsTable
             $translationKey = "admin.campaigns.placements.$key";
             $label          = __($translationKey);
 
-            // Çeviri yoksa anahtarı olduğu gibi gösterme, sadece key'i kullan.
             if ($label === $translationKey) {
                 $label = (string) $key;
             }

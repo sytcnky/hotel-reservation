@@ -7,128 +7,93 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Forms\Components\Select as FormSelect;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Session;
 
 class VillasTable
 {
     public static function configure(Table $table): Table
     {
-        $localeOptions = collect(config('app.supported_locales', ['tr', 'en']))
-            ->mapWithKeys(fn ($l) => [$l => strtoupper($l)])
-            ->toArray();
+        $uiLocale = app()->getLocale();
 
         return $table
             ->columns([
-                // Villa adı (JSON i18n)
-                TextColumn::make('name_i18n')
+                /**
+                 * Villa adı
+                 * Kontrat: fallback yok. Sadece UI locale key'i.
+                 */
+                TextColumn::make('name_l')
                     ->label(__('admin.field.name'))
-                    ->getStateUsing(function ($record) {
-                        $v   = $record->name;
-                        $loc = app()->getLocale();
-
-                        if (is_array($v)) {
-                            return $v[$loc] ?? reset($v) ?: null;
-                        }
-
-                        return $v;
-                    })
+                    ->state(fn ($record): string => (string) ($record->name_l ?? ''))
                     ->sortable(
-                        query: function (Builder $q, string $dir) {
-                            $loc  = app()->getLocale();
-                            $base = config('app.locale', 'tr');
-
-                            return $q->orderByRaw(
-                                "COALESCE(name->>?, name->>?) {$dir}",
-                                [$loc, $base]
-                            );
+                        query: function (Builder $q, string $dir) use ($uiLocale) {
+                            return $q->orderByRaw("NULLIF(name->>'{$uiLocale}', '') {$dir}");
                         }
                     )
                     ->searchable(
-                        query: function (Builder $q, string $search) {
-                            $loc   = app()->getLocale();
-                            $base  = config('app.locale', 'tr');
-                            $like  = '%' . $search . '%';
+                        query: function (Builder $q, string $search) use ($uiLocale) {
+                            $like = '%' . $search . '%';
 
                             return $q->whereRaw(
-                                '(name->>? ILIKE ? OR name->>? ILIKE ?)',
-                                [$loc, $like, $base, $like]
+                                "NULLIF(name->>'{$uiLocale}', '') ILIKE ?",
+                                [$like]
                             );
                         }
                     ),
 
-                // Kategori
-                TextColumn::make('category.name_l')
+                /**
+                 * Kategori (villa_categories.name jsonb)
+                 * Kontrat: fallback yok. Sadece UI locale key'i.
+                 */
+                TextColumn::make('category_name_ui')
                     ->label(__('admin.field.category'))
+                    ->state(fn ($record): string => (string) (($record->category?->name[$uiLocale] ?? '') ?: ''))
                     ->sortable(
-                        query: fn (Builder $q, string $dir) => $q
-                            ->join('villa_categories as vc', 'vc.id', '=', 'villas.villa_category_id')
-                            ->orderByLocalizedOn('vc.name', $dir)
-                            ->select('villas.*')
+                        query: function (Builder $q, string $dir) use ($uiLocale) {
+                            return $q
+                                ->leftJoin('villa_categories as vc', 'vc.id', '=', 'villas.villa_category_id')
+                                ->orderByRaw("NULLIF(vc.name->>'{$uiLocale}', '') {$dir}")
+                                ->select('villas.*');
+                        }
                     )
                     ->searchable(
-                        query: fn (Builder $q, string $search) =>
-                        $q->whereRelationLocalizedLike('category', 'name', $search)
+                        query: function (Builder $q, string $search) use ($uiLocale) {
+                            $like = '%' . $search . '%';
+
+                            return $q->whereHas('category', function (Builder $qq) use ($uiLocale, $like) {
+                                $qq->whereRaw("NULLIF(name->>'{$uiLocale}', '') ILIKE ?", [$like]);
+                            });
+                        }
                     ),
 
-                // Bölge (area)
+                /**
+                 * Location isimleri string
+                 */
                 TextColumn::make('area')
                     ->label(__('admin.field.area'))
-                    ->getStateUsing(function ($record) {
-                        $v = $record->location?->name;
-                        if (is_array($v)) {
-                            return $v[app()->getLocale()] ?? reset($v) ?: null;
-                        }
-
-                        return $v;
-                    })
+                    ->state(fn ($record): string => (string) ($record->location?->name ?? ''))
                     ->toggleable(),
 
-                // İlçe (district)
                 TextColumn::make('district')
                     ->label(__('admin.field.district'))
-                    ->getStateUsing(function ($record) {
-                        $v = $record->location?->parent?->name;
-                        if (is_array($v)) {
-                            return $v[app()->getLocale()] ?? reset($v) ?: null;
-                        }
-
-                        return $v;
-                    })
+                    ->state(fn ($record): string => (string) ($record->location?->parent?->name ?? ''))
                     ->toggleable(),
 
-                // İl (province)
                 TextColumn::make('province')
                     ->label(__('admin.field.province'))
-                    ->getStateUsing(function ($record) {
-                        $v = $record->location?->parent?->parent?->name;
-                        if (is_array($v)) {
-                            return $v[app()->getLocale()] ?? reset($v) ?: null;
-                        }
-
-                        return $v;
-                    })
+                    ->state(fn ($record): string => (string) ($record->location?->parent?->parent?->name ?? ''))
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // İptal politikası
+                /**
+                 * İptal politikası
+                 * Not: cancellationPolicy.name_l accessor'ının da fallback'siz olduğundan emin olmalıyız.
+                 */
                 TextColumn::make('cancellationPolicy.name_l')
                     ->label(__('admin.villas.form.cancellation_policy'))
                     ->toggleable(),
-
-                IconColumn::make('is_active')
-                    ->label(__('admin.field.is_active'))
-                    ->boolean(),
-
-                TextColumn::make('sort_order')
-                    ->label(__('admin.field.sort_order'))
-                    ->numeric()
-                    ->sortable(),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
@@ -147,30 +112,18 @@ class VillasTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),
-
-                // Görüntü dili seçimi
-                Filter::make('display_locale')
-                    ->label(__('admin.filter.display_locale'))
-                    ->schema([
-                        FormSelect::make('value')
-                            ->label(__('admin.filter.display_locale'))
-                            ->options($localeOptions)
-                            ->default(Session::get('display_locale'))
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (! empty($data['value'])) {
-                            Session::put('display_locale', (string) $data['value']);
-                        }
-
-                        return $query;
-                    }),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -18,16 +18,19 @@ class OrdersTable
                     ->searchable()
                     ->sortable(),
 
-
                 TextColumn::make('status')
                     ->label(__('admin.orders.table.status'))
                     ->badge()
                     ->formatStateUsing(function (?string $state): string {
                         $meta = Order::statusMeta($state);
-                        return $meta['label_key'] ? __($meta['label_key']) : (string) ($meta['label'] ?? $state ?? '-');
+
+                        return $meta['label_key']
+                            ? __($meta['label_key'])
+                            : (string) ($meta['label'] ?? $state ?? '-');
                     })
                     ->color(function (?string $state): string {
                         $meta = Order::statusMeta($state);
+
                         return (string) ($meta['filament_color'] ?? 'gray');
                     })
                     ->sortable(),

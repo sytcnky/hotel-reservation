@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StaticPage;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
+use App\Support\Helpers\CurrencyHelper;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class VillaController extends Controller
     {
         $locale       = app()->getLocale();              // uiLocale
         $baseLang     = LocaleHelper::defaultCode();     // baseLocale
-        $currencyCode = \App\Support\Helpers\CurrencyHelper::currentCode();
+        $currencyCode = CurrencyHelper::currentCode();
 
         $villas = Villa::query()
             ->with(['location.parent.parent', 'category', 'media', 'rateRules.currency'])
@@ -107,7 +108,7 @@ class VillaController extends Controller
                 'media',
                 'featureGroups.amenities',
             ])
-            ->where('canonical_slug', $slug)
+            ->whereRaw("NULLIF(slug->>?, '') = ?", [$locale, $slug])
             ->where('is_active', true)
             ->firstOrFail();
 
@@ -128,7 +129,7 @@ class VillaController extends Controller
         }
 
         // === FİYAT + MIN/MAX NIGHTS ===
-        $selectedCurrency = \App\Support\Helpers\CurrencyHelper::currentCode();
+        $selectedCurrency = CurrencyHelper::currentCode();
 
         $rule = $villa->rateRules()
             ->whereHas('currency', fn ($q) => $q->where('code', $selectedCurrency))
@@ -184,7 +185,7 @@ class VillaController extends Controller
 
         $viewData = [
             'id'             => $villa->id,
-            'slug'           => $villa->canonical_slug,
+            'slug'           => $villa->slug[$locale] ?? null,
             'name'           => $name,
 
             'max_guests'     => $villa->max_guests,

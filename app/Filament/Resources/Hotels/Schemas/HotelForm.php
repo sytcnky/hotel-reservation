@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Hotels\Schemas;
 
+use App\Forms\Components\IconPicker;
 use App\Models\BeachType;
 use App\Models\BoardType;
 use App\Models\CancellationPolicy;
@@ -11,6 +12,7 @@ use App\Models\HotelTheme;
 use App\Models\Location;
 use App\Models\PaymentOption;
 use App\Models\StarRating;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -26,26 +28,16 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
-use App\Forms\Components\IconPicker;
-
 
 class HotelForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
-        $uiLocale = app()->getLocale();
+        // Tek kaynak: aktif site dilleri
+        $locales = LocaleHelper::active();
 
-        $boardOptions = BoardType::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get()
-            ->mapWithKeys(function (BoardType $b) use ($uiLocale, $base) {
-                $name = $b->name[$uiLocale] ?? ($b->name[$base] ?? (array_values($b->name ?? [])[0] ?? ''));
-                return [$b->id => (string) $name];
-            })
-            ->all();
+        // Admin UI locale (TR/EN)
+        $uiLocale = app()->getLocale();
 
         return $schema->components([
             Group::make()
@@ -59,42 +51,42 @@ class HotelForm
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 8])
                                 ->schema([
-                                    Tabs::make('i18n')->tabs(
-                                        collect($locales)->map(function (string $loc) use ($base) {
-                                            return Tab::make(strtoupper($loc))->schema([
-                                                TextInput::make("name.$loc")
-                                                    ->label(__('admin.hotels.form.name'))
-                                                    ->required()
-                                                    ->live(debounce: 350)
-                                                    ->afterStateUpdated(function (?string $state, callable $set) use ($loc) {
-                                                        if (! filled($state)) {
-                                                            return;
-                                                        }
-                                                        $set("slug_ui.$loc", Str::slug($state));
-                                                    }),
-
-                                                Group::make()
-                                                    ->statePath('slug_ui')
+                                    Tabs::make('i18n')
+                                        ->tabs(
+                                            collect($locales)->map(function (string $loc) {
+                                                return Tab::make(strtoupper($loc))
                                                     ->schema([
-                                                        TextInput::make($loc)
-                                                            ->label(__('admin.hotels.form.slug'))
+                                                        TextInput::make("name.$loc")
+                                                            ->label(__('admin.hotels.form.name'))
                                                             ->required()
-                                                    ]),
+                                                            ->live(debounce: 350)
+                                                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($loc) {
+                                                                $currentSlug = (string) ($get("slug.$loc") ?? '');
+                                                                $oldSlugFromName = Str::slug((string) ($old ?? ''));
 
-                                                Textarea::make("description.$loc")
-                                                    ->label(__('admin.hotels.form.description'))
-                                                    ->rows(4),
+                                                                if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
+                                                                    $set("slug.$loc", Str::slug((string) ($state ?? '')));
+                                                                }
+                                                            }),
 
-                                                Repeater::make("notes.$loc")
-                                                    ->label(__('admin.hotels.form.notes'))
-                                                    ->simple(
-                                                        TextInput::make('value')->label(__('admin.hotels.form.notes'))
-                                                    )
-                                                    ->addActionLabel(__('admin.hotels.form.add_note'))
-                                                    ->reorderable(),
-                                            ]);
-                                        })->all()
-                                    ),
+                                                        TextInput::make("slug.$loc")
+                                                            ->label(__('admin.hotels.form.slug'))
+                                                            ->required(),
+
+                                                        Textarea::make("description.$loc")
+                                                            ->label(__('admin.hotels.form.description'))
+                                                            ->rows(4),
+
+                                                        Repeater::make("notes.$loc")
+                                                            ->label(__('admin.hotels.form.notes'))
+                                                            ->simple(
+                                                                TextInput::make('value')->label(__('admin.hotels.form.notes'))
+                                                            )
+                                                            ->addActionLabel(__('admin.hotels.form.add_note'))
+                                                            ->reorderable(),
+                                                    ]);
+                                            })->all()
+                                        ),
 
                                     Section::make(__('admin.hotels.sections.features'))
                                         ->columns(1)
@@ -106,28 +98,33 @@ class HotelForm
                                                 ->orderColumn('sort_order')
                                                 ->defaultItems(0)
                                                 ->addActionLabel(__('admin.hotels.form.add_feature_group'))
-                                                ->itemLabel(fn (array $state): ?string => data_get($state, "title.$base") ?: __('admin.hotels.form.feature_group_untitled')
-                                                )
+                                                ->itemLabel(function (array $state) use ($uiLocale): ?string {
+                                                    $label = (string) (data_get($state, "title.$uiLocale") ?? '');
+                                                    return $label !== '' ? $label : __('admin.hotels.form.feature_group_untitled');
+                                                })
                                                 ->schema([
-                                                    Tabs::make('fg_i18n')->tabs(
-                                                        collect($locales)->map(
-                                                            fn (string $loc) => Tab::make(strtoupper($loc))
-                                                                ->schema([
-                                                                    TextInput::make("title.$loc")
-                                                                        ->label(__('admin.hotels.form.feature_group_title'))
-                                                                        ->required($loc === $base)->live(onBlur: true),
-                                                                ])
-                                                        )->all()
-                                                    ),
+                                                    Tabs::make('i18n')
+                                                        ->tabs(
+                                                            collect(LocaleHelper::active())->map(function (string $loc) {
+                                                                return Tab::make(strtoupper($loc))
+                                                                    ->schema([
+                                                                        TextInput::make("title.$loc")
+                                                                            ->label(__('admin.hotels.form.feature_group_title'))
+                                                                            ->required()
+                                                                            ->live(onBlur: true),
+                                                                    ]);
+                                                            })->all()
+                                                        ),
+
                                                     Select::make('facilities')
                                                         ->label(__('admin.hotels.form.facilities'))
-                                                        ->multiple()->preload()->searchable()
+                                                        ->multiple()
+                                                        ->preload()
+                                                        ->searchable()
                                                         ->relationship('facilities', 'id')
-                                                        ->getOptionLabelFromRecordUsing(
-                                                            fn (Facility $r) => $r->name[app()->getLocale()]
-                                                                ?? array_values($r->name ?? [])[0]
-                                                                ?? '—'
-                                                        ),
+                                                        ->getOptionLabelFromRecordUsing(function (Facility $r) use ($uiLocale): string {
+                                                            return (string) (($r->name[$uiLocale] ?? '') ?: '');
+                                                        }),
                                                 ]),
                                         ]),
 
@@ -160,19 +157,24 @@ class HotelForm
                                                     if (! $r) {
                                                         return null;
                                                     }
+
                                                     $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
                                                     $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
 
                                                     return $r->name . $suffix;
                                                 }),
-                                            TextInput::make('address_line')->label(__('admin.hotels.form.address')),
-                                            Grid::make()->columns(2)->schema([
-                                                TextInput::make('latitude')->label(__('admin.hotels.form.latitude'))->numeric(),
-                                                TextInput::make('longitude')->label(__('admin.hotels.form.longitude'))->numeric(),
-                                            ]),
+
+                                            TextInput::make('address_line')
+                                                ->label(__('admin.hotels.form.address')),
+
+                                            Grid::make()
+                                                ->columns(2)
+                                                ->schema([
+                                                    TextInput::make('latitude')->label(__('admin.hotels.form.latitude'))->numeric(),
+                                                    TextInput::make('longitude')->label(__('admin.hotels.form.longitude'))->numeric(),
+                                                ]),
                                         ]),
 
-                                    // — YAKIN ÇEVRE —
                                     Section::make(__('admin.hotels.sections.nearby'))
                                         ->columns(1)
                                         ->schema([
@@ -181,34 +183,28 @@ class HotelForm
                                                 ->columns(12)
                                                 ->collapsed()
                                                 ->addActionLabel(__('admin.hotels.form.add_nearby'))
-                                                ->itemLabel(fn (array $state): string =>
-                                                (string)($state['label'][$uiLocale] ?? $state['label'][$base] ?? '—')
-                                                )
+                                                ->itemLabel(fn (array $state): string => (string) (($state['label'][$uiLocale] ?? '') ?: ''))
                                                 ->schema([
                                                     IconPicker::make('icon')
                                                         ->label(__('admin.hotels.form.nearby_icon'))
                                                         ->variant('outline')
                                                         ->columnSpan(2),
 
-                                                    // i18n alanlar
-                                                    Tabs::make('nearby_i18n')
+                                                    Tabs::make('i18n')
                                                         ->columnSpan(10)
                                                         ->tabs(
-                                                            collect($locales)->map(function (string $loc) use ($base) {
+                                                            collect($locales)->map(function (string $loc) {
                                                                 return Tab::make(strtoupper($loc))->schema([
                                                                     TextInput::make("label.$loc")
-                                                                        ->label(__('admin.hotels.form.nearby_label'))
-                                                                        ->required(false), // istersen $loc === $base yaparsın
+                                                                        ->label(__('admin.hotels.form.nearby_label')),
 
                                                                     TextInput::make("distance.$loc")
-                                                                        ->label(__('admin.hotels.form.nearby_distance'))
-                                                                        ->required(false),
+                                                                        ->label(__('admin.hotels.form.nearby_distance')),
                                                                 ]);
                                                             })->all()
                                                         ),
                                                 ]),
                                         ]),
-
 
                                     Section::make(__('admin.hotels.sections.contact'))
                                         ->columns(1)
@@ -217,7 +213,6 @@ class HotelForm
                                             TextInput::make('email')->label(__('admin.hotels.form.email'))->email(),
                                         ]),
 
-                                    // Galeri
                                     Section::make(__('admin.hotels.sections.gallery'))
                                         ->columns(1)
                                         ->schema([
@@ -242,7 +237,6 @@ class HotelForm
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 4])
                                 ->schema([
-
                                     Section::make(__('admin.hotels.sections.status'))
                                         ->columns(1)
                                         ->schema([
@@ -251,7 +245,6 @@ class HotelForm
                                             TextInput::make('code')->label(__('admin.hotels.form.code'))->disabled()->helperText('Otomatik üretilir.'),
                                         ]),
 
-                                    // Kapak görseli
                                     Section::make(__('admin.hotels.form.cover'))
                                         ->columns(1)
                                         ->schema([
@@ -268,56 +261,69 @@ class HotelForm
                                         ->schema([
                                             Select::make('hotel_category_id')
                                                 ->label(__('admin.hotels.form.category'))
-                                                ->native(false)->preload()
+                                                ->native(false)
+                                                ->preload()
                                                 ->options(
                                                     HotelCategory::query()
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
-                                                        ->orderBy('label')->pluck('label', 'id')
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                        ->orderBy('label')
+                                                        ->pluck('label', 'id')
                                                 ),
+
                                             Select::make('star_rating_id')
                                                 ->label(__('admin.hotels.form.star_rating'))
-                                                ->native(false)->preload()
+                                                ->native(false)
+                                                ->preload()
                                                 ->options(
                                                     StarRating::query()
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
-                                                        ->orderBy('label')->pluck('label', 'id')
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                        ->orderBy('label')
+                                                        ->pluck('label', 'id')
                                                 ),
+
                                             Select::make('board_type_id')
                                                 ->label(__('admin.hotels.form.board_type'))
-                                                ->native(false)->preload()
+                                                ->native(false)
+                                                ->preload()
                                                 ->options(
                                                     BoardType::query()
                                                         ->where('is_active', true)
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
-                                                        ->orderBy('label')->pluck('label', 'id')
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                        ->orderBy('label')
+                                                        ->pluck('label', 'id')
                                                 ),
+
                                             Select::make('beach_type_id')
                                                 ->label(__('admin.hotels.form.beach_type'))
-                                                ->native(false)->preload()
+                                                ->native(false)
+                                                ->preload()
                                                 ->options(
                                                     BeachType::query()
                                                         ->where('is_active', true)
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
-                                                        ->orderBy('label')->pluck('label', 'id')
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                        ->orderBy('label')
+                                                        ->pluck('label', 'id')
                                                 ),
+
                                             Select::make('paymentOptions')
                                                 ->label(__('admin.hotels.form.payment_options'))
-                                                ->multiple()->native(false)->preload()
+                                                ->multiple()
+                                                ->native(false)
+                                                ->preload()
                                                 ->relationship('paymentOptions', 'id')
-                                                ->getOptionLabelFromRecordUsing(
-                                                    fn (PaymentOption $r) => $r->name[app()->getLocale()]
-                                                        ?? array_values($r->name ?? [])[0]
-                                                        ?? '—'
-                                                ),
+                                                ->getOptionLabelFromRecordUsing(function (PaymentOption $r) use ($uiLocale): string {
+                                                    return (string) (($r->name[$uiLocale] ?? '') ?: '');
+                                                }),
+
                                             Select::make('themes')
                                                 ->label(__('admin.hotels.form.themes'))
-                                                ->multiple()->native(false)->preload()
+                                                ->multiple()
+                                                ->native(false)
+                                                ->preload()
                                                 ->relationship('themes', 'id')
-                                                ->getOptionLabelFromRecordUsing(
-                                                    fn (HotelTheme $r) => $r->name[app()->getLocale()]
-                                                        ?? array_values($r->name ?? [])[0]
-                                                        ?? '—'
-                                                ),
+                                                ->getOptionLabelFromRecordUsing(function (HotelTheme $r) use ($uiLocale): string {
+                                                    return (string) (($r->name[$uiLocale] ?? '') ?: '');
+                                                }),
 
                                             Select::make('cancellation_policy_id')
                                                 ->label(__('admin.hotels.form.cancellation_policy'))
@@ -326,13 +332,12 @@ class HotelForm
                                                 ->options(
                                                     CancellationPolicy::query()
                                                         ->where('is_active', true)
-                                                        ->selectRaw("id, name->>'{$uiLocale}' AS label")
+                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
                                                         ->orderBy('sort_order')
                                                         ->pluck('label', 'id')
                                                 ),
                                         ]),
 
-                                    // Çocuk İndirimi
                                     Section::make(__('admin.hotels.sections.child_sale'))
                                         ->columns(1)
                                         ->schema([
@@ -352,8 +357,9 @@ class HotelForm
                                                 ->label(__('admin.hotels.form.sale_percent'))
                                                 ->numeric()
                                                 ->suffix('%')
-                                                ->minValue(0)->maxValue(100)
-                                                ->rules(['numeric','between:0,100'])
+                                                ->minValue(0)
+                                                ->maxValue(100)
+                                                ->rules(['numeric', 'between:0,100'])
                                                 ->live(debounce: 150)
                                                 ->afterStateUpdated(function ($state, Set $set) {
                                                     $v = is_numeric($state) ? (float) $state : null;
@@ -369,7 +375,7 @@ class HotelForm
                                                 ->required(fn (Get $get) => (bool) $get('child_discount_active'))
                                                 ->disabled(fn (Get $get) => ! (bool) $get('child_discount_active'))
                                                 ->helperText(__('admin.hotels.form.child_sale_helper')),
-                                        ])
+                                        ]),
                                 ]),
                         ]),
                 ]),

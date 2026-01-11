@@ -3,9 +3,14 @@
 namespace App\Filament\Resources\Hotels\RelationManagers;
 
 use App\Filament\Resources\Rooms\RoomResource;
-use Filament\Actions\{CreateAction, DeleteAction, EditAction, ForceDeleteAction, RestoreAction};
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Columns\{IconColumn, TextColumn};
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -21,25 +26,21 @@ class RoomsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('viewType'))
 
             ->columns([
-                // Oda adı
                 TextColumn::make('name_l')
-                    ->label('Ad')
+                    ->label(__('admin.field.name'))
                     ->searchable()
                     ->sortable('id'),
 
-                // Manzara
                 TextColumn::make('viewType.name_l')
-                    ->label('Manzara')
+                    ->label(__('admin.rooms.form.view_type'))
                     ->sortable(),
 
-                // Aktif
                 IconColumn::make('is_active')
-                    ->label('Aktif')
+                    ->label(__('admin.field.is_active'))
                     ->boolean(),
 
-                // Sıra
                 TextColumn::make('sort_order')
-                    ->label('Sıra')
+                    ->label(__('admin.field.sort_order'))
                     ->sortable(),
             ])
 

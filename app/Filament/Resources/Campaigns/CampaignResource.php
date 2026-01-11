@@ -11,7 +11,6 @@ use App\Models\Campaign;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -20,10 +19,25 @@ class CampaignResource extends Resource
 {
     protected static ?string $model = Campaign::class;
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.sales_group'); }
-    public static function getNavigationLabel(): string { return __('admin.campaigns.plural'); }
-    public static function getModelLabel(): string { return __('admin.campaigns.singular'); }
-    public static function getPluralModelLabel(): string { return __('admin.campaigns.plural'); }
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.sales_group');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.campaigns.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.campaigns.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.campaigns.plural');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -45,17 +59,15 @@ class CampaignResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListCampaigns::route('/'),
+            'index'  => ListCampaigns::route('/'),
             'create' => CreateCampaign::route('/create'),
-            'edit' => EditCampaign::route('/{record}/edit'),
+            'edit'   => EditCampaign::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\SupportTickets;
 
-use App\Filament\Resources\SupportTickets\Pages\CreateSupportTicket;
 use App\Filament\Resources\SupportTickets\Pages\EditSupportTicket;
 use App\Filament\Resources\SupportTickets\Pages\ListSupportTickets;
 use App\Filament\Resources\SupportTickets\RelationManagers\SupportMessagesRelationManager;
@@ -65,26 +64,23 @@ class SupportTicketResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            SupportMessagesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index'  => ListSupportTickets::route('/'),
-            'edit'   => EditSupportTicket::route('/{record}/edit'),
+            'index' => ListSupportTickets::route('/'),
+            'edit'  => EditSupportTicket::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query()
-            ->with(['order', 'category', 'user']);
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->with(['order', 'category', 'user'])
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

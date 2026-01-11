@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BoardTypes\Schemas;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -16,10 +17,12 @@ class BoardTypeForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $locales = LocaleHelper::active();
+
         return $schema->schema([
-            Tabs::make('translations')
+            Tabs::make('i18n')
                 ->tabs(
-                    collect(config('app.supported_locales'))
+                    collect($locales)
                         ->map(function (string $locale) {
                             return Tab::make(strtoupper($locale))
                                 ->schema([
@@ -31,6 +34,7 @@ class BoardTypeForm
                                         ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($locale) {
                                             $currentSlug = (string) ($get("slug.$locale") ?? '');
                                             $oldSlugFromName = Str::slug((string) ($old ?? ''));
+
                                             if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
                                                 $set("slug.$locale", Str::slug((string) ($state ?? '')));
                                             }

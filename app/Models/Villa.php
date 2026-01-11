@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedColumns;
 use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,20 +10,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Villa extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, SoftDeletes;
+    use HasFactory, HasLocalizedColumns, InteractsWithMedia, SoftDeletes;
 
     protected $fillable = [
         'code',
         'name',
         'slug',
-        'canonical_slug',
         'description',
         'highlights',
         'stay_info',
@@ -45,59 +44,33 @@ class Villa extends Model implements HasMedia
     ];
 
     protected $casts = [
-        'name'              => 'array',
-        'slug'              => 'array',
-        'description'       => 'array',
-        'highlights'        => 'array',
-        'stay_info'         => 'array',
-        'nearby'            => 'array',
-        'is_active'         => 'boolean',
-        'latitude'          => 'decimal:7',
-        'longitude'         => 'decimal:7',
-        'max_guests'        => 'integer',
-        'bedroom_count'     => 'integer',
-        'bathroom_count'    => 'integer',
-        'promo_video_id'    => 'string',
-        'prepayment_rate'   => 'decimal:2',
+        'name'            => 'array',
+        'slug'            => 'array',
+        'description'     => 'array',
+        'highlights'      => 'array',
+        'stay_info'       => 'array',
+        'nearby'          => 'array',
+        'is_active'       => 'boolean',
+        'latitude'        => 'decimal:7',
+        'longitude'       => 'decimal:7',
+        'max_guests'      => 'integer',
+        'bedroom_count'   => 'integer',
+        'bathroom_count'  => 'integer',
+        'promo_video_id'  => 'string',
+        'prepayment_rate' => 'decimal:2',
     ];
 
     /*
     |--------------------------------------------------------------------------
-    | Accessors (localized name)
+    | Accessors (localized)
     |--------------------------------------------------------------------------
     */
 
     public function getNameLAttribute(): ?string
     {
-        $raw = $this->getAttribute('name');
-
-        if ($raw === null) {
-            return null;
-        }
-
-        if (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $raw = $decoded;
-            } else {
-                return $raw;
-            }
-        }
-
-        if (! is_array($raw)) {
-            return (string) $raw;
-        }
-
-        $loc  = app()->getLocale();
-        $base = config('app.locale', 'tr');
-
-        return $raw[$loc] ?? $raw[$base] ?? reset($raw) ?: null;
+        return $this->getLocalized('name');
     }
 
-    /**
-     * Kategori adını localized olarak döner (badge için).
-     */
     public function getCategoryNameAttribute(): ?string
     {
         return $this->category?->name_l;
@@ -129,37 +102,9 @@ class Villa extends Model implements HasMedia
         return $this->hasMany(VillaFeatureGroup::class);
     }
 
-    /**
-     * Fiyat kuralları (sezon, min-night vs).
-     */
     public function rateRules(): HasMany
     {
-        return $this->hasMany(\App\Models\VillaRateRule::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Slug Mutator
-    |--------------------------------------------------------------------------
-    */
-
-    protected function setSlugAttribute($value): void
-    {
-        $this->attributes['slug'] = is_array($value) ? json_encode($value) : $value;
-
-        $base = config('app.locale', 'tr');
-
-        $arr = is_array($value)
-            ? $value
-            : json_decode($this->attributes['slug'] ?? '[]', true);
-
-        $name    = $this->attributes['name'] ?? '{}';
-        $nameArr = is_array($name) ? $name : json_decode($name, true);
-
-        $this->attributes['canonical_slug'] = Str::slug(
-            $arr[$base]
-            ?? ($arr[array_key_first($arr) ?? ''] ?? ($nameArr[$base] ?? 'villa'))
-        );
+        return $this->hasMany(VillaRateRule::class);
     }
 
     /*
@@ -170,26 +115,16 @@ class Villa extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        // Kapak (tek dosya)
         $this
             ->addMediaCollection('cover')
             ->singleFile()
             ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes([
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ]);
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
 
-        // Galeri (çoklu)
         $this
             ->addMediaCollection('gallery')
             ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes([
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ]);
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
     }
 
     public function registerMediaConversions(Media $media = null): void
@@ -232,15 +167,11 @@ class Villa extends Model implements HasMedia
             ->whereHas('currency', function ($q) use ($currencyCode) {
                 $q->whereRaw('upper(code) = ?', [$currencyCode]);
             })
-            // is_active = true **veya** NULL → eski kayıtlar da geçerli
             ->where(function ($q) {
-                $q->where('is_active', true)
-                    ->orWhereNull('is_active');
+                $q->where('is_active', true)->orWhereNull('is_active');
             })
-            // closed = false **veya** NULL → NULL olanlar da açık kabul edilir
             ->where(function ($q) {
-                $q->where('closed', false)
-                    ->orWhereNull('closed');
+                $q->where('closed', false)->orWhereNull('closed');
             })
             ->orderBy('priority', 'asc')
             ->orderBy('date_start', 'asc')
@@ -260,33 +191,9 @@ class Villa extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (Villa $villa) {
-            // Kod
             if (empty($villa->code)) {
-                $nextId      = (int) static::max('id') + 1;
+                $nextId = (int) static::max('id') + 1;
                 $villa->code = 'VIL-' . str_pad((string) $nextId, 6, '0', STR_PAD_LEFT);
-            }
-
-            // canonical_slug
-            $base = config('app.locale', 'tr');
-            $name = (array) ($villa->name ?? []);
-            $slug = (array) ($villa->slug ?? []);
-
-            $villa->canonical_slug = Str::slug(
-                $slug[$base]
-                ?? ($slug[array_key_first($slug) ?? ''] ?? ($name[$base] ?? 'villa'))
-            );
-        });
-
-        static::saving(function (Villa $villa) {
-            $base = config('app.locale', 'tr');
-            $name = (array) ($villa->name ?? []);
-            $slug = (array) ($villa->slug ?? []);
-
-            if (empty($villa->canonical_slug)) {
-                $villa->canonical_slug = Str::slug(
-                    $slug[$base]
-                    ?? ($slug[array_key_first($slug) ?? ''] ?? ($name[$base] ?? 'villa'))
-                );
             }
         });
     }

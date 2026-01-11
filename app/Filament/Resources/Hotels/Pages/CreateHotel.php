@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Hotels\Pages;
 
 use App\Filament\Resources\Hotels\HotelResource;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 
@@ -10,25 +11,35 @@ class CreateHotel extends CreateRecord
 {
     protected static string $resource = HotelResource::class;
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return $this->normalizeSlugData($data);
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        return $this->normalizeSlugData($data);
+    }
 
-        // UI slug -> gerçek slug
-        $slug = [];
+    private function normalizeSlugData(array $data): array
+    {
+        $locales = LocaleHelper::active();
+        $slug = (array) ($data['slug'] ?? []);
+        $normalized = [];
+
         foreach ($locales as $loc) {
-            $ui = $data['slug_ui'][$loc] ?? ($data['name'][$loc] ?? null);
-            if ($ui !== null && $ui !== '') {
-                $slug[$loc] = Str::slug((string) $ui);
+            $val = $slug[$loc] ?? null;
+
+            if ($val === null || trim((string) $val) === '') {
+                continue;
             }
+
+            $normalized[$loc] = Str::slug((string) $val);
         }
 
-        $data['slug'] = $slug;
-        unset($data['slug_ui']);
+        $data['slug'] = $normalized;
 
-        // canonical
-        $data['canonical_slug'] = Str::slug($slug[$base] ?? (reset($slug) ?: 'otel'));
+        unset($data['slug_ui'], $data['canonical_slug']);
 
         return $data;
     }

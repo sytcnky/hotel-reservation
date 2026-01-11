@@ -10,23 +10,35 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class VillaCategoriesTable
 {
     public static function configure(Table $table): Table
     {
-        return $table
+        $uiLocale = app()->getLocale();
 
+        return $table
             ->columns([
                 TextColumn::make('name_l')
                     ->label(__('admin.field.name'))
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(name->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(name->>? ILIKE ?)", [$uiLocale, $like]);
+                    }),
 
                 TextColumn::make('slug_l')
                     ->label(__('admin.field.slug'))
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(query: function (Builder $q, string $dir) use ($uiLocale) {
+                        return $q->orderByRaw("NULLIF(slug->>?, '') {$dir} NULLS LAST", [$uiLocale]);
+                    })
+                    ->searchable(query: function (Builder $q, string $search) use ($uiLocale) {
+                        $like = '%' . $search . '%';
+                        return $q->whereRaw("(slug->>? ILIKE ?)", [$uiLocale, $like]);
+                    }),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
@@ -55,10 +67,10 @@ class VillaCategoriesTable
                     ->label(__('admin.field.is_active'))
                     ->boolean(),
             ])
-
             ->filters([
                 TrashedFilter::make(),
             ])
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

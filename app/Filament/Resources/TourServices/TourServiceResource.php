@@ -25,12 +25,27 @@ class TourServiceResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        try { return (string) static::getModel()::query()->count(); } catch (\Throwable) { return null; }
+        try {
+            return (string) static::getModel()::query()->count();
+        } catch (\Throwable) {
+            return null;
+        }
     }
-    public static function getNavigationBadgeColor(): ?string { return 'primary'; }
 
-    public static function form(Schema $schema): Schema { return TourServiceForm::configure($schema); }
-    public static function table(Table $table): Table { return TourServicesTable::configure($table); }
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return TourServiceForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TourServicesTable::configure($table);
+    }
 
     public static function getPages(): array
     {
@@ -43,10 +58,7 @@ class TourServiceResource extends Resource
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

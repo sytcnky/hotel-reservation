@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedColumns;
 use App\Services\RoomRateResolver;
 use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
@@ -15,7 +16,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Room extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, SoftDeletes;
+    use HasFactory, HasLocalizedColumns, InteractsWithMedia, SoftDeletes;
 
     protected $fillable = [
         'hotel_id',
@@ -43,22 +44,13 @@ class Room extends Model implements HasMedia
         'size_m2' => 'integer',
         'child_discount_active' => 'boolean',
         'child_discount_percent' => 'float',
-
     ];
 
     protected $appends = ['name_l'];
 
     public function getNameLAttribute(): ?string
     {
-        $v = $this->name;
-        $loc = app()->getLocale();
-        $base = config('app.locale', 'tr');
-
-        if (is_array($v)) {
-            return $v[$loc] ?? ($v[$base] ?? (array_values($v)[0] ?? null));
-        }
-
-        return is_string($v) ? $v : null;
+        return $this->getLocalized('name');
     }
 
     public function resolveRate(string $date, int $currencyId, ?int $boardTypeId, int $occupancy, int $stayLength = 1): array
@@ -77,11 +69,6 @@ class Room extends Model implements HasMedia
     public function viewType(): BelongsTo
     {
         return $this->belongsTo(ViewType::class);
-    }
-
-    public function childPolicies()
-    {
-        return $this->hasMany(\App\Models\ChildPolicy::class);
     }
 
     public function facilities()
@@ -132,7 +119,7 @@ class Room extends Model implements HasMedia
     public function getGalleryImagesAttribute(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn($m) => ImageHelper::normalize($m))
+            ->map(fn ($m) => ImageHelper::normalize($m))
             ->toArray();
     }
 }

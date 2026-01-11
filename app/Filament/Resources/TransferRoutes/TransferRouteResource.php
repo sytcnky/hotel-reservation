@@ -9,8 +9,10 @@ use App\Filament\Resources\TransferRoutes\Schemas\TransferRouteForm;
 use App\Filament\Resources\TransferRoutes\Tables\TransferRoutesTable;
 use App\Models\TransferRoute;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TransferRouteResource extends Resource
 {
@@ -27,9 +29,16 @@ class TransferRouteResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListTransferRoutes::route('/'),
+            'index'  => ListTransferRoutes::route('/'),
             'create' => CreateTransferRoute::route('/create'),
-            'edit' => EditTransferRoute::route('/{record}/edit'),
+            'edit'   => EditTransferRoute::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->with(['from', 'to'])
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

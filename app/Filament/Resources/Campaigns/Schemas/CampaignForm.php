@@ -9,6 +9,7 @@ use App\Models\Tour;
 use App\Models\TransferRoute;
 use App\Models\Villa;
 use App\Support\Helpers\CampaignColorHelper;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -25,16 +26,14 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Session;
 
 class CampaignForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base    = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $uiLocale = app()->getLocale();
+        $locales  = LocaleHelper::active();
 
-        // Aktif para birimleri
         $currencyCodes = Currency::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -43,20 +42,18 @@ class CampaignForm
             ->all();
 
         if (empty($currencyCodes)) {
-            $currencyCodes = config('app.supported_currencies', []);
+            $currencyCodes = (array) config('app.supported_currencies', []);
         }
 
-        // Placement enum
         $placementOptions = [
-            'homepage_banner'    => __('admin.campaigns.placements.homepage_banner'),
-            'hotel_detail'        => __('admin.campaigns.placements.hotel_detail'),
-            'villa_detail'        => __('admin.campaigns.placements.villa_detail'),
-            'tour_detail'        => __('admin.campaigns.placements.tour_detail'),
-            'guide_detail'        => __('admin.campaigns.placements.guide_detail'),
-            'basket'        => __('admin.campaigns.placements.basket'),
+            'homepage_banner' => __('admin.campaigns.placements.homepage_banner'),
+            'hotel_detail'    => __('admin.campaigns.placements.hotel_detail'),
+            'villa_detail'    => __('admin.campaigns.placements.villa_detail'),
+            'tour_detail'     => __('admin.campaigns.placements.tour_detail'),
+            'guide_detail'    => __('admin.campaigns.placements.guide_detail'),
+            'basket'          => __('admin.campaigns.placements.basket'),
         ];
 
-        // Bootstrap bg-* sınıfları
         $backgroundClasses = [
             'bg-primary',
             'bg-primary-subtle',
@@ -81,7 +78,6 @@ class CampaignForm
             $backgroundClassOptions[$class] = __('admin.campaigns.form.' . $class);
         }
 
-        // Ürün tipleri
         $productTypeOptions = [
             'hotel'    => __('admin.coupons.form.product_type_hotel'),
             'villa'    => __('admin.coupons.form.product_type_villa'),
@@ -105,21 +101,15 @@ class CampaignForm
         ];
 
         return $schema->components([
-
             Group::make()->columnSpanFull()->schema([
-
                 Grid::make()
                     ->columns(['default' => 1, 'lg' => 12])
                     ->gap(6)
                     ->schema([
-                        // -------------------------------------------------
-                        // SOL (8 kolon) — İçerik + İndirim + Koşullar
-                        // -------------------------------------------------
+                        // SOL (8)
                         Group::make()
                             ->columnSpan(['default' => 12, 'lg' => 8])
                             ->schema([
-
-                                // Çok dilli içerik (content[locale][field])
                                 Tabs::make('i18n')->tabs(
                                     collect($locales)->map(function (string $loc) {
                                         return Tab::make(strtoupper($loc))->schema([
@@ -144,7 +134,6 @@ class CampaignForm
                                     })->all()
                                 ),
 
-                                // Görseller (Background & Transparent)
                                 Section::make(__('admin.campaigns.sections.images'))
                                     ->schema([
                                         SpatieMediaLibraryFileUpload::make('background_image')
@@ -153,6 +142,7 @@ class CampaignForm
                                             ->image()
                                             ->imageEditor()
                                             ->responsiveImages()
+                                            ->preserveFilenames()
                                             ->hint(__('admin.campaigns.form.background_image_help')),
 
                                         SpatieMediaLibraryFileUpload::make('transparent_image')
@@ -161,10 +151,10 @@ class CampaignForm
                                             ->image()
                                             ->imageEditor()
                                             ->responsiveImages()
+                                            ->preserveFilenames()
                                             ->hint(__('admin.campaigns.form.transparent_image_help')),
                                     ]),
 
-                                // Arkaplan Rengi
                                 Section::make(__('admin.campaigns.sections.background_class'))
                                     ->schema([
                                         Grid::make(['default' => 1, 'lg' => 2])->schema([
@@ -179,14 +169,12 @@ class CampaignForm
                                                 ->hiddenLabel()
                                                 ->state(function (Get $get): string {
                                                     $class = $get('discount.background_class') ?: 'bg-primary';
-
                                                     return CampaignColorHelper::backgroundHexFromClass($class);
                                                 })
                                                 ->columnSpan(1),
                                         ]),
                                     ]),
 
-                                // İndirim tanımı (discount JSON) — kupon yapısı ile uyumlu
                                 Section::make(__('admin.campaigns.sections.discount'))->schema([
                                     Select::make('discount.type')
                                         ->label(__('admin.campaigns.form.discount_type'))
@@ -215,8 +203,6 @@ class CampaignForm
 
                                                 return Tab::make($code)->schema([
                                                     Grid::make()->columns(2)->schema([
-
-                                                        // Tutar tipi indirimler için amount
                                                         TextInput::make("discount.currency_data.$code.amount")
                                                             ->label(__('admin.coupons.form.amount'))
                                                             ->numeric()
@@ -224,13 +210,11 @@ class CampaignForm
                                                             ->visible(fn (Get $get) => $get('discount.type') === 'amount')
                                                             ->required(fn (Get $get) => $get('discount.type') === 'amount'),
 
-                                                        // Alt limit (her iki tipte de)
                                                         TextInput::make("discount.currency_data.$code.min_booking_amount")
                                                             ->label(__('admin.coupons.form.min_booking_amount'))
                                                             ->numeric()
                                                             ->minValue(0),
 
-                                                        // Opsiyonel tavan indirim (yüzde tipinde anlamlı)
                                                         TextInput::make("discount.currency_data.$code.max_discount_amount")
                                                             ->label(__('admin.campaigns.form.max_discount_amount'))
                                                             ->numeric()
@@ -244,9 +228,6 @@ class CampaignForm
                                         ->persistTabInQueryString(),
                                 ]),
 
-                                // -------------------------------------------------
-                                // KOŞULLAR — RULE BUILDER (conditions.logic + conditions.rules[])
-                                // -------------------------------------------------
                                 Section::make(__('admin.campaigns.sections.conditions'))->schema([
                                     Repeater::make('conditions.rules')
                                         ->label(__('admin.campaigns.form.conditions_rules'))
@@ -266,7 +247,6 @@ class CampaignForm
                                                 ->required()
                                                 ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
 
-                                            // scope_product_types
                                             Group::make()
                                                 ->schema([
                                                     CheckboxList::make('product_types')
@@ -277,7 +257,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'scope_product_types'),
 
-                                            // scope_products (tek ürün — kupondaki domain + id mantığı)
                                             Group::make()
                                                 ->schema([
                                                     Select::make('domain')
@@ -290,34 +269,35 @@ class CampaignForm
                                                         ->label(__('admin.coupons.form.product_name'))
                                                         ->native(false)
                                                         ->searchable()
-                                                        ->options(function (Get $get) use ($base) {
+                                                        ->options(function (Get $get) use ($uiLocale) {
                                                             $domain = $get('domain');
 
                                                             if (! $domain) {
                                                                 return [];
                                                             }
 
-                                                            $ui = app()->getLocale();
-
                                                             return match ($domain) {
                                                                 'hotel' => Hotel::query()
                                                                     ->where('is_active', true)
                                                                     ->orderBy('sort_order')
-                                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                                    ->orderBy('label')
                                                                     ->pluck('label', 'id')
                                                                     ->all(),
 
                                                                 'villa' => Villa::query()
                                                                     ->where('is_active', true)
                                                                     ->orderBy('sort_order')
-                                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                                    ->orderBy('label')
                                                                     ->pluck('label', 'id')
                                                                     ->all(),
 
                                                                 'tour' => Tour::query()
                                                                     ->where('is_active', true)
                                                                     ->orderBy('sort_order')
-                                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                                    ->orderBy('label')
                                                                     ->pluck('label', 'id')
                                                                     ->all(),
 
@@ -326,22 +306,20 @@ class CampaignForm
                                                                     ->orderBy('sort_order')
                                                                     ->with(['from', 'to'])
                                                                     ->get()
-                                                                    ->mapWithKeys(function ($route) use ($base) {
-                                                                        $loc  = Session::get('display_locale') ?: app()->getLocale();
-
+                                                                    ->mapWithKeys(function ($route) use ($uiLocale) {
                                                                         $fromName = $route->from?->name;
                                                                         $toName   = $route->to?->name;
 
                                                                         $fromLabel = null;
                                                                         if (is_array($fromName)) {
-                                                                            $fromLabel = $fromName[$loc] ?? $fromName[$base] ?? (string) (array_values($fromName)[0] ?? null);
+                                                                            $fromLabel = $fromName[$uiLocale] ?? null;
                                                                         } elseif ($fromName) {
                                                                             $fromLabel = (string) $fromName;
                                                                         }
 
                                                                         $toLabel = null;
                                                                         if (is_array($toName)) {
-                                                                            $toLabel = $toName[$loc] ?? $toName[$base] ?? (string) (array_values($toName)[0] ?? null);
+                                                                            $toLabel = $toName[$uiLocale] ?? null;
                                                                         } elseif ($toName) {
                                                                             $toLabel = (string) $toName;
                                                                         }
@@ -362,7 +340,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'scope_products'),
 
-                                            // basket_required_product_types
                                             Group::make()
                                                 ->schema([
                                                     CheckboxList::make('required_types')
@@ -373,7 +350,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'basket_required_product_types'),
 
-                                            // product_locations (lokasyona göre kısıtlama)
                                             Group::make()
                                                 ->schema([
                                                     CheckboxList::make('product_types')
@@ -387,25 +363,20 @@ class CampaignForm
                                                         ->multiple()
                                                         ->searchable()
                                                         ->preload()
-                                                        ->options(function () {
-                                                            $ui = app()->getLocale() ?? 'tr';
-
+                                                        ->options(function () use ($uiLocale) {
                                                             return Location::query()
                                                                 ->where('is_active', true)
                                                                 ->orderBy('type')
                                                                 ->orderBy('sort_order')
                                                                 ->get()
-                                                                ->mapWithKeys(function (Location $location) use ($ui) {
-                                                                    return [
-                                                                        $location->id => $location->displayLabel($ui),
-                                                                    ];
+                                                                ->mapWithKeys(function (Location $location) use ($uiLocale) {
+                                                                    return [$location->id => $location->displayLabel($uiLocale)];
                                                                 })
                                                                 ->all();
                                                         }),
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'product_locations'),
 
-                                            // product_min_nights
                                             Group::make()
                                                 ->schema([
                                                     CheckboxList::make('product_types')
@@ -421,7 +392,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'product_min_nights'),
 
-                                            // product_min_guests
                                             Group::make()
                                                 ->schema([
                                                     TextInput::make('value')
@@ -431,7 +401,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'product_min_guests'),
 
-                                            // dates_booking_between
                                             Group::make()
                                                 ->schema([
                                                     DatePicker::make('from')
@@ -441,7 +410,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'dates_booking_between'),
 
-                                            // dates_stay_between
                                             Group::make()
                                                 ->schema([
                                                     DatePicker::make('from')
@@ -451,7 +419,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'dates_stay_between'),
 
-                                            // user_registered_date
                                             Group::make()
                                                 ->schema([
                                                     Select::make('operator')
@@ -467,7 +434,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'user_registered_date'),
 
-                                            // user_order_count
                                             Group::make()
                                                 ->schema([
                                                     Select::make('operator')
@@ -486,7 +452,6 @@ class CampaignForm
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'user_order_count'),
 
-                                            // discount_target_product_types
                                             Group::make()
                                                 ->schema([
                                                     CheckboxList::make('product_types')
@@ -496,24 +461,18 @@ class CampaignForm
                                                         ->bulkToggleable(),
                                                 ])
                                                 ->visible(fn (Get $get) => $get('type') === 'discount_target_product_types'),
-
                                         ])
                                         ->defaultItems(0)
                                         ->collapsed()
                                         ->addActionLabel(__('admin.campaigns.form.conditions_add_rule'))
                                         ->orderColumn(),
                                 ]),
-
                             ]),
 
-                        // -------------------------------------------------
-                        // SAĞ (4 kolon) — Durum, Placement, Kullanım
-                        // -------------------------------------------------
+                        // SAĞ (4)
                         Group::make()
                             ->columnSpan(['default' => 12, 'lg' => 4])
                             ->schema([
-
-                                // DURUM & TARİHLER & ÖNCELİK
                                 Section::make(__('admin.campaigns.sections.status'))->schema([
                                     Toggle::make('is_active')
                                         ->label(__('admin.campaigns.form.active'))
@@ -531,19 +490,15 @@ class CampaignForm
                                         ->default(0),
                                 ]),
 
-                                // PLACEMENT
                                 Section::make(__('admin.campaigns.sections.placement'))->schema([
-
                                     CheckboxList::make('placements')
                                         ->hiddenLabel()
                                         ->options($placementOptions)
                                         ->columns(1)
                                         ->default([])
                                         ->bulkToggleable(),
-
                                 ]),
 
-                                // KULLANIM LİMİTLERİ
                                 Section::make(__('admin.campaigns.sections.usage'))->schema([
                                     TextInput::make('global_usage_limit')
                                         ->label(__('admin.campaigns.form.global_usage_limit'))
@@ -557,13 +512,9 @@ class CampaignForm
                                         ->minValue(0)
                                         ->helperText(__('admin.campaigns.form.user_usage_limit_help')),
                                 ]),
-
                             ]),
-
                     ]),
-
             ]),
-
         ]);
     }
 }

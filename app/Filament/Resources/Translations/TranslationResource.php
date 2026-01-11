@@ -18,8 +18,6 @@ class TranslationResource extends Resource
 {
     protected static ?string $model = Translation::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-language';
-
     public static function getNavigationGroup(): ?string
     {
         return __('admin.nav.settings_group');
@@ -27,17 +25,17 @@ class TranslationResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Çeviriler';
+        return __('admin.translations.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Çeviri';
+        return __('admin.translations.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Çeviriler';
+        return __('admin.translations.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -47,7 +45,7 @@ class TranslationResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return \App\Filament\Resources\Translations\Tables\TranslationsTable::configure($table);
+        return TranslationsTable::configure($table);
     }
 
     public static function getPages(): array

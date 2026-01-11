@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StaticPages\Forms;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -14,20 +15,25 @@ class ContactPageForm
 {
     public static function schema(): array
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $locales  = LocaleHelper::active();
         $uiLocale = app()->getLocale();
 
-        $pickLocale = function (?array $map) use ($uiLocale, $base): ?string {
+        /**
+         * Admin kontratı: fallback yok.
+         * Map içinde UI locale yoksa null döner.
+         */
+        $pickLocale = function (?array $map) use ($uiLocale): ?string {
             if (! is_array($map)) {
                 return null;
             }
 
-            return $map[$uiLocale] ?? $map[$base] ?? (array_values($map)[0] ?? null);
+            $val = $map[$uiLocale] ?? null;
+
+            return is_string($val) ? $val : null;
         };
 
-        $tabs = function (string $name, array $fieldsByLocale) use ($locales): Tabs {
-            return Tabs::make($name)->tabs(
+        $tabs = function (array $fieldsByLocale) use ($locales): Tabs {
+            return Tabs::make('i18n')->tabs(
                 collect($locales)
                     ->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))
                     ->all()
@@ -40,16 +46,18 @@ class ContactPageForm
             // =========================================================
             Section::make(__('admin.static_pages.pages.contact.page_header'))
                 ->schema([
-                    $tabs('contact_header_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.page_header.title.$loc")
-                                ->label(__('admin.static_pages.form.title')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.page_header.title.$loc")
+                                    ->label(__('admin.static_pages.form.title')),
 
-                            Textarea::make("content.page_header.description.$loc")
-                                ->label(__('admin.static_pages.form.description'))
-                                ->rows(4),
-                        ]];
-                    })->all()),
+                                Textarea::make("content.page_header.description.$loc")
+                                    ->label(__('admin.static_pages.form.description'))
+                                    ->rows(4),
+                            ]];
+                        })->all()
+                    ),
                 ]),
 
             // =========================================================
@@ -70,19 +78,21 @@ class ContactPageForm
                         })
                         ->schema([
                             // i18n alanlar
-                            $tabs('office_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                                return [$loc => [
-                                    TextInput::make("name.$loc")
-                                        ->label(__('admin.static_pages.pages.contact.office_name')),
+                            $tabs(
+                                collect($locales)->mapWithKeys(function (string $loc) {
+                                    return [$loc => [
+                                        TextInput::make("name.$loc")
+                                            ->label(__('admin.static_pages.pages.contact.office_name')),
 
-                                    Textarea::make("address.$loc")
-                                        ->label(__('admin.static_pages.pages.contact.address'))
-                                        ->rows(3),
+                                        Textarea::make("address.$loc")
+                                            ->label(__('admin.static_pages.pages.contact.address'))
+                                            ->rows(3),
 
-                                    TextInput::make("working_hours.$loc")
-                                        ->label(__('admin.static_pages.pages.contact.working_hours')),
-                                ]];
-                            })->all())
+                                        TextInput::make("working_hours.$loc")
+                                            ->label(__('admin.static_pages.pages.contact.working_hours')),
+                                    ]];
+                                })->all()
+                            )
                                 ->columnSpanFull(),
 
                             // non-i18n alanlar

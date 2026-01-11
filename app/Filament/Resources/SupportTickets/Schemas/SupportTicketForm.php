@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\SupportTickets\Schemas;
 
+use App\Filament\Resources\Orders\OrderResource;
+use App\Jobs\SendSupportTicketAgentMessageCustomerEmail;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use Filament\Actions\Action;
@@ -19,8 +21,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
-use App\Filament\Resources\Orders\OrderResource;
-use App\Jobs\SendSupportTicketAgentMessageCustomerEmail;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SupportTicketForm
@@ -61,24 +61,21 @@ class SupportTicketForm
                                                                 return '-';
                                                             }
 
-                                                            // Panelde tek dil: admin kullanıcısının locale'i > app locale > tr
-                                                            $locale = auth()->user()?->locale ?? app()->getLocale() ?? 'tr';
+                                                            // Admin panel locale tek kaynak
+                                                            $uiLocale = app()->getLocale();
 
                                                             $name = $r->category->name ?? null;
 
-                                                            // name JSON/array olabilir → tek dile indir
                                                             if (is_array($name)) {
-                                                                return (string) ($name[$locale] ?? $name['tr'] ?? $name['en'] ?? reset($name) ?? '-');
+                                                                return (string) ($name[$uiLocale] ?? '');
                                                             }
 
-                                                            // JSON string olabilir
                                                             if (is_string($name)) {
                                                                 $decoded = json_decode($name, true);
                                                                 if (is_array($decoded)) {
-                                                                    return (string) ($decoded[$locale] ?? $decoded['tr'] ?? $decoded['en'] ?? reset($decoded) ?? '-');
+                                                                    return (string) ($decoded[$uiLocale] ?? '');
                                                                 }
 
-                                                                // düz string
                                                                 return trim($name) !== '' ? $name : '-';
                                                             }
 
@@ -142,9 +139,6 @@ class SupportTicketForm
                                                 ->columns(['default' => 1, 'lg' => 12])
                                                 ->schema([
 
-                                                    /* -----------------------------------------------------------------
-                                                     | SOL (8) – INFO + MESAJLAR
-                                                     |-----------------------------------------------------------------*/
                                                     Group::make()
                                                         ->dense()
                                                         ->columnSpan(['default' => 12, 'lg' => 3])
@@ -155,10 +149,7 @@ class SupportTicketForm
                                                                 ->badge()
                                                                 ->state(function (SupportMessage $m) {
                                                                     if ($m->author_type === SupportMessage::AUTHOR_AGENT) {
-                                                                        // Spatie role (ilk rol)
                                                                         $role = $m->author?->getRoleNames()?->first();
-
-                                                                        // rol yoksa fallback
                                                                         return $role ?: __('admin.support_tickets.messages.agent');
                                                                     }
 
@@ -171,14 +162,15 @@ class SupportTicketForm
                                                             TextEntry::make('user_name')
                                                                 ->hiddenLabel()
                                                                 ->state(function (SupportMessage $m) {
-                                                                    // Agent veya müşteri fark etmeksizin
                                                                     return $m->author?->name
                                                                         ?? __('admin.support_tickets.messages.unknown_user');
                                                                 }),
+
                                                             TextEntry::make('created_at')
                                                                 ->hiddenLabel()
                                                                 ->state(fn (SupportMessage $m) => $m->created_at?->format('d.m.Y H:i')),
                                                         ]),
+
                                                     Group::make()
                                                         ->columnSpan(['default' => 12, 'lg' => 9])
                                                         ->schema([
@@ -188,7 +180,6 @@ class SupportTicketForm
                                                                 ->markdown(),
 
                                                             Section::make([
-                                                                // EKLER (kart içinde, linkli)
                                                                 TextEntry::make('attachments')
                                                                     ->label(__('admin.support_tickets.messages.attachments'))
                                                                     ->html()
@@ -242,7 +233,7 @@ class SupportTicketForm
                                                 ->label(__('admin.support_tickets.messages.attachments'))
                                                 ->multiple()
                                                 ->maxFiles(5)
-                                                ->maxSize(2048) // KB => 2MB
+                                                ->maxSize(2048)
                                                 ->acceptedFileTypes([
                                                     'image/jpeg',
                                                     'image/png',
@@ -312,7 +303,6 @@ class SupportTicketForm
                                                             ])->save();
                                                         });
 
-                                                        // Customer mail: operasyon yanıt verdi
                                                         if ($newMessageId) {
                                                             dispatch(new SendSupportTicketAgentMessageCustomerEmail($newMessageId));
                                                         }
@@ -328,7 +318,6 @@ class SupportTicketForm
                                                     }),
                                             ])
                                                 ->alignEnd(),
-
                                         ]),
                                 ]),
 

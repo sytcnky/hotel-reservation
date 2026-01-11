@@ -24,6 +24,6 @@ class TourCategory extends Model
 
     protected $appends = ['name_l','slug_l'];
 
-    public function getNameLAttribute(): string { return $this->getLocalized('name'); }
-    public function getSlugLAttribute(): string { return $this->getLocalized('slug'); }
+    public function getNameLAttribute(): ?string { return $this->getLocalized('name'); }
+    public function getSlugLAttribute(): ?string { return $this->getLocalized('slug'); }
 }

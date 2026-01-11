@@ -22,9 +22,20 @@ class TravelGuideResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    /**
+     * Filament kayıt başlığı accessor üzerinden.
+     * Kontrat: fallback yok (title_l sadece UI locale okur).
+     */
+    protected static ?string $recordTitleAttribute = 'title_l';
+
     public static function getNavigationGroup(): ?string
     {
         return __('admin.nav.content');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.travel_guides.plural');
     }
 
     public static function getModelLabel(): string
@@ -57,17 +68,18 @@ class TravelGuideResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListTravelGuides::route('/'),
+            'index'  => ListTravelGuides::route('/'),
             'create' => CreateTravelGuide::route('/create'),
-            'edit' => EditTravelGuide::route('/{record}/edit'),
+            'edit'   => EditTravelGuide::route('/{record}/edit'),
         ];
     }
 
+    /**
+     * Kontrat: SoftDeletes scope kaldırılır.
+     */
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

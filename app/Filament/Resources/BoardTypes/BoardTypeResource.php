@@ -23,6 +23,7 @@ class BoardTypeResource extends Resource
     public static function getNavigationLabel(): string { return __('admin.ent.board_type.plural'); }
     public static function getModelLabel(): string { return __('admin.ent.board_type.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.ent.board_type.plural'); }
+
     public static function getNavigationBadge(): ?string
     {
         try {
@@ -45,20 +46,17 @@ class BoardTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListBoardTypes::route('/'),
+            'index'  => ListBoardTypes::route('/'),
             'create' => CreateBoardType::route('/create'),
-            'edit' => EditBoardType::route('/{record}/edit'),
+            'edit'   => EditBoardType::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

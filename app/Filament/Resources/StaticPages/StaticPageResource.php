@@ -11,14 +11,11 @@ use App\Models\StaticPage;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class StaticPageResource extends Resource
 {
     protected static ?string $model = StaticPage::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function form(Schema $schema): Schema
     {
@@ -40,9 +37,9 @@ class StaticPageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListStaticPages::route('/'),
+            'index'  => ListStaticPages::route('/'),
             'create' => CreateStaticPage::route('/create'),
-            'edit' => EditStaticPage::route('/{record}/edit'),
+            'edit'   => EditStaticPage::route('/{record}/edit'),
         ];
     }
 

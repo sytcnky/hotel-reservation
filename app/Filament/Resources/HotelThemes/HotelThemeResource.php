@@ -13,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Throwable;
 
 class HotelThemeResource extends Resource
 {
@@ -27,7 +28,7 @@ class HotelThemeResource extends Resource
     {
         try {
             return (string) static::getModel()::query()->count();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -45,20 +46,17 @@ class HotelThemeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListHotelThemes::route('/'),
+            'index'  => ListHotelThemes::route('/'),
             'create' => CreateHotelTheme::route('/create'),
-            'edit' => EditHotelTheme::route('/{record}/edit'),
+            'edit'   => EditHotelTheme::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

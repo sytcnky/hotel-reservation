@@ -36,7 +36,7 @@ class SupportTicketCategory extends Model
         return $this->getLocalized('name');
     }
 
-    public function getSlugLAttribute(): string
+    public function getSlugLAttribute(): ?string
     {
         return $this->getLocalized('slug');
     }

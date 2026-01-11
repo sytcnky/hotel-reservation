@@ -13,26 +13,41 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Throwable;
 
 class FacilitiesResource extends Resource
 {
     protected static ?string $model = Facility::class;
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.taxonomies'); }
-    public static function getNavigationLabel(): string { return __('admin.ent.facility.plural'); }
-    public static function getModelLabel(): string { return __('admin.ent.facility.singular'); }
-    public static function getPluralModelLabel(): string { return __('admin.ent.facility.plural'); }
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.taxonomies');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.ent.facility.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.ent.facility.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.ent.facility.plural');
+    }
 
     public static function getNavigationBadge(): ?string
     {
         try {
             return (string) static::getModel()::query()->count();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
 
-    /** canonical (v4) */
     public static function form(Schema $schema): Schema
     {
         return FacilitiesForm::configure($schema);
@@ -46,20 +61,17 @@ class FacilitiesResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListFacilities::route('/'),
+            'index'  => ListFacilities::route('/'),
             'create' => CreateFacilities::route('/create'),
-            'edit' => EditFacilities::route('/{record}/edit'),
+            'edit'   => EditFacilities::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

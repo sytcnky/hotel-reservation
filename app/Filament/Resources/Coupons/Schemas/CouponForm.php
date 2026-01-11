@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Coupons\Schemas;
 
 use App\Models\Currency;
 use App\Models\Hotel;
+use App\Models\Location;
 use App\Models\Tour;
 use App\Models\TransferRoute;
 use App\Models\Villa;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -19,15 +21,13 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Session;
 
 class CouponForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base    = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
-        $ui      = app()->getLocale();
+        $locales  = LocaleHelper::active();
+        $uiLocale = app()->getLocale();
 
         $currencyCodes = Currency::query()
             ->where('is_active', true)
@@ -56,15 +56,12 @@ class CouponForm
                             ->columnSpan(['default' => 12, 'lg' => 8])
                             ->schema([
 
-                                // Çok dilli içerik tabları
                                 Tabs::make('i18n')->tabs(
-                                    collect($locales)->map(function (string $loc) use ($base) {
-                                        $isBase = ($loc === $base);
-
+                                    collect($locales)->map(function (string $loc) {
                                         return Tab::make(strtoupper($loc))->schema([
                                             TextInput::make("title.$loc")
                                                 ->label(__('admin.coupons.form.title'))
-                                                ->required($isBase),
+                                                ->required(),
 
                                             Textarea::make("description.$loc")
                                                 ->label(__('admin.coupons.form.description'))
@@ -77,7 +74,6 @@ class CouponForm
                                     })->all()
                                 ),
 
-                                // Para Birimi Tabs (currency_data JSON)
                                 Section::make(__('admin.coupons.sections.currencies'))->schema([
                                     Select::make('discount_type')
                                         ->label(__('admin.coupons.form.discount_type'))
@@ -98,6 +94,7 @@ class CouponForm
                                         ->step(0.01)
                                         ->visible(fn (Get $get) => $get('discount_type') === 'percent')
                                         ->required(fn (Get $get) => $get('discount_type') === 'percent'),
+
                                     Tabs::make('currency_tabs')
                                         ->tabs(
                                             collect($currencyCodes)->map(function (string $code) {
@@ -105,8 +102,6 @@ class CouponForm
 
                                                 return Tab::make($code)->schema([
                                                     Grid::make()->columns(2)->schema([
-
-                                                        // Tutar tipi kuponlar için indirim tutarı
                                                         TextInput::make("currency_data.$code.amount")
                                                             ->label(__('admin.coupons.form.amount'))
                                                             ->numeric()
@@ -114,13 +109,11 @@ class CouponForm
                                                             ->required()
                                                             ->visible(fn (Get $get) => $get('discount_type') === 'amount'),
 
-                                                        // Alt limit (her iki tipte de)
                                                         TextInput::make("currency_data.$code.min_booking_amount")
                                                             ->label(__('admin.coupons.form.min_booking_amount'))
                                                             ->numeric()
                                                             ->minValue(0),
 
-                                                        // Opsiyonel tavan indirim (yüzde tipinde anlamlı)
                                                         TextInput::make("currency_data.$code.max_discount_amount")
                                                             ->label(__('admin.coupons.form.max_discount_amount'))
                                                             ->numeric()
@@ -143,9 +136,6 @@ class CouponForm
                             ->columnSpan(['default' => 12, 'lg' => 4])
                             ->schema([
 
-                                // -----------------------------
-                                // DURUM & İNDİRİM TİPİ
-                                // -----------------------------
                                 Section::make(__('admin.coupons.sections.status'))->schema([
                                     Toggle::make('is_active')
                                         ->label(__('admin.coupons.form.active'))
@@ -167,9 +157,6 @@ class CouponForm
                                         ->helperText(__('admin.coupons.form.valid_until_help')),
                                 ]),
 
-                                // -----------------------------
-                                // KAPSAM (scope)
-                                // -----------------------------
                                 Section::make(__('admin.coupons.sections.scope'))->schema([
 
                                     Select::make('scope_type')
@@ -183,7 +170,6 @@ class CouponForm
                                         ->required()
                                         ->live(),
 
-                                    // product_type — çoklu seçim
                                     Select::make('product_types')
                                         ->label(__('admin.coupons.form.product_types'))
                                         ->multiple()
@@ -196,7 +182,6 @@ class CouponForm
                                         ])
                                         ->visible(fn (Get $get) => $get('scope_type') === 'product_type'),
 
-                                    // product_domain + product_id — tekil ürün
                                     Select::make('product_domain')
                                         ->label(__('admin.coupons.form.product_domain'))
                                         ->options([
@@ -213,7 +198,7 @@ class CouponForm
                                         ->label(__('admin.coupons.form.product_name'))
                                         ->native(false)
                                         ->searchable()
-                                        ->options(function (Get $get) use ($ui, $base) {
+                                        ->options(function (Get $get) use ($uiLocale) {
                                             $domain = $get('product_domain');
 
                                             if (! $domain) {
@@ -224,21 +209,24 @@ class CouponForm
                                                 'hotel' => Hotel::query()
                                                     ->where('is_active', true)
                                                     ->orderBy('sort_order')
-                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
                                                     ->pluck('label', 'id')
                                                     ->all(),
 
                                                 'villa' => Villa::query()
                                                     ->where('is_active', true)
                                                     ->orderBy('sort_order')
-                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
                                                     ->pluck('label', 'id')
                                                     ->all(),
 
                                                 'tour' => Tour::query()
                                                     ->where('is_active', true)
                                                     ->orderBy('sort_order')
-                                                    ->selectRaw("id, COALESCE(name->>'$ui', name->>'$base') AS label")
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
                                                     ->pluck('label', 'id')
                                                     ->all(),
 
@@ -247,23 +235,20 @@ class CouponForm
                                                     ->orderBy('sort_order')
                                                     ->with(['from', 'to'])
                                                     ->get()
-                                                    ->mapWithKeys(function ($route) {
-                                                        $loc  = Session::get('display_locale') ?: app()->getLocale();
-                                                        $base = config('app.locale', 'tr');
-
+                                                    ->mapWithKeys(function ($route) use ($uiLocale) {
                                                         $fromName = $route->from?->name;
                                                         $toName   = $route->to?->name;
 
                                                         $fromLabel = null;
                                                         if (is_array($fromName)) {
-                                                            $fromLabel = $fromName[$loc] ?? $fromName[$base] ?? (string) (array_values($fromName)[0] ?? null);
+                                                            $fromLabel = $fromName[$uiLocale] ?? null;
                                                         } elseif ($fromName) {
                                                             $fromLabel = (string) $fromName;
                                                         }
 
                                                         $toLabel = null;
                                                         if (is_array($toName)) {
-                                                            $toLabel = $toName[$loc] ?? $toName[$base] ?? (string) (array_values($toName)[0] ?? null);
+                                                            $toLabel = $toName[$uiLocale] ?? null;
                                                         } elseif ($toName) {
                                                             $toLabel = (string) $toName;
                                                         }
@@ -291,9 +276,6 @@ class CouponForm
                                         ->helperText(__('admin.coupons.form.min_nights_help')),
                                 ]),
 
-                                // -----------------------------
-                                // KULLANIM (stack + limit)
-                                // -----------------------------
                                 Section::make(__('admin.coupons.sections.usage'))->schema([
 
                                     Toggle::make('is_exclusive')

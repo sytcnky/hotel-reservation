@@ -9,50 +9,39 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Select;
 use Illuminate\Database\Eloquent\Model;
 
 class UserCouponsRelationManager extends RelationManager
 {
-    /**
-     * User modelindeki ilişki adı.
-     *
-     * User::userCoupons()
-     */
     protected static string $relationship = 'userCoupons';
 
-    /**
-     * EditCustomer sayfasındaki sekme başlığı.
-     */
-    protected static ?string $title = 'Kuponlar';
+    protected static ?string $title = null;
 
-    /**
-     * Kupon atama / düzenleme formu.
-     */
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('admin.coupons.plural');
+    }
+
     public function form(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
-        $ui   = app()->getLocale();
+        $uiLocale = app()->getLocale();
 
-        // Kupon seçenekleri: aktif kuponlar, code + localized title
         $couponOptions = Coupon::query()
             ->where('is_active', true)
             ->orderByDesc('id')
             ->get()
-            ->mapWithKeys(function (Coupon $coupon) use ($ui, $base) {
+            ->mapWithKeys(function (Coupon $coupon) use ($uiLocale) {
                 $titleData = (array) ($coupon->title ?? []);
-
-                $title = $titleData[$ui]
-                    ?? $titleData[$base]
-                    ?? (string) (array_values($titleData)[0] ?? '');
+                $title = (string) ($titleData[$uiLocale] ?? '');
 
                 $code  = $coupon->code ?: ('#' . $coupon->id);
-                $label = $title ? sprintf('%s — %s', $code, $title) : $code;
+                $label = $title !== '' ? sprintf('%s — %s', $code, $title) : $code;
 
                 return [$coupon->id => $label];
             })
@@ -60,79 +49,69 @@ class UserCouponsRelationManager extends RelationManager
 
         return $schema->schema([
             Select::make('coupon_id')
-                ->label('Kupon')
+                ->label(__('admin.coupons.form.title'))
                 ->options($couponOptions)
                 ->searchable()
                 ->native(false)
                 ->required(),
 
             DateTimePicker::make('assigned_at')
-                ->label('Atanma tarihi')
+                ->label(__('admin.coupons.form.valid_from'))
                 ->seconds(false)
                 ->native(false)
                 ->default(fn () => now())
                 ->required(),
 
             DateTimePicker::make('expires_at')
-                ->label('Bitiş tarihi')
+                ->label(__('admin.coupons.form.valid_until'))
                 ->seconds(false)
                 ->native(false),
         ]);
     }
 
-    /**
-     * Kullanıcı kuponları tablosu.
-     */
     public function table(Table $table): Table
     {
+        $uiLocale = app()->getLocale();
+
         return $table
             ->columns([
                 TextColumn::make('coupon.code')
-                    ->label('Kod')
-                    ->sortable()
-                    ->searchable(),
+                    ->label(__('admin.coupons.table.code'))
+                    ->sortable(),
 
                 TextColumn::make('coupon_title')
-                    ->label('Başlık')
-                    ->state(function (UserCoupon $record): string {
+                    ->label(__('admin.coupons.table.title'))
+                    ->state(function (UserCoupon $record) use ($uiLocale): string {
                         $coupon = $record->coupon;
 
                         if (! $coupon instanceof Coupon) {
                             return '';
                         }
 
-                        $base  = config('app.locale', 'tr');
-                        $ui    = app()->getLocale();
-                        $data  = (array) ($coupon->title ?? []);
-                        $title = $data[$ui]
-                            ?? $data[$base]
-                            ?? (string) (array_values($data)[0] ?? '');
+                        $data = (array) ($coupon->title ?? []);
 
-                        return $title;
+                        return (string) ($data[$uiLocale] ?? '');
                     })
                     ->wrap(),
 
                 TextColumn::make('assigned_at')
-                    ->label('Atandı')
+                    ->label(__('admin.coupons.table.created_at'))
                     ->since(),
 
                 TextColumn::make('expires_at')
-                    ->label('Bitiş')
+                    ->label(__('admin.coupons.form.valid_until'))
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('used_count')
-                    ->label('Kullanım')
+                    ->label(__('admin.coupons.sections.usage'))
                     ->sortable(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Kupon Ata')
+                    ->label(__('admin.coupons.form.assign_coupon'))
                     ->mutateDataUsing(function (array $data): array {
-                        // assigned_at boş bırakılırsa "şimdi" kabul edilsin
                         $data['assigned_at'] = $data['assigned_at'] ?? now();
-
-                        // Tekil panel işlemi = manuel kaynak
                         $data['source'] = 'manual';
 
                         return $data;
@@ -149,9 +128,6 @@ class UserCouponsRelationManager extends RelationManager
             ]);
     }
 
-    /**
-     * Relation manager başlığında kayıt başlığı olarak ne görüneceği.
-     */
     public static function getRecordTitle(Model $record): string
     {
         if (! $record instanceof UserCoupon) {
@@ -161,7 +137,7 @@ class UserCouponsRelationManager extends RelationManager
         $code = $record->coupon?->code;
 
         return $code
-            ? sprintf('Kupon #%s', $code)
-            : sprintf('Kupon #%d', $record->getKey());
+            ? sprintf('%s #%s', __('admin.user_coupons.record_title'), $code)
+            : sprintf('%s #%d', __('admin.user_coupons.record_title'), $record->getKey());
     }
 }

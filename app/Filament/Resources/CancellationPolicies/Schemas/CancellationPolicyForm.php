@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CancellationPolicies\Schemas;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -16,45 +17,54 @@ class CancellationPolicyForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $locales = LocaleHelper::active();
+
         return $schema->schema([
-            Tabs::make('translations')
+            Tabs::make('i18n')
                 ->tabs(
-                    collect(config('app.supported_locales'))
-                        ->map(function (string $locale) {
-                            return Tab::make(strtoupper($locale))
-                                ->schema([
-                                    TextInput::make("name.$locale")
-                                        ->label(__('admin.field.name'))
-                                        ->required()
-                                        ->maxLength(255)
-                                        ->live(debounce: 400)
-                                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($locale) {
-                                            $currentSlug = (string) ($get("slug.$locale") ?? '');
-                                            $oldSlugFromName = Str::slug((string) ($old ?? ''));
-                                            if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
-                                                $set("slug.$locale", Str::slug((string) ($state ?? '')));
-                                            }
-                                        }),
-                                    TextInput::make("slug.$locale")
-                                        ->label(__('admin.field.slug'))
-                                        ->required()
-                                        ->maxLength(255)
-                                        ->live(debounce: 300)
-                                        ->afterStateUpdated(function (Set $set, ?string $state) use ($locale) {
-                                            $set("slug.$locale", Str::slug((string) ($state ?? '')));
-                                        })
-                                        ->dehydrateStateUsing(fn ($state) => Str::slug((string) ($state ?? ''))),
-                                    Textarea::make("description.$locale")
-                                        ->label(__('admin.field.description'))
-                                        ->rows(4),
-                                ]);
-                        })
-                        ->toArray()
+                    collect($locales)->map(function (string $loc) {
+                        return Tab::make(strtoupper($loc))
+                            ->schema([
+                                TextInput::make("name.$loc")
+                                    ->label(__('admin.field.name'))
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(debounce: 400)
+                                    ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($loc) {
+                                        $currentSlug = (string) ($get("slug.$loc") ?? '');
+                                        $oldSlugFromName = Str::slug((string) ($old ?? ''));
+
+                                        if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
+                                            $set("slug.$loc", Str::slug((string) ($state ?? '')));
+                                        }
+                                    }),
+
+                                TextInput::make("slug.$loc")
+                                    ->label(__('admin.field.slug'))
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(debounce: 300)
+                                    ->afterStateUpdated(function (Set $set, ?string $state) use ($loc) {
+                                        $set("slug.$loc", Str::slug((string) ($state ?? '')));
+                                    })
+                                    ->dehydrateStateUsing(fn ($state) => Str::slug((string) ($state ?? ''))),
+
+                                Textarea::make("description.$loc")
+                                    ->label(__('admin.field.description'))
+                                    ->rows(4),
+                            ]);
+                    })->all()
                 )
                 ->columnSpanFull(),
 
-            Toggle::make('is_active')->label(__('admin.field.is_active'))->default(true),
-            TextInput::make('sort_order')->label(__('admin.field.sort_order'))->numeric()->default(0),
+            Toggle::make('is_active')
+                ->label(__('admin.field.is_active'))
+                ->default(true),
+
+            TextInput::make('sort_order')
+                ->label(__('admin.field.sort_order'))
+                ->numeric()
+                ->default(0),
         ]);
     }
 }

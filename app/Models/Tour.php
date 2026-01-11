@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedColumns;
 use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -12,10 +14,31 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Tour extends Model implements HasMedia
 {
-    use SoftDeletes, InteractsWithMedia;
+    use HasLocalizedColumns, SoftDeletes, InteractsWithMedia;
 
     protected $table = 'tours';
+
     protected $guarded = [];
+
+    protected $casts = [
+        'name'                 => 'array',
+        'slug'                 => 'array',
+        'short_description'    => 'array',
+        'long_description'     => 'array',
+        'notes'                => 'array',
+        'prices'               => 'array',
+        'days_of_week'         => 'array',
+        'included_service_ids' => 'array',
+        'excluded_service_ids' => 'array',
+        'is_active'            => 'boolean',
+        'start_time'           => 'datetime:H:i',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Model Events
+    |--------------------------------------------------------------------------
+    */
 
     protected static function booted(): void
     {
@@ -36,61 +59,57 @@ class Tour extends Model implements HasMedia
         });
     }
 
-    protected $casts = [
-        'name'                 => 'array',
-        'slug'                 => 'array',
-        'short_description'    => 'array',
-        'long_description'     => 'array',
-        'notes'                => 'array',
-        'prices'               => 'array',
-        'days_of_week'         => 'array',
-        'included_service_ids' => 'array',
-        'excluded_service_ids' => 'array',
-        'is_active'            => 'boolean',
-        'start_time'           => 'datetime:H:i',
-    ];
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors (localized label)
+    |--------------------------------------------------------------------------
+    */
 
-    public function category()
+    /**
+     * Admin accessor
+     * Kontrat: fallback YOK, sadece UI locale.
+     */
+    public function getNameLAttribute(): ?string
     {
-        return $this->belongsTo(\App\Models\TourCategory::class, 'tour_category_id');
-    }
-
-    public function registerMediaCollections(): void
-    {
-        // Kapak (tek dosya)
-        $this
-            ->addMediaCollection('cover')
-            ->singleFile()
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes([
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ]);
-
-        // Galeri (çoklu)
-        $this
-            ->addMediaCollection('gallery')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes([
-                'image/jpeg',
-                'image/png',
-                'image/webp',
-            ]);
-    }
-
-    public function registerMediaConversions(Media $media = null): void
-    {
-        // Standart ICR dönüşümleri
-        MediaConversions::apply($this, 'cover');
-        MediaConversions::apply($this, 'gallery');
+        return $this->getLocalized('name');
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Accessors (image helpers)
+    | Relationships
     |--------------------------------------------------------------------------
     */
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(TourCategory::class, 'tour_category_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Media
+    |--------------------------------------------------------------------------
+    */
+
+    public function registerMediaCollections(): void
+    {
+        $this
+            ->addMediaCollection('cover')
+            ->singleFile()
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+
+        $this
+            ->addMediaCollection('gallery')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(Media $media = null): void
+    {
+        MediaConversions::apply($this, 'cover');
+        MediaConversions::apply($this, 'gallery');
+    }
 
     public function getCoverImageAttribute(): array
     {
@@ -105,5 +124,4 @@ class Tour extends Model implements HasMedia
             ->map(fn (Media $media) => ImageHelper::normalize($media))
             ->toArray();
     }
-
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupportTicketCategories\Schemas;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -17,10 +18,12 @@ class SupportTicketCategoryForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $locales = LocaleHelper::active();
+
         return $schema->schema([
-            Tabs::make('translations')
+            Tabs::make('i18n')
                 ->tabs(
-                    collect(config('app.supported_locales'))
+                    collect($locales)
                         ->map(function (string $locale) {
                             return Tab::make(strtoupper($locale))
                                 ->schema([
@@ -31,9 +34,10 @@ class SupportTicketCategoryForm
                                         ->live(debounce: 400)
                                         ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($locale) {
                                             $currentSlug = (string) ($get("slug.$locale") ?? '');
-                                            $oldSlugFromName = Str::slug($old ?? '');
+                                            $oldSlugFromName = Str::slug((string) ($old ?? ''));
+
                                             if ($currentSlug === '' || $currentSlug === $oldSlugFromName) {
-                                                $set("slug.$locale", Str::slug($state ?? ''));
+                                                $set("slug.$locale", Str::slug((string) ($state ?? '')));
                                             }
                                         }),
 
@@ -43,9 +47,9 @@ class SupportTicketCategoryForm
                                         ->maxLength(255)
                                         ->live(debounce: 300)
                                         ->afterStateUpdated(function (Set $set, ?string $state) use ($locale) {
-                                            $set("slug.$locale", Str::slug($state ?? ''));
+                                            $set("slug.$locale", Str::slug((string) ($state ?? '')));
                                         })
-                                        ->dehydrateStateUsing(fn ($state) => Str::slug($state ?? '')),
+                                        ->dehydrateStateUsing(fn ($state) => Str::slug((string) ($state ?? ''))),
 
                                     Textarea::make("description.$locale")
                                         ->label(__('admin.field.description'))

@@ -34,16 +34,19 @@ class VillaAmenityResource extends Resource
         ];
     }
 
-    public static function form(Schema $schema): Schema { return VillaAmenityForm::configure($schema); }
+    public static function form(Schema $schema): Schema
+    {
+        return VillaAmenityForm::configure($schema);
+    }
 
-    public static function table(Table $table): Table { return VillaAmenitiesTable::configure($table); }
+    public static function table(Table $table): Table
+    {
+        return VillaAmenitiesTable::configure($table);
+    }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

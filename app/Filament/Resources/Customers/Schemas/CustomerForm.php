@@ -12,39 +12,39 @@ class CustomerForm
     {
         return $schema->schema([
             TextInput::make('first_name')
-                ->label('Ad')
+                ->label(__('admin.field.first_name'))
                 ->required()
                 ->maxLength(100),
 
             TextInput::make('last_name')
-                ->label('Soyad')
+                ->label(__('admin.field.last_name'))
                 ->required()
                 ->maxLength(100),
 
             TextInput::make('phone')
-                ->label('Telefon')
+                ->label(__('admin.field.phone'))
                 ->tel()
                 ->maxLength(20),
 
             TextInput::make('email')
-                ->label('E-posta')
+                ->label(__('admin.field.email'))
                 ->email()
                 ->required()
                 ->unique(ignoreRecord: true)
                 ->maxLength(255),
 
             Select::make('locale')
-                ->label('Dil')
+                ->label(__('admin.field.locale'))
                 ->options([
-                    'tr' => 'Türkçe',
-                    'en' => 'English',
+                    'tr' => __('admin.locales.tr'),
+                    'en' => __('admin.locales.en'),
                 ])
                 ->required()
                 ->native(false)
                 ->default('tr'),
 
             TextInput::make('password')
-                ->label('Parola')
+                ->label(__('admin.field.password'))
                 ->password()
                 ->revealable()
                 ->dehydrateStateUsing(fn ($state) => filled($state) ? $state : null)

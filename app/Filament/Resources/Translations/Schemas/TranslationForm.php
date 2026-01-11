@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Translations\Schemas;
 
-use App\Support\Helpers\LocaleHelper;
+use App\Models\Language;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -11,18 +11,25 @@ class TranslationForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $locales = LocaleHelper::active();
+        $locales = Language::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('code')
+            ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+            ->map(fn ($v) => strtolower(trim($v)))
+            ->values()
+            ->all();
 
         return $schema->components([
-            Section::make('Genel')
+            Section::make(__('admin.translations.fields.group'))
                 ->schema([
                     TextInput::make('group')
-                        ->label('Grup')
+                        ->label(__('admin.translations.fields.group'))
                         ->required()
                         ->maxLength(100),
 
                     TextInput::make('key')
-                        ->label('Anahtar')
+                        ->label(__('admin.translations.fields.key'))
                         ->required()
                         ->maxLength(150)
                         ->unique(
@@ -35,13 +42,13 @@ class TranslationForm
                         ),
                 ]),
 
-            Section::make('Değerler')
+            Section::make(__('admin.translations.fields.values'))
                 ->schema(
                     collect($locales)
                         ->map(fn (string $loc) =>
                         TextInput::make("values.{$loc}")
                             ->label(strtoupper($loc))
-                            ->maxLength(500)
+                            ->maxLength(1000)
                         )
                         ->all()
                 ),

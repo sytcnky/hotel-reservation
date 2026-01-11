@@ -37,7 +37,6 @@ class SupportTicketCategoryResource extends Resource
         return 'primary';
     }
 
-    /** canonical (v4) */
     public static function form(Schema $schema): Schema
     {
         return SupportTicketCategoryForm::configure($schema);
@@ -59,12 +58,7 @@ class SupportTicketCategoryResource extends Resource
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }

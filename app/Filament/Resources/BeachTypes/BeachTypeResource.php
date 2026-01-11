@@ -19,10 +19,25 @@ class BeachTypeResource extends Resource
 {
     protected static ?string $model = BeachType::class;
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.taxonomies'); }
-    public static function getNavigationLabel(): string { return __('admin.ent.beach_type.plural'); }
-    public static function getModelLabel(): string { return __('admin.ent.beach_type.singular'); }
-    public static function getPluralModelLabel(): string { return __('admin.ent.beach_type.plural'); }
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.taxonomies');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.ent.beach_type.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.ent.beach_type.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.ent.beach_type.plural');
+    }
 
     public static function getNavigationBadge(): ?string
     {
@@ -46,20 +61,17 @@ class BeachTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListBeachTypes::route('/'),
+            'index'  => ListBeachTypes::route('/'),
             'create' => CreateBeachType::route('/create'),
-            'edit' => EditBeachType::route('/{record}/edit'),
+            'edit'   => EditBeachType::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

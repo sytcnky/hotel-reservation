@@ -28,12 +28,12 @@ class HotelCategory extends Model
 
     protected $appends = ['name_l', 'slug_l'];
 
-    public function getNameLAttribute(): string
+    public function getNameLAttribute(): ?string
     {
         return $this->getLocalized('name');
     }
 
-    public function getSlugLAttribute(): string
+    public function getSlugLAttribute(): ?string
     {
         return $this->getLocalized('slug');
     }

@@ -7,10 +7,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
-use Filament\Tables\Columns\ImageColumn;
 
 class LanguagesTable
 {
@@ -19,30 +19,33 @@ class LanguagesTable
         return $table
             ->columns([
                 ImageColumn::make('flag')
-                    ->label('Flag')
+                    ->label(__('admin.languages.table.flag'))
                     ->square()
                     ->disk('public')
-                    ->imageSize(24),
+                    ->imageSize(24)
+                    ->toggleable(),
 
                 TextColumn::make('code')
-                    ->label('Code')
+                    ->label(__('admin.languages.table.code'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('locale')
-                    ->label('Locale')
+                    ->label(__('admin.languages.table.locale'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('admin.languages.table.name'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('native_name')
-                    ->label('Native')
+                    ->label(__('admin.languages.table.native_name'))
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))

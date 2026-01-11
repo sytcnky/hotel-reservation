@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\VillaCategories\Schemas;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -16,23 +17,21 @@ class VillaCategoryForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $locales = LocaleHelper::active();
+
         return $schema->schema([
-
-            Tabs::make('translations')
+            Tabs::make('i18n')
                 ->tabs(
-                    collect(config('app.supported_locales'))
+                    collect($locales)
                         ->map(function (string $locale) {
-
                             return Tab::make(strtoupper($locale))
                                 ->schema([
-
                                     TextInput::make("name.$locale")
                                         ->label(__('admin.field.name'))
                                         ->required()
                                         ->maxLength(255)
                                         ->live(debounce: 400)
                                         ->afterStateUpdated(function (Set $set, Get $get, ?string $state, ?string $old) use ($locale) {
-
                                             $currentSlug = (string) ($get("slug.$locale") ?? '');
                                             $oldSlugFromName = Str::slug((string) ($old ?? ''));
 
@@ -49,14 +48,12 @@ class VillaCategoryForm
                                         ->afterStateUpdated(function (Set $set, ?string $state) use ($locale) {
                                             $set("slug.$locale", Str::slug((string) ($state ?? '')));
                                         })
-                                        ->dehydrateStateUsing(fn($state) => Str::slug((string)($state ?? ''))),
+                                        ->dehydrateStateUsing(fn ($state) => Str::slug((string) ($state ?? ''))),
 
                                     Textarea::make("description.$locale")
                                         ->label(__('admin.field.description'))
                                         ->rows(4),
-
                                 ]);
-
                         })
                         ->toArray()
                 )

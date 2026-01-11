@@ -11,7 +11,6 @@ use App\Models\Order;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -19,6 +18,36 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
+
+    /**
+     * Kayıt başlığı: code.
+     */
+    protected static ?string $recordTitleAttribute = 'code';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.order_group');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.orders.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.orders.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.orders.plural');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 50;
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -32,9 +61,7 @@ class OrderResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -49,22 +76,10 @@ class OrderResource extends Resource
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ])
+            ->withoutGlobalScopes([SoftDeletingScope::class])
             ->with([
                 'approvedBy',
                 'cancelledBy',
             ]);
-    }
-
-    public static function getNavigationGroup(): ?string { return __('admin.nav.order_group'); }
-    public static function getNavigationLabel(): string { return __('admin.orders.plural'); }
-    public static function getModelLabel(): string { return __('admin.orders.singular'); }
-    public static function getPluralModelLabel(): string { return __('admin.orders.plural'); }
-
-    public static function getNavigationSort(): ?int
-    {
-        return 50;
     }
 }

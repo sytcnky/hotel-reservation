@@ -116,6 +116,7 @@ return [
         'district' => 'District',
         'province' => 'City',
         'hotel' => 'Hotel',
+        'status'=> 'Status'
     ],
     'user' => [
         'singular' => 'User',
@@ -141,6 +142,15 @@ return [
         'deleted' => 'Deleted',
         'properties' => 'Properties',
     ],
+    'weekdays' => [
+        'mon' => 'Mon',
+        'tue' => 'Tue',
+        'wed' => 'Wed',
+        'thu' => 'Thu',
+        'fri' => 'Fri',
+        'sat' => 'Sat',
+        'sun' => 'Sun',
+    ],
     'role' => [
         'singular' => 'Role',
         'plural' => 'Roles',
@@ -155,6 +165,30 @@ return [
     ],
     'filter' => [
         'display_locale' => 'Display language',
+    ],
+    'languages' => [
+        'sections' => [
+            'general' => 'General Information',
+            'flag'    => 'Flag',
+        ],
+
+        'form' => [
+            'code'        => 'Code',
+            'code_help'   => 'e.g., tr, en, de',
+            'locale'      => 'Locale',
+            'locale_help' => 'e.g., tr_TR, en_GB',
+            'name'        => 'Name',
+            'native_name' => 'Native Name',
+            'flag'        => 'Flag',
+        ],
+
+        'table' => [
+            'flag'        => 'Flag',
+            'code'        => 'Code',
+            'locale'      => 'Locale',
+            'name'        => 'Name',
+            'native_name' => 'Native Name',
+        ],
     ],
     'hotels' => [
         'singular' => 'Hotel',
@@ -412,15 +446,6 @@ return [
             'capacity_infant_max'  => 'Max Infants',
         ],
     ],
-    'weekdays' => [
-        'mon' => 'Mon',
-        'tue' => 'Tue',
-        'wed' => 'Wed',
-        'thu' => 'Thu',
-        'fri' => 'Fri',
-        'sat' => 'Sat',
-        'sun' => 'Sun',
-    ],
     'orders' => [
         'singular' => 'Order',
         'plural'   => 'Orders',
@@ -547,7 +572,6 @@ return [
             'infant' => '{1}:count Infant|[2,*]:count Infants',
         ],
     ],
-
     'coupons' => [
         'singular' => 'Coupon',
         'plural'   => 'Coupons',
@@ -616,6 +640,8 @@ return [
 
             'max_uses_per_user'       => 'Per-user Usage Limit',
             'max_uses_per_user_help'  => 'If left blank, it is unlimited.',
+
+            'assign_coupon'           => 'Assign Coupon'
         ],
 
         'sections' => [
@@ -664,7 +690,6 @@ return [
             'notification_done'         => 'Operation completed successfully.',
         ],
     ],
-
     'campaigns' => [
         'singular' => 'Campaign',
         'plural'   => 'Campaigns',
@@ -813,7 +838,6 @@ return [
             'discount_target_product_types_product_types' => 'Product Types for Discount',
         ],
     ],
-
     'payment_attempts' => [
         'singular' => 'Payment',
         'plural'   => 'Payments',
@@ -889,7 +913,6 @@ return [
             'refunded'    => 'Refunded',
         ],
     ],
-
     'support_tickets' => [
         'nav' => [
             'label' => 'Support Tickets',
@@ -952,7 +975,6 @@ return [
             'roles'          => 'Relevant Roles',
         ],
     ],
-
     'travel_guides' => [
         'singular' => 'Travel Guide',
         'plural'   => 'Travel Guides',
@@ -1004,7 +1026,6 @@ return [
             'slug_unique' => 'This slug is already in use for this language.',
         ],
     ],
-
     'static_page_labels' => [
         'page_keys' => [
             'home_page'           => 'Home',
@@ -1030,7 +1051,6 @@ return [
             'travel_guides' => 'Travel Guides',
         ],
     ],
-
     'static_pages' => [
         'singular' => 'Static Page',
         'plural'   => 'Static Pages',
@@ -1157,6 +1177,28 @@ return [
                 'manual'      => 'Manual Selection',
                 'by_location' => 'By Location',
             ],
+        ],
+    ],
+    'translations' => [
+        'singular' => 'Translation',
+        'plural'   => 'Translations',
+
+        'fields' => [
+            'group'  => 'Group',
+            'key'    => 'Key',
+            'values' => 'Values',
+        ],
+
+        'actions' => [
+            'create' => 'Create Translation',
+        ],
+
+        'modals' => [
+            'create_heading' => 'New Translation',
+        ],
+
+        'filters' => [
+            'group' => 'Group',
         ],
     ],
 ];

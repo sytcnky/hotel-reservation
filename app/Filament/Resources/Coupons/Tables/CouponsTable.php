@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Coupons\Tables;
 
-use App\Models\Coupon;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -11,54 +10,55 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CouponsTable
 {
     public static function configure(Table $table): Table
     {
-        $base = config('app.locale', 'tr');
-        $ui   = app()->getLocale();
+        $uiLocale = app()->getLocale();
 
         return $table
             ->columns([
-                IconColumn::make('is_active')
-                    ->label(__('admin.coupons.table.active'))
-                    ->boolean()
-                    ->sortable(),
-
                 TextColumn::make('code')
                     ->label(__('admin.coupons.table.code'))
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('title')
+                TextColumn::make('title_l')
                     ->label(__('admin.coupons.table.title'))
-                    ->getStateUsing(function (Coupon $record) use ($ui, $base) {
-                        return self::resolveLocalized($record->title, $ui, $base);
-                    })
-                    ->limit(40)
-                    ->searchable(),
+                    ->sortable(
+                        query: fn (Builder $q, string $dir) =>
+                        $q->orderByRaw("NULLIF(title->>'{$uiLocale}', '') {$dir}")
+                    )
+                    ->searchable(
+                        query: fn (Builder $q, string $search) =>
+                        $q->whereRaw(
+                            "NULLIF(title->>'{$uiLocale}', '') ILIKE ?",
+                            ['%' . $search . '%']
+                        )
+                    )
+                    ->limit(40),
 
                 TextColumn::make('discount_summary')
                     ->label(__('admin.coupons.table.discount'))
-                    ->getStateUsing(function (Coupon $record) {
+                    ->getStateUsing(function ($record) {
                         if ($record->discount_type === 'percent') {
                             if ($record->percent_value === null) {
                                 return null;
                             }
 
-                            // Örnek: %10
                             $value = (float) $record->percent_value;
+
                             return '%' . rtrim(rtrim(number_format($value, 2, ',', ''), '0'), ',');
                         }
 
-                        // Tutar tipi: currency_data içinden göster
                         $data = $record->currency_data ?? [];
-                        if (empty($data) || !is_array($data)) {
+                        if (! is_array($data) || $data === []) {
                             return null;
                         }
 
-                        $preferred = strtoupper(config('app.default_currency', 'TRY'));
+                        $preferred = strtoupper((string) config('app.default_currency', 'TRY'));
                         $code = array_key_exists($preferred, $data)
                             ? $preferred
                             : (string) array_key_first($data);
@@ -108,6 +108,11 @@ class CouponsTable
                     ->label(__('admin.coupons.table.created_at'))
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('is_active')
+                    ->label(__('admin.coupons.table.active'))
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
@@ -137,21 +142,5 @@ class CouponsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
-    }
-
-    /**
-     * JSON başlık alanını locale'e göre çöz.
-     */
-    protected static function resolveLocalized(mixed $value, string $ui, string $base): ?string
-    {
-        if (is_array($value)) {
-            return $value[$ui] ?? $value[$base] ?? (string) (array_values($value)[0] ?? null);
-        }
-
-        if ($value !== null) {
-            return (string) $value;
-        }
-
-        return null;
     }
 }

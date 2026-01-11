@@ -5,6 +5,7 @@ namespace App\Filament\Resources\StaticPages\Forms;
 use App\Models\Hotel;
 use App\Models\Location;
 use App\Models\TravelGuide;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -22,19 +23,27 @@ class HomePageForm
 {
     public static function schema(): array
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $locales  = LocaleHelper::active();
         $uiLocale = app()->getLocale();
 
-        $pickLocale = function (?array $map) use ($uiLocale, $base): ?string {
-            if (! is_array($map)) {
+        $pickUi = function (mixed $value) use ($uiLocale): ?string {
+            if (is_array($value)) {
+                $v = $value[$uiLocale] ?? null;
+                $v = is_string($v) ? trim($v) : null;
+
+                return $v !== '' ? $v : null;
+            }
+
+            if ($value === null) {
                 return null;
             }
 
-            return $map[$uiLocale] ?? $map[$base] ?? (array_values($map)[0] ?? null);
+            $v = is_string($value) ? trim($value) : (string) $value;
+
+            return $v !== '' ? $v : null;
         };
 
-        $getHotelLabelById = function (int $id) use ($pickLocale): ?string {
+        $getHotelLabelById = function (int $id) use ($pickUi): ?string {
             static $cache = [];
 
             if (array_key_exists($id, $cache)) {
@@ -42,12 +51,12 @@ class HomePageForm
             }
 
             $h = Hotel::query()->find($id);
-            $cache[$id] = $h ? $pickLocale($h->name) : null;
+            $cache[$id] = $h ? $pickUi($h->name) : null;
 
             return $cache[$id];
         };
 
-        $getGuideLabelById = function (int $id) use ($pickLocale): ?string {
+        $getGuideLabelById = function (int $id) use ($pickUi): ?string {
             static $cache = [];
 
             if (array_key_exists($id, $cache)) {
@@ -55,49 +64,78 @@ class HomePageForm
             }
 
             $g = TravelGuide::query()->find($id);
-            $cache[$id] = $g ? $pickLocale($g->title) : null;
+            $cache[$id] = $g ? $pickUi($g->title) : null;
 
             return $cache[$id];
         };
 
-        $searchHotels = function (string $search) use ($uiLocale, $base): array {
+        $searchHotels = function (string $search) use ($uiLocale): array {
             return Hotel::query()
                 ->where('is_active', true)
                 ->withoutTrashed()
-                ->whereRaw("COALESCE(name->>'{$uiLocale}', name->>'{$base}', '') ILIKE ?", ["%{$search}%"])
+                ->whereRaw("NULLIF(name->>'{$uiLocale}', '') ILIKE ?", ["%{$search}%"])
                 ->limit(50)
                 ->get()
-                ->mapWithKeys(function (Hotel $h) use ($uiLocale, $base) {
-                    $name = $h->name[$uiLocale]
-                        ?? ($h->name[$base] ?? (array_values($h->name ?? [])[0] ?? '—'));
+                ->mapWithKeys(function (Hotel $h) use ($uiLocale) {
+                    $name = null;
 
-                    return [$h->id => (string) $name];
+                    if (is_array($h->name ?? null)) {
+                        $name = $h->name[$uiLocale] ?? null;
+                    } elseif ($h->name !== null) {
+                        $name = (string) $h->name;
+                    }
+
+                    $name = is_string($name) ? trim($name) : null;
+
+                    return [$h->id => ($name !== '' && $name !== null ? $name : '—')];
                 })
                 ->all();
         };
 
-        $searchGuides = function (string $search) use ($uiLocale, $base): array {
+        $searchGuides = function (string $search) use ($uiLocale): array {
             return TravelGuide::query()
                 ->where('is_active', true)
                 ->withoutTrashed()
-                ->whereRaw("COALESCE(title->>'{$uiLocale}', title->>'{$base}', '') ILIKE ?", ["%{$search}%"])
+                ->whereRaw("NULLIF(title->>'{$uiLocale}', '') ILIKE ?", ["%{$search}%"])
                 ->limit(50)
                 ->get()
-                ->mapWithKeys(function (TravelGuide $g) use ($uiLocale, $base) {
-                    $title = $g->title[$uiLocale]
-                        ?? ($g->title[$base] ?? (array_values($g->title ?? [])[0] ?? '—'));
+                ->mapWithKeys(function (TravelGuide $g) use ($uiLocale) {
+                    $title = null;
 
-                    return [$g->id => (string) $title];
+                    if (is_array($g->title ?? null)) {
+                        $title = $g->title[$uiLocale] ?? null;
+                    } elseif ($g->title !== null) {
+                        $title = (string) $g->title;
+                    }
+
+                    $title = is_string($title) ? trim($title) : null;
+
+                    return [$g->id => ($title !== '' && $title !== null ? $title : '—')];
                 })
                 ->all();
         };
 
-        $tabs = function (string $name, array $fieldsByLocale) use ($locales): Tabs {
-            return Tabs::make($name)->tabs(
+        $tabs = function (array $fieldsByLocale) use ($locales): Tabs {
+            return Tabs::make('i18n')->tabs(
                 collect($locales)
                     ->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))
                     ->all()
             );
+        };
+
+        $locationNameUi = function (Location $loc) use ($uiLocale): string {
+            $name = $loc->name;
+
+            if (is_array($name)) {
+                $v = $name[$uiLocale] ?? null;
+                $v = is_string($v) ? trim($v) : null;
+
+                return ($v !== '' && $v !== null) ? $v : '—';
+            }
+
+            $v = is_string($name) ? trim($name) : (string) $name;
+
+            return $v !== '' ? $v : '—';
         };
 
         return [
@@ -106,18 +144,20 @@ class HomePageForm
             // =========================================================
             Section::make(__('admin.static_pages.pages.home.hero'))
                 ->schema([
-                    $tabs('hero_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.hero.eyebrow.$loc")
-                                ->label(__('admin.static_pages.form.eyebrow')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.hero.eyebrow.$loc")
+                                    ->label(__('admin.static_pages.form.eyebrow')),
 
-                            TextInput::make("content.hero.title.$loc")
-                                ->label(__('admin.static_pages.form.title')),
+                                TextInput::make("content.hero.title.$loc")
+                                    ->label(__('admin.static_pages.form.title')),
 
-                            TextInput::make("content.hero.subtitle.$loc")
-                                ->label(__('admin.static_pages.form.subtitle')),
-                        ]];
-                    })->all()),
+                                TextInput::make("content.hero.subtitle.$loc")
+                                    ->label(__('admin.static_pages.form.subtitle')),
+                            ]];
+                        })->all()
+                    ),
 
                     Section::make(__('admin.static_pages.form.hero_media'))
                         ->schema([
@@ -148,34 +188,36 @@ class HomePageForm
             // =========================================================
             Section::make(__('admin.static_pages.pages.home.popular_hotels'))
                 ->schema([
-                    $tabs('popular_hotels_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.popular_hotels.section_eyebrow.$loc")
-                                ->label(__('admin.static_pages.form.section_eyebrow')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.popular_hotels.section_eyebrow.$loc")
+                                    ->label(__('admin.static_pages.form.section_eyebrow')),
 
-                            TextInput::make("content.popular_hotels.section_title.$loc")
-                                ->label(__('admin.static_pages.form.section_title')),
+                                TextInput::make("content.popular_hotels.section_title.$loc")
+                                    ->label(__('admin.static_pages.form.section_title')),
 
-                            TextInput::make("content.popular_hotels.hero_title.$loc")
-                                ->label(__('admin.static_pages.form.hero_title')),
+                                TextInput::make("content.popular_hotels.hero_title.$loc")
+                                    ->label(__('admin.static_pages.form.hero_title')),
 
-                            Textarea::make("content.popular_hotels.description.$loc")
-                                ->label(__('admin.static_pages.form.description'))
-                                ->rows(4),
+                                Textarea::make("content.popular_hotels.description.$loc")
+                                    ->label(__('admin.static_pages.form.description'))
+                                    ->rows(4),
 
-                            Grid::make()
-                                ->columns(['default' => 1, 'lg' => 12])
-                                ->schema([
-                                    TextInput::make("content.popular_hotels.button.text.$loc")
-                                        ->label(__('admin.static_pages.form.button_text'))
-                                        ->columnSpan(['default' => 12, 'lg' => 6]),
+                                Grid::make()
+                                    ->columns(['default' => 1, 'lg' => 12])
+                                    ->schema([
+                                        TextInput::make("content.popular_hotels.button.text.$loc")
+                                            ->label(__('admin.static_pages.form.button_text'))
+                                            ->columnSpan(['default' => 12, 'lg' => 6]),
 
-                                    TextInput::make("content.popular_hotels.button.href.$loc")
-                                        ->label(__('admin.static_pages.form.button_href'))
-                                        ->columnSpan(['default' => 12, 'lg' => 6]),
-                                ]),
-                        ]];
-                    })->all()),
+                                        TextInput::make("content.popular_hotels.button.href.$loc")
+                                            ->label(__('admin.static_pages.form.button_href'))
+                                            ->columnSpan(['default' => 12, 'lg' => 6]),
+                                    ]),
+                            ]];
+                        })->all()
+                    ),
 
                     // HERO GÖRSEL (Popüler Oteller sol görsel alanı)
                     Grid::make()
@@ -244,7 +286,7 @@ class HomePageForm
                                 ->label(__('admin.static_pages.form.location'))
                                 ->searchable()
                                 ->visible(fn (Get $get) => $get('content.popular_hotels.carousel.mode') === 'by_location')
-                                ->getSearchResultsUsing(function (string $search): array {
+                                ->getSearchResultsUsing(function (string $search) use ($locationNameUi): array {
                                     $q = Str::slug($search);
 
                                     return Location::query()
@@ -254,23 +296,31 @@ class HomePageForm
                                         ->where('slug', 'ILIKE', "{$q}%")
                                         ->limit(50)
                                         ->get()
-                                        ->mapWithKeys(function (Location $r) {
-                                            $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+                                        ->mapWithKeys(function (Location $r) use ($locationNameUi) {
+                                            $parentName = $r->parent ? $locationNameUi($r->parent) : null;
+                                            $gpName     = $r->parent?->parent ? $locationNameUi($r->parent->parent) : null;
+
+                                            $parts  = array_filter([$parentName, $gpName], fn ($v) => is_string($v) && $v !== '' && $v !== '—');
                                             $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
 
-                                            return [$r->id => $r->name . $suffix];
+                                            return [$r->id => $locationNameUi($r) . $suffix];
                                         })
                                         ->all();
                                 })
-                                ->getOptionLabelUsing(function ($value): ?string {
+                                ->getOptionLabelUsing(function ($value) use ($locationNameUi): ?string {
                                     $r = Location::with(['parent.parent'])->find($value);
+
                                     if (! $r) {
                                         return null;
                                     }
-                                    $parts = array_filter([$r->parent?->name, $r->parent?->parent?->name]);
+
+                                    $parentName = $r->parent ? $locationNameUi($r->parent) : null;
+                                    $gpName     = $r->parent?->parent ? $locationNameUi($r->parent->parent) : null;
+
+                                    $parts  = array_filter([$parentName, $gpName], fn ($v) => is_string($v) && $v !== '' && $v !== '—');
                                     $suffix = $parts ? ' (' . implode(', ', $parts) . ')' : '';
 
-                                    return $r->name . $suffix;
+                                    return $locationNameUi($r) . $suffix;
                                 }),
 
                             Repeater::make('content.popular_hotels.carousel.items')
@@ -305,19 +355,21 @@ class HomePageForm
             // =========================================================
             Section::make(__('admin.static_pages.pages.home.travel_guides'))
                 ->schema([
-                    $tabs('travel_guides_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.travel_guides.hero_title.$loc")
-                                ->label(__('admin.static_pages.form.hero_title')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.travel_guides.hero_title.$loc")
+                                    ->label(__('admin.static_pages.form.hero_title')),
 
-                            TextInput::make("content.travel_guides.title.$loc")
-                                ->label(__('admin.static_pages.form.title')),
+                                TextInput::make("content.travel_guides.title.$loc")
+                                    ->label(__('admin.static_pages.form.title')),
 
-                            Textarea::make("content.travel_guides.description.$loc")
-                                ->label(__('admin.static_pages.form.description'))
-                                ->rows(4),
-                        ]];
-                    })->all()),
+                                Textarea::make("content.travel_guides.description.$loc")
+                                    ->label(__('admin.static_pages.form.description'))
+                                    ->rows(4),
+                            ]];
+                        })->all()
+                    ),
 
                     Section::make(__('admin.static_pages.form.grid_settings'))
                         ->schema([
@@ -327,8 +379,8 @@ class HomePageForm
                                     Select::make('content.travel_guides.grid.mode')
                                         ->label(__('admin.static_pages.form.collection_mode'))
                                         ->options([
-                                            'latest'      => __('admin.static_pages.form.collection_modes.latest'),
-                                            'manual'      => __('admin.static_pages.form.collection_modes.manual'),
+                                            'latest' => __('admin.static_pages.form.collection_modes.latest'),
+                                            'manual' => __('admin.static_pages.form.collection_modes.manual'),
                                         ])
                                         ->native(false)
                                         ->live()

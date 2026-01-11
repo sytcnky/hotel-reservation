@@ -13,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Throwable;
 
 class HotelCategoryResource extends Resource
 {
@@ -27,7 +28,7 @@ class HotelCategoryResource extends Resource
     {
         try {
             return (string) static::getModel()::query()->count();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -37,7 +38,6 @@ class HotelCategoryResource extends Resource
         return 'primary';
     }
 
-    /** canonical (v4) */
     public static function form(Schema $schema): Schema
     {
         return HotelCategoryForm::configure($schema);
@@ -51,20 +51,17 @@ class HotelCategoryResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListHotelCategories::route('/'),
+            'index'  => ListHotelCategories::route('/'),
             'create' => CreateHotelCategory::route('/create'),
-            'edit' => EditHotelCategory::route('/{record}/edit'),
+            'edit'   => EditHotelCategory::route('/{record}/edit'),
         ];
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        $query = static::getModel()::query();
-
-        if (in_array(SoftDeletingScope::class, class_uses_recursive(static::$model))) {
-            $query->withoutGlobalScopes([SoftDeletingScope::class]);
-        }
-
-        return $query;
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 }

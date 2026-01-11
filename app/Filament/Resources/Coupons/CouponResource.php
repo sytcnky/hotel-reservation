@@ -8,15 +8,19 @@ use App\Filament\Resources\Coupons\Pages\ListCoupons;
 use App\Filament\Resources\Coupons\Schemas\CouponForm;
 use App\Filament\Resources\Coupons\Tables\CouponsTable;
 use App\Models\Coupon;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class CouponResource extends Resource
 {
     protected static ?string $model = Coupon::class;
+
+    /**
+     * Kayıt başlığı accessor üzerinden.
+     * Kontrat: fallback yok (title_l).
+     */
+    protected static ?string $recordTitleAttribute = 'title_l';
 
     public static function getNavigationGroup(): ?string { return __('admin.nav.sales_group'); }
     public static function getNavigationLabel(): string { return __('admin.coupons.plural'); }
@@ -43,9 +47,9 @@ class CouponResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListCoupons::route('/'),
+            'index'  => ListCoupons::route('/'),
             'create' => CreateCoupon::route('/create'),
-            'edit' => EditCoupon::route('/{record}/edit'),
+            'edit'   => EditCoupon::route('/{record}/edit'),
         ];
     }
 }

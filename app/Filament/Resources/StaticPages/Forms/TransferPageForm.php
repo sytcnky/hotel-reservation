@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StaticPages\Forms;
 
 use App\Forms\Components\IconPicker;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -16,20 +17,19 @@ class TransferPageForm
 {
     public static function schema(): array
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $locales  = LocaleHelper::active();
         $uiLocale = app()->getLocale();
 
-        $pickLocale = function (?array $map) use ($uiLocale, $base): ?string {
+        $pickLocale = function (?array $map) use ($uiLocale): ?string {
             if (! is_array($map)) {
                 return null;
             }
 
-            return $map[$uiLocale] ?? $map[$base] ?? (array_values($map)[0] ?? null);
+            return $map[$uiLocale] ?? (array_values($map)[0] ?? null);
         };
 
-        $tabs = function (string $name, array $fieldsByLocale) use ($locales): Tabs {
-            return Tabs::make($name)->tabs(
+        $tabs = function (array $fieldsByLocale) use ($locales): Tabs {
+            return Tabs::make('i18n')->tabs(
                 collect($locales)
                     ->map(fn (string $loc) => Tab::make(strtoupper($loc))->schema($fieldsByLocale[$loc] ?? []))
                     ->all()
@@ -39,30 +39,34 @@ class TransferPageForm
         return [
             Section::make(__('admin.static_pages.pages.transfer.page_header'))
                 ->schema([
-                    $tabs('transfer_header_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.page_header.title.$loc")
-                                ->label(__('admin.static_pages.form.title')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.page_header.title.$loc")
+                                    ->label(__('admin.static_pages.form.title')),
 
-                            Textarea::make("content.page_header.description.$loc")
-                                ->label(__('admin.static_pages.form.description'))
-                                ->rows(4),
-                        ]];
-                    })->all()),
+                                Textarea::make("content.page_header.description.$loc")
+                                    ->label(__('admin.static_pages.form.description'))
+                                    ->rows(4),
+                            ]];
+                        })->all()
+                    ),
                 ]),
 
             Section::make(__('admin.static_pages.pages.transfer.page_content'))
                 ->schema([
-                    $tabs('transfer_content_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.page_content.title.$loc")
-                                ->label(__('admin.static_pages.form.title')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.page_content.title.$loc")
+                                    ->label(__('admin.static_pages.form.title')),
 
-                            Textarea::make("content.page_content.description.$loc")
-                                ->label(__('admin.static_pages.form.description'))
-                                ->rows(4),
-                        ]];
-                    })->all()),
+                                Textarea::make("content.page_content.description.$loc")
+                                    ->label(__('admin.static_pages.form.description'))
+                                    ->rows(4),
+                            ]];
+                        })->all()
+                    ),
 
                     Grid::make()
                         ->columns(['default' => 1, 'lg' => 12])
@@ -102,41 +106,47 @@ class TransferPageForm
                                         ->variant('outline')
                                         ->columnSpan(2),
 
-                                    $tabs('icon_text_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                                        return [$loc => [
-                                            TextInput::make("text.$loc")
-                                                ->label(__('admin.static_pages.form.icon_text'))
-                                                ->helperText(__('admin.static_pages.form.icon_text_optional')),
-                                        ]];
-                                    })->all())
+                                    $tabs(
+                                        collect($locales)->mapWithKeys(function (string $loc) {
+                                            return [$loc => [
+                                                TextInput::make("text.$loc")
+                                                    ->label(__('admin.static_pages.form.icon_text'))
+                                                    ->helperText(__('admin.static_pages.form.icon_text_optional')),
+                                            ]];
+                                        })->all()
+                                    )
                                         ->columnSpan(10),
                                 ]),
                         ])
                         ->collapsed(),
 
-                    $tabs('transfer_body_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            TextInput::make("content.page_content.content_title.$loc")
-                                ->label(__('admin.static_pages.pages.transfer.content_title')),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                TextInput::make("content.page_content.content_title.$loc")
+                                    ->label(__('admin.static_pages.pages.transfer.content_title')),
 
-                            Textarea::make("content.page_content.content_text.$loc")
-                                ->label(__('admin.static_pages.pages.transfer.content_text'))
-                                ->rows(6),
-                        ]];
-                    })->all()),
+                                Textarea::make("content.page_content.content_text.$loc")
+                                    ->label(__('admin.static_pages.pages.transfer.content_text'))
+                                    ->rows(6),
+                            ]];
+                        })->all()
+                    ),
 
-                    $tabs('transfer_features_i18n', collect($locales)->mapWithKeys(function (string $loc) {
-                        return [$loc => [
-                            Repeater::make("content.page_content.features.$loc")
-                                ->label(__('admin.static_pages.pages.transfer.features'))
-                                ->reorderable()
-                                ->defaultItems(0)
-                                ->schema([
-                                    TextInput::make('text')
-                                        ->label(__('admin.static_pages.pages.transfer.feature')),
-                                ]),
-                        ]];
-                    })->all()),
+                    $tabs(
+                        collect($locales)->mapWithKeys(function (string $loc) {
+                            return [$loc => [
+                                Repeater::make("content.page_content.features.$loc")
+                                    ->label(__('admin.static_pages.pages.transfer.features'))
+                                    ->reorderable()
+                                    ->defaultItems(0)
+                                    ->schema([
+                                        TextInput::make('text')
+                                            ->label(__('admin.static_pages.pages.transfer.feature')),
+                                    ]),
+                            ]];
+                        })->all()
+                    ),
                 ]),
         ];
     }

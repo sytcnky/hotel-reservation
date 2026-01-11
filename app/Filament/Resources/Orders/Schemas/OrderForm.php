@@ -9,15 +9,14 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\ImageEntry;
-use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Notifications\Notification;
 
 class OrderForm
 {
@@ -74,7 +73,6 @@ class OrderForm
                                                     ->label(__('admin.orders.form.customer_email'))
                                                     ->state(fn (?Order $record) => $record?->customer_email ?? '-'),
 
-
                                                 TextEntry::make('customer_phone')
                                                     ->label(__('admin.orders.form.customer_phone'))
                                                     ->state(fn (?Order $record) => $record?->customer_phone ?? '-'),
@@ -97,22 +95,22 @@ class OrderForm
                                                 ->schema([
                                                     TextEntry::make('invoice_company')
                                                         ->label(__('admin.orders.form.invoice_company'))
-                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['company'] ?? '-'),
+                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['company'] ?? '-'),
 
                                                     TextEntry::make('invoice_tax_office')
                                                         ->label(__('admin.orders.form.invoice_tax_office'))
-                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['tax_office'] ?? '-'),
+                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['tax_office'] ?? '-'),
 
                                                     TextEntry::make('invoice_tax_no')
                                                         ->label(__('admin.orders.form.invoice_tax_no'))
-                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['tax_no'] ?? '-'),
+                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['tax_no'] ?? '-'),
 
                                                     TextEntry::make('invoice_address')
                                                         ->label(__('admin.orders.form.invoice_address'))
-                                                        ->state(fn (?Order $record) => $record->metadata['invoice']['address'] ?? '-'),
+                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['address'] ?? '-'),
                                                 ])
                                                 ->hidden(function (?Order $record) {
-                                                    $inv = $record->metadata['invoice'] ?? [];
+                                                    $inv = $record?->metadata['invoice'] ?? [];
                                                     return empty($inv['is_corporate']);
                                                 }),
                                         ]),
@@ -381,7 +379,7 @@ class OrderForm
                                                     TextEntry::make('amount')->hiddenLabel(),
                                                 ])
                                                 ->hidden(fn ($record, $state) => empty($state)),
-                                        ])
+                                        ]),
                                 ]),
 
                             // SAĞ (4)
@@ -393,8 +391,6 @@ class OrderForm
                                 ->schema([
                                     Section::make(__('admin.orders.sections.operations'))
                                         ->schema([
-
-                                            // Onayla
                                             Action::make('approve_order')
                                                 ->label(__('admin.orders.actions.approve'))
                                                 ->color('success')
@@ -422,7 +418,6 @@ class OrderForm
                                                     }
                                                 }),
 
-                                            // İptal
                                             Action::make('cancel_order')
                                                 ->label(__('admin.orders.actions.cancel'))
                                                 ->color('danger')
@@ -455,7 +450,6 @@ class OrderForm
                                                     }
                                                 }),
 
-                                            // Refund kısayolu (sadece onaylandı iken)
                                             Action::make('refund_shortcut')
                                                 ->label(__('admin.payment_attempts.actions.refund'))
                                                 ->color('warning')
@@ -554,23 +548,18 @@ class OrderForm
                                                     }
                                                 }),
 
-                                            // Durum
                                             TextEntry::make('status')
                                                 ->label(__('admin.orders.status_details.status'))
-                                                ->state(fn (?Order $record) =>
-                                                $record
+                                                ->state(fn (?Order $record) => $record
                                                     ? (__(
-                                                    Order::statusMeta($record->status)['label_key']
-                                                    ?? $record->status
-                                                ))
+                                                        Order::statusMeta($record->status)['label_key']
+                                                        ?? $record->status
+                                                    ))
                                                     : '-'
                                                 )
                                                 ->badge()
-                                                ->color(fn (?Order $record) =>
-                                                    Order::statusMeta($record?->status)['filament_color'] ?? 'gray'
-                                                ),
+                                                ->color(fn (?Order $record) => Order::statusMeta($record?->status)['filament_color'] ?? 'gray'),
 
-                                            // İşlem Tarihi
                                             TextEntry::make('date')
                                                 ->label(__('admin.orders.status_details.date'))
                                                 ->state(fn (?Order $record) => match ($record?->status) {
@@ -579,15 +568,13 @@ class OrderForm
                                                     Order::STATUS_COMPLETED => $record->completed_at?->format('d.m.Y H:i'),
                                                     default                 => '-',
                                                 })
-                                                ->visible(fn (?Order $record) =>
-                                                match ($record?->status) {
+                                                ->visible(fn (?Order $record) => match ($record?->status) {
                                                     Order::STATUS_CONFIRMED => filled($record->approved_at),
                                                     Order::STATUS_CANCELLED => filled($record->cancelled_at),
                                                     Order::STATUS_COMPLETED => filled($record->completed_at),
                                                     default => false,
                                                 }),
 
-                                            // Gerçekleştiren
                                             TextEntry::make('actor')
                                                 ->label(__('admin.orders.status_details.actor'))
                                                 ->state(fn (?Order $record) => match ($record?->status) {
@@ -596,25 +583,20 @@ class OrderForm
                                                     Order::STATUS_COMPLETED => __('admin.orders.status_details.system'),
                                                     default                 => '-',
                                                 })
-                                                ->visible(fn (?Order $record) =>
-                                                match ($record?->status) {
+                                                ->visible(fn (?Order $record) => match ($record?->status) {
                                                     Order::STATUS_CONFIRMED => filled($record->approvedBy),
                                                     Order::STATUS_CANCELLED => filled($record->cancelledBy),
                                                     Order::STATUS_COMPLETED => true,
                                                     default => false,
                                                 }),
 
-                                            // Gerekçe (sadece iptal)
                                             TextEntry::make('reason')
                                                 ->label(__('admin.orders.status_details.reason'))
-                                                ->state(fn (?Order $record) =>
-                                                $record?->status === Order::STATUS_CANCELLED
+                                                ->state(fn (?Order $record) => $record?->status === Order::STATUS_CANCELLED
                                                     ? ($record->cancelled_reason ?: '-')
                                                     : '-'
                                                 )
-                                                ->visible(fn (?Order $record) =>
-                                                    $record?->status === Order::STATUS_CANCELLED
-                                                ),
+                                                ->visible(fn (?Order $record) => $record?->status === Order::STATUS_CANCELLED),
                                         ])
                                         ->contained(true)
                                         ->hidden(function (?Order $record) {

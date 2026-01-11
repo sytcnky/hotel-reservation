@@ -17,16 +17,40 @@ class Translation extends Model
         'values' => 'array',
     ];
 
+    /**
+     * Aktif site dilleri (languages tablosu).
+     * Fallback YOK: aktif dil yoksa boş array döner.
+     */
+    public static function activeLocales(): array
+    {
+        return Language::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('code')
+            ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+            ->map(fn ($v) => strtolower(trim($v)))
+            ->values()
+            ->all();
+    }
+
     public static function getValue(string $group, string $key, ?string $locale = null): ?string
     {
         $locale ??= app()->getLocale();
+        $locale = strtolower(trim((string) $locale));
+
+        if ($locale === '') {
+            return null;
+        }
+
         $cacheKey = "translations_{$locale}";
 
         $items = Cache::remember($cacheKey, 3600, function () use ($locale) {
             return static::query()
                 ->get()
                 ->mapWithKeys(function (self $row) use ($locale) {
-                    $value = $row->values[$locale] ?? null;
+                    $value = is_array($row->values) ? ($row->values[$locale] ?? null) : null;
+
+                    $value = is_string($value) ? trim($value) : null;
                     if ($value === null || $value === '') {
                         return [];
                     }
@@ -41,9 +65,7 @@ class Translation extends Model
 
     public static function flushCache(): void
     {
-        $locales = config('app.supported_locales', ['tr', 'en']);
-
-        foreach ($locales as $locale) {
+        foreach (static::activeLocales() as $locale) {
             Cache::forget("translations_{$locale}");
         }
     }

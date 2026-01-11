@@ -3,25 +3,39 @@
 namespace App\Filament\Resources\Tours\Pages;
 
 use App\Filament\Resources\Tours\TourResource;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Str;
 
 class CreateTour extends CreateRecord
 {
     protected static string $resource = TourResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Yeni kayıtta boş gelebilir, form uyumu için ekle
-        $data['slug_ui'] = $data['slug'] ?? [];
-        return $data;
-    }
+        $locales = LocaleHelper::active();
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        if (isset($data['slug_ui'])) {
-            $data['slug'] = $data['slug_ui'];
-            unset($data['slug_ui']);
+        $slug = (array) ($data['slug'] ?? []);
+        $normalized = [];
+
+        foreach ($locales as $loc) {
+            $val = $slug[$loc] ?? null;
+
+            if ($val === null) {
+                continue;
+            }
+
+            $val = trim((string) $val);
+
+            if ($val === '') {
+                continue;
+            }
+
+            $normalized[$loc] = Str::slug($val);
         }
+
+        $data['slug'] = $normalized;
+
         return $data;
     }
 }

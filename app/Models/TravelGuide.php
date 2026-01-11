@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Helpers\ImageHelper;
+use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use App\Support\Helpers\MediaConversions;
-use App\Support\Helpers\ImageHelper;
 
 class TravelGuide extends Model implements HasMedia
 {
@@ -22,7 +21,6 @@ class TravelGuide extends Model implements HasMedia
         'title',
         'excerpt',
         'slug',
-        'canonical_slug',
         'tags',
         'sidebar_tour_ids',
         'is_active',
@@ -38,6 +36,11 @@ class TravelGuide extends Model implements HasMedia
         'sidebar_tour_ids' => 'array',
         'is_active'        => 'boolean',
         'published_at'     => 'datetime',
+    ];
+
+    protected $appends = [
+        'title_l',
+        'slug_l',
     ];
 
     /*
@@ -59,7 +62,6 @@ class TravelGuide extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        // Kapak (tek dosya) — Hotel / Villa / Tour ile AYNI
         $this
             ->addMediaCollection('cover')
             ->singleFile()
@@ -73,85 +75,36 @@ class TravelGuide extends Model implements HasMedia
 
     public function registerMediaConversions(Media $media = null): void
     {
-        // Standart ICR dönüşümleri — AYNI
         MediaConversions::apply($this, 'cover');
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Accessors (image helpers)
+    | Accessors
     |--------------------------------------------------------------------------
+    | Kontrat (Admin): fallback yok. Sadece UI locale key'i okunur.
     */
+
+    public function getTitleLAttribute(): string
+    {
+        $uiLocale = app()->getLocale();
+        $v = is_array($this->title) ? ($this->title[$uiLocale] ?? '') : '';
+
+        return is_string($v) ? trim($v) : '';
+    }
+
+    public function getSlugLAttribute(): string
+    {
+        $uiLocale = app()->getLocale();
+        $v = is_array($this->slug) ? ($this->slug[$uiLocale] ?? '') : '';
+
+        return is_string($v) ? trim($v) : '';
+    }
 
     public function getCoverImageAttribute(): array
     {
         $media = $this->getFirstMedia('cover');
 
         return ImageHelper::normalize($media);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Slug Mutator
-    |--------------------------------------------------------------------------
-    */
-
-    protected function setSlugAttribute($value): void
-    {
-        $this->attributes['slug'] = is_array($value)
-            ? json_encode($value)
-            : $value;
-
-        $base = config('app.locale', 'tr');
-
-        $slugArr = is_array($value)
-            ? $value
-            : json_decode($this->attributes['slug'] ?? '[]', true);
-
-        $title    = $this->attributes['title'] ?? '{}';
-        $titleArr = is_array($title) ? $title : json_decode($title, true);
-
-        $this->attributes['canonical_slug'] = Str::slug(
-            $slugArr[$base]
-            ?? ($slugArr[array_key_first($slugArr) ?? '']
-            ?? ($titleArr[$base] ?? 'gezi-rehberi'))
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Model Events
-    |--------------------------------------------------------------------------
-    */
-
-    protected static function booted(): void
-    {
-        static::creating(function (TravelGuide $guide) {
-            if (empty($guide->canonical_slug)) {
-                $base  = config('app.locale', 'tr');
-                $slug  = (array) ($guide->slug ?? []);
-                $title = (array) ($guide->title ?? []);
-
-                $guide->canonical_slug = Str::slug(
-                    $slug[$base]
-                    ?? ($slug[array_key_first($slug) ?? '']
-                    ?? ($title[$base] ?? 'gezi-rehberi'))
-                );
-            }
-        });
-
-        static::saving(function (TravelGuide $guide) {
-            if (empty($guide->canonical_slug)) {
-                $base  = config('app.locale', 'tr');
-                $slug  = (array) ($guide->slug ?? []);
-                $title = (array) ($guide->title ?? []);
-
-                $guide->canonical_slug = Str::slug(
-                    $slug[$base]
-                    ?? ($slug[array_key_first($slug) ?? '']
-                    ?? ($title[$base] ?? 'gezi-rehberi'))
-                );
-            }
-        });
     }
 }

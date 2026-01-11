@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TransferVehicles\Schemas;
 
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -17,8 +18,7 @@ class TransferVehicleForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $locales = LocaleHelper::active();
 
         return $schema->components([
             Group::make()
@@ -28,29 +28,26 @@ class TransferVehicleForm
                         ->columns(['default' => 1, 'lg' => 12])
                         ->gap(6)
                         ->schema([
-                            // SOL KOLON (8)
+
+                            // SOL (8)
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 8])
                                 ->schema([
-                                    // i18n sekmeleri
                                     Tabs::make('i18n')->tabs(
-                                        collect($locales)->map(function (string $loc) use ($base) {
-                                            return Tab::make(strtoupper($loc))->schema([
-                                                TextInput::make("name.$loc")
-                                                    ->label(__('admin.vehicles.form.name'))
-                                                    ->required($loc === $base)
-                                                    ->maxLength(150),
+                                        collect($locales)->map(fn (string $loc) =>
+                                        Tab::make(strtoupper($loc))->schema([
+                                            TextInput::make("name.$loc")
+                                                ->label(__('admin.vehicles.form.name'))
+                                                ->required(),
 
-                                                Textarea::make("description.$loc")
-                                                    ->label(__('admin.vehicles.form.description'))
-                                                    ->rows(4),
-                                            ]);
-                                        })->all()
+                                            Textarea::make("description.$loc")
+                                                ->label(__('admin.vehicles.form.description'))
+                                                ->rows(4),
+                                        ])
+                                        )->all()
                                     ),
 
-                                    // Galeri alta
                                     Section::make(__('admin.vehicles.sections.gallery'))
-                                        ->columns(12)
                                         ->schema([
                                             SpatieMediaLibraryFileUpload::make('gallery')
                                                 ->hiddenLabel()
@@ -59,17 +56,15 @@ class TransferVehicleForm
                                                 ->multiple()
                                                 ->reorderable()
                                                 ->panelLayout('grid')
-                                                ->preserveFilenames()
-                                                ->columnSpan(12),
+                                                ->preserveFilenames(),
                                         ]),
                                 ]),
 
-                            // SAĞ KOLON (4)
+                            // SAĞ (4)
                             Group::make()
                                 ->columnSpan(['default' => 12, 'lg' => 4])
                                 ->schema([
                                     Section::make(__('admin.vehicles.sections.status'))
-                                        ->columns(1)
                                         ->schema([
                                             Toggle::make('is_active')
                                                 ->label(__('admin.vehicles.form.active'))
@@ -109,9 +104,7 @@ class TransferVehicleForm
                                                 ->nullable(),
                                         ]),
 
-                                    // Kapak görseli (cover) - sağ kolonda en alt
                                     Section::make(__('admin.vehicles.form.cover'))
-                                        ->columns(1)
                                         ->schema([
                                             SpatieMediaLibraryFileUpload::make('cover')
                                                 ->hiddenLabel()

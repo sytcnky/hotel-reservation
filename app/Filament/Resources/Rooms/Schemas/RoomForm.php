@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\RoomFacility;
 use App\Models\ViewType;
 use App\Models\BoardType;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
@@ -33,11 +34,8 @@ class RoomForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
-        $locales = config('app.supported_locales', [$base]);
+        $locales  = LocaleHelper::active();
         $uiLocale = app()->getLocale();
-
-        $labelSql = "COALESCE(NULLIF(name->>?, ''), NULLIF(name->>?, ''), '-')";
 
         // Aktif para birimleri
         $currencies = Currency::query()
@@ -46,32 +44,31 @@ class RoomForm
             ->orderBy('code')
             ->get();
 
-        // BoardType seçenekleri (UI için)
+        // BoardType seçenekleri (UI için) - uiLocale only
         $boardOptions = BoardType::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get()
-            ->mapWithKeys(function (BoardType $b) use ($uiLocale, $base) {
-                $name = $b->name[$uiLocale] ?? ($b->name[$base] ?? (array_values($b->name ?? [])[0] ?? ''));
-                return [$b->getKey() => (string) $name];
-            })
+            ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+            ->orderBy('label')
+            ->pluck('label', 'id')
+            ->map(fn ($v) => (string) $v)
             ->all();
 
         // Hafta günleri (1=Mon ... 7=Sun)
         $weekdayOptions = [
-            1 => __('admin.weekdays.mon') ?? 'Pzt',
-            2 => __('admin.weekdays.tue') ?? 'Sal',
-            3 => __('admin.weekdays.wed') ?? 'Çar',
-            4 => __('admin.weekdays.thu') ?? 'Per',
-            5 => __('admin.weekdays.fri') ?? 'Cum',
-            6 => __('admin.weekdays.sat') ?? 'Cmt',
-            7 => __('admin.weekdays.sun') ?? 'Paz',
+            1 => __('admin.weekdays.mon'),
+            2 => __('admin.weekdays.tue'),
+            3 => __('admin.weekdays.wed'),
+            4 => __('admin.weekdays.thu'),
+            5 => __('admin.weekdays.fri'),
+            6 => __('admin.weekdays.sat'),
+            7 => __('admin.weekdays.sun'),
         ];
 
         $currencyTabs = $currencies->map(function (Currency $c) use ($boardOptions, $weekdayOptions) {
             $title = trim($c->code . ' – ' . ($c->name_l ?: ''));
 
-            $rulesRepeater = Repeater::make('rates_'.$c->id)
+            $rulesRepeater = Repeater::make('rates_' . $c->id)
                 ->hiddenLabel()
                 ->defaultItems(0)
                 ->collapsible()
@@ -112,7 +109,12 @@ class RoomForm
                                     ->minDate(fn ($get) => $get('date_start'))
                                     ->columnSpan(6),
 
-                                CheckboxList::make('weekdays')->label(__('admin.rooms.form.prices.days'))->options($weekdayOptions)->default([1,2,3,4,5,6,7])->columns(7)->columnSpan(12),
+                                CheckboxList::make('weekdays')
+                                    ->label(__('admin.rooms.form.prices.days'))
+                                    ->options($weekdayOptions)
+                                    ->default([1, 2, 3, 4, 5, 6, 7])
+                                    ->columns(7)
+                                    ->columnSpan(12),
                             ])
                             ->secondary()
                             ->compact(),
@@ -156,16 +158,31 @@ class RoomForm
                             ->secondary()
                             ->compact(),
 
-                        Select::make('board_type_id')->label(__('admin.ent.board_type.singular'))
-                            ->options($boardOptions)->required()->native(false)->searchable()->preload()
+                        Select::make('board_type_id')
+                            ->label(__('admin.ent.board_type.singular'))
+                            ->options($boardOptions)
+                            ->required()
+                            ->native(false)
+                            ->searchable()
+                            ->preload()
                             ->columnSpan(6),
 
-                        Radio::make('price_type')->label(__('admin.rooms.form.prices.price_type'))->options([
-                            'room_per_night' => __('admin.rooms.form.prices.room_per_night'),
-                            'person_per_night' => __('admin.rooms.form.prices.person_per_night'),
-                        ])->inline()->default('room_per_night')->columnSpan(6),
+                        Radio::make('price_type')
+                            ->label(__('admin.rooms.form.prices.price_type'))
+                            ->options([
+                                'room_per_night' => __('admin.rooms.form.prices.room_per_night'),
+                                'person_per_night' => __('admin.rooms.form.prices.person_per_night'),
+                            ])
+                            ->inline()
+                            ->default('room_per_night')
+                            ->columnSpan(6),
 
-                        TextInput::make('allotment')->label(__('admin.rooms.form.prices.allotment'))->numeric()->minValue(0)->columnSpan(6),
+                        TextInput::make('allotment')
+                            ->label(__('admin.rooms.form.prices.allotment'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->columnSpan(6),
+
                         TextInput::make('amount')
                             ->label(fn () => __('admin.rooms.form.prices.price', [
                                 'currency' => (string) $c->code,
@@ -179,11 +196,14 @@ class RoomForm
                         Toggle::make('closed')
                             ->label('Kapalı')
                             ->helperText(__('admin.rooms.form.prices.closed_helper'))
-                            ->live()->columnSpan(4),
+                            ->live()
+                            ->columnSpan(4),
+
                         Toggle::make('cta')
                             ->label(__('admin.rooms.form.prices.cta'))
                             ->helperText(__('admin.rooms.form.prices.cta_helper'))
                             ->columnSpan(4),
+
                         Toggle::make('ctd')
                             ->label(__('admin.rooms.form.prices.ctd'))
                             ->helperText(__('admin.rooms.form.prices.ctd_helper'))
@@ -194,10 +214,10 @@ class RoomForm
                             ->rows(2)
                             ->columnSpan(12)
                     ]),
-
                 ])
                 ->afterStateHydrated(function ($component, $state, ?Room $record) use ($c) {
                     if (! $record?->exists) return;
+
                     $rows = $record->rateRules()
                         ->where('currency_id', $c->id)
                         ->orderBy('priority', 'desc')
@@ -205,7 +225,8 @@ class RoomForm
                         ->get()
                         ->map(function (\App\Models\RoomRateRule $r) {
                             $days = [];
-                            for ($i=1; $i<=7; $i++) if ($r->weekday_mask & (1 << ($i-1))) $days[] = $i;
+                            for ($i = 1; $i <= 7; $i++) if ($r->weekday_mask & (1 << ($i - 1))) $days[] = $i;
+
                             return [
                                 'id' => $r->id,
                                 'label' => $r->label,
@@ -232,7 +253,7 @@ class RoomForm
                     $component->state($rows);
                 })
                 ->saveRelationshipsUsing(function (Room $record, array $state) use ($c) {
-                    $nullIfEmpty = fn($v) => ($v === '' || $v === null) ? null : $v;
+                    $nullIfEmpty = fn ($v) => ($v === '' || $v === null) ? null : $v;
 
                     $keepIds = [];
                     foreach ($state as $row) {
@@ -250,20 +271,20 @@ class RoomForm
                             'date_end'      => $end,
 
                             'weekday_mask'  => \App\Models\RoomRateRule::weekdaysToMask($row['weekdays'] ?? []),
-                            'occupancy_min' => max(1, (int)($row['occupancy_min'] ?? 1)),
-                            'occupancy_max' => max(1, (int)($row['occupancy_max'] ?? 1)),
+                            'occupancy_min' => max(1, (int) ($row['occupancy_min'] ?? 1)),
+                            'occupancy_max' => max(1, (int) ($row['occupancy_max'] ?? 1)),
 
-                            'amount'        => !empty($row['closed']) ? 0 : (float)($row['amount'] ?? 0),
+                            'amount'        => ! empty($row['closed']) ? 0 : (float) ($row['amount'] ?? 0),
 
                             'los_min'       => $nullIfEmpty($row['los_min'] ?? null),
                             'los_max'       => $nullIfEmpty($row['los_max'] ?? null),
                             'allotment'     => $nullIfEmpty($row['allotment'] ?? null),
 
-                            'closed'        => (bool)($row['closed'] ?? false),
-                            'cta'           => (bool)($row['cta'] ?? false),
-                            'ctd'           => (bool)($row['ctd'] ?? false),
+                            'closed'        => (bool) ($row['closed'] ?? false),
+                            'cta'           => (bool) ($row['cta'] ?? false),
+                            'ctd'           => (bool) ($row['ctd'] ?? false),
 
-                            'priority'      => (int)($row['priority'] ?? 10),
+                            'priority'      => (int) ($row['priority'] ?? 10),
                             'note'          => $nullIfEmpty($row['note'] ?? null),
                             'is_active'     => true,
                         ];
@@ -271,7 +292,7 @@ class RoomForm
                         $id = $row['id'] ?? null;
                         if ($id) {
                             $record->rateRules()->whereKey($id)->update($attrs);
-                            $keepIds[] = (int)$id;
+                            $keepIds[] = (int) $id;
                         } else {
                             $created = $record->rateRules()->create($attrs);
                             $keepIds[] = $created->getKey();
@@ -280,7 +301,7 @@ class RoomForm
 
                     $record->rateRules()
                         ->where('currency_id', $c->id)
-                        ->when(!empty($keepIds), fn($q) => $q->whereNotIn('id', $keepIds))
+                        ->when(! empty($keepIds), fn ($q) => $q->whereNotIn('id', $keepIds))
                         ->delete();
                 });
 
@@ -298,11 +319,11 @@ class RoomForm
 
                         // Dil sekmeleri
                         Tabs::make('i18n')->tabs(
-                            collect($locales)->map(function (string $loc) use ($base) {
+                            collect($locales)->map(function (string $loc) {
                                 return Tab::make(strtoupper($loc))->schema([
                                     TextInput::make("name.$loc")
                                         ->label(__('admin.field.name'))
-                                        ->required($loc === $base)
+                                        ->required()
                                         ->live(debounce: 350),
 
                                     Textarea::make("description.$loc")
@@ -341,11 +362,13 @@ class RoomForm
                             ->reorderable(false)
                             ->afterStateHydrated(function ($component, $state, ?Room $record) {
                                 if (! $record?->exists) return;
+
                                 $rows = $record->beds
                                     ->map(fn (BedType $bt) => [
                                         'bed_type_id' => $bt->getKey(),
                                         'quantity' => (int) ($bt->pivot?->quantity ?? 1),
                                     ])->values()->all();
+
                                 $component->state($rows);
                             })
                             ->saveRelationshipsUsing(function (Room $record, array $state) {
@@ -354,6 +377,7 @@ class RoomForm
                                     ->mapWithKeys(fn ($row) => [
                                         (int) $row['bed_type_id'] => ['quantity' => max(1, (int) ($row['quantity'] ?? 1))],
                                     ])->all();
+
                                 $record->beds()->sync($sync);
                             })
                             ->schema([
@@ -362,13 +386,13 @@ class RoomForm
                                     ->required()
                                     ->native(false)->searchable()->preload()
                                     ->options(function () {
-                                        $ui = app()->getLocale();
-                                        $base = config('app.locale', 'tr');
+                                        $uiLocale = app()->getLocale();
+
                                         return BedType::query()
                                             ->where('is_active', true)
-                                            ->selectRaw("id, COALESCE(NULLIF(name->>?, ''), NULLIF(name->>?, '')) AS label", [$ui, $base])
-                                            ->whereRaw("COALESCE(NULLIF(name->>?, ''), NULLIF(name->>?, '')) IS NOT NULL", [$ui, $base])
-                                            ->orderBy('sort_order')->orderBy('label')
+                                            ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                            ->orderBy('sort_order')
+                                            ->orderBy('label')
                                             ->pluck('label', 'id')
                                             ->map(fn ($v) => (string) $v)
                                             ->all();
@@ -393,10 +417,7 @@ class RoomForm
                                     ->multiple()->native(false)->preload()->searchable()
                                     ->relationship('facilities', 'id')
                                     ->getOptionLabelFromRecordUsing(
-                                        fn (RoomFacility $r) => (string) (
-                                            $r->name[$uiLocale]
-                                            ?? (array_values($r->name ?? [])[0] ?? '-')
-                                        )
+                                        fn (RoomFacility $r) => (string) ($r->name[$uiLocale] ?? '')
                                     ),
                             ]),
 
@@ -426,7 +447,6 @@ class RoomForm
                                         ->state(__('admin.rooms.form.prices.no_active_price')),
                                 ]
                             ),
-
                     ]),
 
                     // SAĞ
@@ -448,8 +468,7 @@ class RoomForm
                                     ->native(false)->searchable()->preload()
                                     ->options(
                                         ViewType::query()
-                                            ->selectRaw("id, {$labelSql} AS label", [$uiLocale, $base])
-                                            ->whereRaw("{$labelSql} IS NOT NULL", [$uiLocale, $base])
+                                            ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
                                             ->orderBy('label')
                                             ->pluck('label', 'id')
                                             ->map(fn ($v) => (string) $v)
@@ -466,12 +485,10 @@ class RoomForm
                                     ->native(false)->searchable()->preload()
                                     ->options(
                                         Hotel::query()
-                                            ->selectRaw(
-                                                'id, COALESCE(name->>?, name->>?) AS label',
-                                                [app()->getLocale(), config('app.locale', 'tr')]
-                                            )
+                                            ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
                                             ->orderBy('label')
                                             ->pluck('label', 'id')
+                                            ->map(fn ($v) => (string) $v)
                                             ->all()
                                     )
                                     ->default(fn () => request('hotel_id'))
@@ -499,7 +516,7 @@ class RoomForm
                                     ->numeric()
                                     ->suffix('%')
                                     ->minValue(0)->maxValue(100)
-                                    ->rules(['numeric','between:0,100'])
+                                    ->rules(['numeric', 'between:0,100'])
                                     ->live(debounce: 150)
                                     ->afterStateUpdated(function ($state, Set $set) {
                                         $v = is_numeric($state) ? (float) $state : null;

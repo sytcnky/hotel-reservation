@@ -27,7 +27,7 @@ class ViewType extends Model
         return $this->getLocalized('name') ?: null;
     }
 
-    public function getSlugLAttribute(): string
+    public function getSlugLAttribute(): ?string
     {
         return $this->getLocalized('slug');
     }

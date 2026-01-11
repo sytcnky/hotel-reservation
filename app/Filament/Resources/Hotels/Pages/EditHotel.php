@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Hotels\Pages;
 
 use App\Filament\Resources\Hotels\HotelResource;
+use App\Support\Helpers\LocaleHelper;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Str;
 
@@ -10,28 +11,39 @@ class EditHotel extends EditRecord
 {
     protected static string $resource = HotelResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        // DB slug -> UI slug
-        $data['slug_ui'] = $data['slug'] ?? [];
-
-        return $data;
-    }
-
+    /**
+     * mutateFormDataBeforeFill artık gerekmiyor.
+     * Çünkü form alanları doğrudan "slug.$loc" ile DB'deki "slug" jsonb alanına map ediliyor.
+     */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $base = config('app.locale', 'tr');
-        $slug = [];
+        return $this->normalizeSlugData($data);
+    }
 
-        // slug_ui her zaman DB'ye yazılır
-        foreach ((array) ($data['slug_ui'] ?? []) as $loc => $uiValue) {
-            $slug[$loc] = Str::slug((string) $uiValue);
+    private function normalizeSlugData(array $data): array
+    {
+        $locales = LocaleHelper::active();
+
+        $slug = (array) ($data['slug'] ?? []);
+        $normalized = [];
+
+        foreach ($locales as $loc) {
+            $val = $slug[$loc] ?? null;
+
+            if ($val === null) {
+                continue;
+            }
+
+            $val = trim((string) $val);
+
+            if ($val === '') {
+                continue;
+            }
+
+            $normalized[$loc] = Str::slug($val);
         }
 
-        $data['slug'] = $slug;
-        unset($data['slug_ui']);
-
-        $data['canonical_slug'] = Str::slug($slug[$base] ?? (reset($slug) ?: 'otel'));
+        $data['slug'] = $normalized;
 
         return $data;
     }

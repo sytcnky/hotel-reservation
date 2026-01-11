@@ -9,17 +9,36 @@ use App\Filament\Resources\TransferVehicles\Schemas\TransferVehicleForm;
 use App\Filament\Resources\TransferVehicles\Tables\TransferVehiclesTable;
 use App\Models\TransferVehicle;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TransferVehicleResource extends Resource
 {
     protected static ?string $model = TransferVehicle::class;
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.transfer_group'); }
-    public static function getNavigationLabel(): string { return __('admin.vehicles.plural'); }
-    public static function getModelLabel(): string { return __('admin.vehicles.singular'); }
-    public static function getPluralModelLabel(): string { return __('admin.vehicles.plural'); }
+    protected static ?string $recordTitleAttribute = 'name_l';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.transfer_group');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.vehicles.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.vehicles.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.vehicles.plural');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -34,9 +53,15 @@ class TransferVehicleResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListTransferVehicles::route('/'),
+            'index'  => ListTransferVehicles::route('/'),
             'create' => CreateTransferVehicle::route('/create'),
-            'edit' => EditTransferVehicle::route('/{record}/edit'),
+            'edit'   => EditTransferVehicle::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }
