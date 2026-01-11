@@ -11,7 +11,6 @@ use App\Models\TravelGuide;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -19,8 +18,6 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class TravelGuideResource extends Resource
 {
     protected static ?string $model = TravelGuide::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     /**
      * Filament kayıt başlığı accessor üzerinden.

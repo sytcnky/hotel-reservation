@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\PermissionResource\Pages;
+namespace App\Filament\Resources\Permissions\Pages;
 
-use App\Filament\Resources\PermissionResource\PermissionResource;
+use App\Filament\Resources\Permissions\PermissionResource;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPermission extends EditRecord

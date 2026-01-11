@@ -38,11 +38,6 @@ class LanguageResource extends Resource
         return __('admin.ent.language.plural');
     }
 
-    public static function getNavigationIcon(): ?string
-    {
-        return 'heroicon-o-language';
-    }
-
     public static function getNavigationSort(): ?int
     {
         return 10;

@@ -2,15 +2,21 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Language;
+use App\Models\Language as SiteLanguage;
 use App\Models\Setting;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CodeEditor;
+use Filament\Forms\Components\CodeEditor\Enums\Language;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 /**
  * @property-read Schema $form
@@ -26,34 +32,186 @@ class GeneralSettings extends Page
         return __('admin.nav.settings_group');
     }
 
-    protected static ?string $navigationLabel = 'Genel Ayarlar';
-    protected static ?string $title           = 'Genel Ayarlar';
+    protected static ?string $navigationLabel = 'Ayarlar';
+    protected static ?string $title           = 'Ayarlar';
 
     public function mount(): void
     {
         $this->form->fill([
-            'default_locale' => Setting::get(
-                'default_locale',
-                config('app.locale', 'tr')
-            ),
+            'default_locale'        => Setting::get('default_locale', config('app.locale', 'tr')),
+            'google_analytics_code' => Setting::get('google_analytics_code', ''),
+
+            // sosyal medya (url)
+            'instagram'             => Setting::get('instagram', ''),
+            'facebook'              => Setting::get('facebook', ''),
+            'youtube'               => Setting::get('youtube', ''),
+
+            // i18n maps (code => text)
+            'header_info'              => Setting::get('header_info', []),
+            'footer_copyright'         => Setting::get('footer_copyright', []),
+            'footer_short_description' => Setting::get('footer_short_description', []),
+
+            // iletişim bilgileri (i18n maps)
+            'contact_whatsapp_label' => Setting::get('contact_whatsapp_label', []),
+            'contact_whatsapp_phone' => Setting::get('contact_whatsapp_phone', []),
+
+            'contact_office1_label'  => Setting::get('contact_office1_label', []),
+            'contact_office1_phone'  => Setting::get('contact_office1_phone', []),
+
+            'contact_office2_label'  => Setting::get('contact_office2_label', []),
+            'contact_office2_phone'  => Setting::get('contact_office2_phone', []),
+
+            'contact_support_email'  => Setting::get('contact_support_email', []),
+
+            // logo
+            'logo_text'              => Setting::get('logo_text', ''),
+            'logo_subtitle'          => Setting::get('logo_subtitle', []),
         ]);
     }
 
     public function form(Schema $schema): Schema
     {
-        $languages = Language::query()
+        $languages = SiteLanguage::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->pluck('native_name', 'code') // ['tr' => 'Türkçe', ...]
+            ->pluck('native_name', 'code')
             ->all();
+
+        $langCodes = array_keys($languages);
+
+        // Aynı tab altındaki tüm i18n alanları tek "Dil" Tabs içinde göster
+        $contactLocaleTabs = array_map(function (string $code) {
+            return Tab::make(strtoupper($code))
+                ->schema([
+                    TextInput::make("contact_whatsapp_label.$code")
+                        ->label('WhatsApp Destek Hattı (Label)')
+                        ->suffixIcon(Heroicon::Tag)
+                        ->maxLength(255),
+
+                    TextInput::make("contact_whatsapp_phone.$code")
+                        ->label('WhatsApp Destek Hattı (Telefon)')
+                        ->tel()
+                        ->suffixIcon(Heroicon::Phone)
+                        ->maxLength(50),
+
+                    TextInput::make("contact_office1_label.$code")
+                        ->label('Ofis 1 (Label)')
+                        ->suffixIcon(Heroicon::Tag)
+                        ->maxLength(255),
+
+                    TextInput::make("contact_office1_phone.$code")
+                        ->label('Ofis 1 (Telefon)')
+                        ->tel()
+                        ->suffixIcon(Heroicon::Phone)
+                        ->maxLength(50),
+
+                    TextInput::make("contact_office2_label.$code")
+                        ->label('Ofis 2 (Label)')
+                        ->suffixIcon(Heroicon::Tag)
+                        ->maxLength(255),
+
+                    TextInput::make("contact_office2_phone.$code")
+                        ->label('Ofis 2 (Telefon)')
+                        ->tel()
+                        ->suffixIcon(Heroicon::Phone)
+                        ->maxLength(50),
+
+                    TextInput::make("contact_support_email.$code")
+                        ->label('Destek E-postası')
+                        ->email()
+                        ->suffixIcon(Heroicon::Envelope)
+                        ->maxLength(255),
+                ])
+                ->columns('2');
+        }, $langCodes);
+
+        $headerInfoLocaleTabs = array_map(function (string $code) {
+            return Tab::make(strtoupper($code))
+                ->schema([
+                    TextInput::make("header_info.$code")
+                        ->label('Üst Bilgi')
+                        ->maxLength(255),
+                ]);
+        }, $langCodes);
+
+        $footerLocaleTabs = array_map(function (string $code) {
+            return Tab::make(strtoupper($code))
+                ->schema([
+                    TextInput::make("footer_copyright.$code")
+                        ->label('Telif Hakkı')
+                        ->maxLength(255),
+
+                    TextInput::make("footer_short_description.$code")
+                        ->label('Kısa Açıklama')
+                        ->maxLength(255),
+                ]);
+        }, $langCodes);
+
+        $logoLocaleTabs = array_map(function (string $code) {
+            return Tab::make(strtoupper($code))
+                ->schema([
+                    TextInput::make("logo_subtitle.$code")
+                        ->label('Logo Subtitle')
+                        ->maxLength(255),
+                ]);
+        }, $langCodes);
 
         return $schema
             ->components([
                 Form::make([
-                    Select::make('default_locale')
-                        ->label('Varsayılan Dil')
-                        ->options($languages)
-                        ->required(),
+                    Tabs::make('settings')
+                        ->vertical()
+                        ->tabs([
+                            Tab::make('Genel Ayarlar')
+                                ->schema([
+                                    Select::make('default_locale')
+                                        ->label('Varsayılan Dil')
+                                        ->options($languages)
+                                        ->required(),
+                                ]),
+
+                            Tab::make('Logo')
+                                ->schema([
+                                    TextInput::make('logo_text')
+                                        ->label('Logo (şimdilik text)')
+                                        ->maxLength(255),
+
+                                    Tabs::make('logo_subtitle_i18n')
+                                        ->tabs($logoLocaleTabs),
+                                ]),
+
+                            Tab::make('Üst Bilgi')
+                                ->schema([
+                                    Tabs::make('header_i18n')
+                                        ->tabs($headerInfoLocaleTabs),
+                                ]),
+
+                            Tab::make('Alt Bilgi')
+                                ->schema([
+                                    Tabs::make('footer_i18n')
+                                        ->tabs($footerLocaleTabs),
+                                ]),
+
+                            Tab::make('İletişim Bilgileri')
+                                ->schema([
+                                    Tabs::make('contact_i18n')
+                                        ->tabs($contactLocaleTabs),
+                                ]),
+
+                            Tab::make('Sosyal Medya')
+                                ->schema([
+                                    TextInput::make('instagram')->label('Instagram')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
+                                    TextInput::make('facebook')->label('Facebook')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
+                                    TextInput::make('youtube')->label('YouTube')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
+                                ]),
+
+                            Tab::make('Google Analytics')
+                                ->schema([
+                                    CodeEditor::make('google_analytics_code')
+                                        ->label('Kod')
+                                        ->language(Language::Html),
+                                ]),
+                        ]),
                 ])
                     ->livewireSubmitHandler('save')
                     ->footer([
@@ -73,8 +231,35 @@ class GeneralSettings extends Page
         $data = $this->form->getState();
 
         $locale = $data['default_locale'] ?? config('app.locale', 'tr');
-
         Setting::set('default_locale', $locale);
+
+        Setting::set('google_analytics_code', (string) ($data['google_analytics_code'] ?? ''));
+
+        // sosyal medya
+        Setting::set('instagram', (string) ($data['instagram'] ?? ''));
+        Setting::set('facebook', (string) ($data['facebook'] ?? ''));
+        Setting::set('youtube', (string) ($data['youtube'] ?? ''));
+
+        // üst / alt bilgi
+        Setting::set('header_info', (array) ($data['header_info'] ?? []));
+        Setting::set('footer_copyright', (array) ($data['footer_copyright'] ?? []));
+        Setting::set('footer_short_description', (array) ($data['footer_short_description'] ?? []));
+
+        // iletişim
+        Setting::set('contact_whatsapp_label', (array) ($data['contact_whatsapp_label'] ?? []));
+        Setting::set('contact_whatsapp_phone', (array) ($data['contact_whatsapp_phone'] ?? []));
+
+        Setting::set('contact_office1_label', (array) ($data['contact_office1_label'] ?? []));
+        Setting::set('contact_office1_phone', (array) ($data['contact_office1_phone'] ?? []));
+
+        Setting::set('contact_office2_label', (array) ($data['contact_office2_label'] ?? []));
+        Setting::set('contact_office2_phone', (array) ($data['contact_office2_phone'] ?? []));
+
+        Setting::set('contact_support_email', (array) ($data['contact_support_email'] ?? []));
+
+        // logo
+        Setting::set('logo_text', (string) ($data['logo_text'] ?? ''));
+        Setting::set('logo_subtitle', (array) ($data['logo_subtitle'] ?? []));
 
         cache()->forget('active_locales');
 

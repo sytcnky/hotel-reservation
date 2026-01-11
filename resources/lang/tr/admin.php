@@ -97,6 +97,8 @@ return [
     ],
     'field' => [
         'name' => 'Ad',
+        'first_name' => 'Ad',
+        'last_name' => 'Soyad',
         'email' => 'E-posta',
         'password' => 'Parola',
         'created_at' => 'Oluşturulma',
@@ -110,6 +112,7 @@ return [
         'type' => 'Tür',
         'parent' => 'Üst Lokasyon',
         'code' => 'Kod',
+        'phone' => 'Telefon',
         'path' => 'Yol (Path)',
         'category' => 'Kategori',
         'area' => 'Bölge',

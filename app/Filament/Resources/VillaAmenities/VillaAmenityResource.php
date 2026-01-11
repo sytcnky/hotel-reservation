@@ -22,7 +22,6 @@ class VillaAmenityResource extends Resource
     public static function getNavigationLabel(): string { return __('admin.ent.villa_amenity.plural'); }
     public static function getModelLabel(): string { return __('admin.ent.villa_amenity.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.ent.villa_amenity.plural'); }
-    public static function getNavigationIcon(): ?string { return 'heroicon-o-home-modern'; }
     public static function getNavigationSort(): ?int { return 150; }
 
     public static function getPages(): array

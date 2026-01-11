@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Filament\Resources\RoleResource\Pages;
+namespace App\Filament\Resources\Roles\Pages;
 
-use App\Filament\Resources\RoleResource\RoleResource;
-use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\Roles\RoleResource;
+use Filament\Resources\Pages\CreateRecord;
 
-class EditRole extends EditRecord
+class CreateRole extends CreateRecord
 {
     protected static string $resource = RoleResource::class;
 

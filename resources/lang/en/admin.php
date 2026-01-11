@@ -97,6 +97,8 @@ return [
     ],
     'field' => [
         'name' => 'Name',
+        'first_name' => 'First Name',
+        'last_name' => 'Last Name',
         'email' => 'Email',
         'password' => 'Password',
         'created_at' => 'Created',
@@ -110,6 +112,7 @@ return [
         'type' => 'Type',
         'parent' => 'Parent Location',
         'code' => 'Code',
+        'phone' => 'Phone',
         'path' => 'Path',
         'category' => 'Category',
         'area' => 'Area',

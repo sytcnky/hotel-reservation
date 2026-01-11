@@ -38,11 +38,6 @@ class VillaCategoryResource extends Resource
         return __('admin.ent.villa_category.plural');
     }
 
-    public static function getNavigationIcon(): ?string
-    {
-        return 'heroicon-o-rectangle-stack';
-    }
-
     public static function getNavigationSort(): ?int
     {
         return 40;
