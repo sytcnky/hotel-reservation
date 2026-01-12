@@ -104,25 +104,6 @@ class CampaignViewModelService
 
         $title = $localeBlock['title'] ?? null;
 
-        /*
-         |--------------------------------------------------------------------------
-         | Discount şeması
-         |--------------------------------------------------------------------------
-         |
-         | discount: {
-         |   "type": "percent" | "amount",
-         |   "percent_value": 15,         // type = "percent" için
-         |   "currency_data": {
-         |       "TRY": {
-         |           "amount": 100,               // type = "amount" için
-         |           "max_discount_amount": 500,  // opsiyonel tavan
-         |           "min_booking_amount": null   // şimdilik kullanılmıyor
-         |       },
-         |       ...
-         |   },
-         |   "background_class": "bg-primary"
-         | }
-         */
         $discount     = (array) ($campaign->discount ?? []);
         $discountType = $discount['type'] ?? 'percent';
 

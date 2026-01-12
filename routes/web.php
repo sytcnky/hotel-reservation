@@ -3,13 +3,13 @@
 use App\Http\Controllers\HomeController;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
+use App\Support\Currency\CurrencyContext;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use App\Support\UIconRegistry;
 use App\Support\Helpers\LocaleHelper;
 use App\Support\Routing\LocalizedRoute;
-use App\Support\Helpers\CurrencyHelper;
 
 use App\Http\Controllers\Account\PasswordController;
 use App\Http\Controllers\Account\SettingsController;
@@ -92,35 +92,29 @@ Route::get('/locale/{locale}', function (Request $request, string $locale) {
 |--------------------------------------------------------------------------
 */
 Route::get('/currency/{code}', function (string $code) {
-    if (! CurrencyHelper::exists($code)) {
+    $code = strtoupper(trim($code));
+
+    if (! \App\Support\Helpers\CurrencyHelper::exists($code)) {
         return back();
     }
 
     $cartItems = (array) session('cart.items', []);
     $hasCart   = count($cartItems) > 0;
 
-    // Sepet doluyken confirm parametresi yoksa: güvenlik için currency'yi değiştirme
-    // (modal onayı olmadan sepet silinmesin / currency değişmesin)
     if ($hasCart && ! request()->boolean('confirm')) {
         return back();
     }
 
-    // Sepet doluysa ve onay geldiyse: sepeti temizle
     if ($hasCart && request()->boolean('confirm')) {
         session()->forget('cart');
         session()->forget('cart.applied_coupons');
     }
 
-    if (auth()->check()) {
-        auth()->user()
-            ->forceFill(['currency' => $code])
-            ->save();
-    }
-
-    session(['currency' => $code]);
+    CurrencyContext::set($code, request());
 
     return back();
 })->name('currency.switch');
+
 
 
 

@@ -1,17 +1,19 @@
 @extends('layouts.app')
 
-@section('title', ($guide->title[$locale] ?? ($guide->title[config('app.locale','tr')] ?? 'Gezi Rehberi')))
+@section('title', ($guide->title[$locale] ?? ($guide->title[\App\Support\Helpers\LocaleHelper::defaultCode()] ?? 'Gezi Rehberi')))
 
 @section('content')
     @php
-        $base = config('app.locale','tr');
+        $base = \App\Support\Helpers\LocaleHelper::defaultCode();
 
-        $title = $guide->title[$locale] ?? ($guide->title[$base] ?? '');
+        $title   = $guide->title[$locale]   ?? ($guide->title[$base]   ?? '');
         $excerpt = $guide->excerpt[$locale] ?? ($guide->excerpt[$base] ?? '');
-        $tags = $guide->tags[$locale] ?? ($guide->tags[$base] ?? []);
+        $tags    = $guide->tags[$locale]    ?? ($guide->tags[$base]    ?? []);
 
-        $heroImage = $guide->cover_image;
+        $heroImage    = $guide->cover_image;
+        $currencyCode = \App\Support\Currency\CurrencyContext::code();
     @endphp
+
     <section class="pt-5">
         <div class="container">
             <div class="position-relative text-white rounded overflow-hidden p-3 p-lg-5 align-content-end" style="min-height:420px;">
@@ -49,7 +51,7 @@
                                 @php
                                     $layout = data_get($block->data, 'layout') ?: 'stacked';
                                     $bTitle = data_get($block->data, "title.$locale") ?: data_get($block->data, "title.$base");
-                                    $bBody  = data_get($block->data, "body.$locale") ?: data_get($block->data, "body.$base");
+                                    $bBody  = data_get($block->data, "body.$locale")  ?: data_get($block->data, "body.$base");
 
                                     $img = $block->image_asset;
                                 @endphp
@@ -78,17 +80,16 @@
                                         @if($bTitle)<h2 class="h4 mb-3">{{ $bTitle }}</h2>@endif
                                         @if($bBody)<div class="text-muted">{!! nl2br(e($bBody)) !!}</div>@endif
 
-                                            @if($img)
-                                                <div class="ratio ratio-21x9 mt-3">
-                                                    <x-responsive-image
-                                                        :image="$img"
-                                                        preset="gallery"
-                                                        class="w-100 h-100 object-fit-cover rounded"
-                                                        sizes="100vw"
-                                                    />
-                                                </div>
-                                            @endif
-
+                                        @if($img)
+                                            <div class="ratio ratio-21x9 mt-3">
+                                                <x-responsive-image
+                                                    :image="$img"
+                                                    preset="gallery"
+                                                    class="w-100 h-100 object-fit-cover rounded"
+                                                    sizes="100vw"
+                                                />
+                                            </div>
+                                        @endif
                                     </div>
                                 @endif
                             @endif
@@ -105,8 +106,8 @@
                                     @php $hotel = $hotelsById->get($pid); @endphp
                                     @if($hotel)
                                         @php
-                                            $hName = $hotel->name[$locale] ?? ($hotel->name[$base] ?? '');
-                                            $hSlug = $hotel->slug[$locale] ?? ($hotel->slug[$base] ?? null);
+                                            $hName       = $hotel->name[$locale] ?? ($hotel->name[$base] ?? '');
+                                            $hSlug       = $hotel->slug[$locale] ?? ($hotel->slug[$base] ?? null);
                                             $hCoverImage = $hotel->cover_image;
                                         @endphp
 
@@ -166,7 +167,6 @@
                                                             @endif
                                                         </div>
 
-
                                                         <div class="col-xl-4 text-lg-end">
                                                             <div class="d-grid mt-1">
                                                                 @if($hSlug)
@@ -186,8 +186,8 @@
                                     @php $villa = $villasById->get($pid); @endphp
                                     @if($villa)
                                         @php
-                                            $vName = $villa->name[$locale] ?? ($villa->name[$base] ?? '');
-                                            $vSlug = $villa->slug[$locale] ?? ($villa->slug[$base] ?? null);
+                                            $vName       = $villa->name[$locale] ?? ($villa->name[$base] ?? '');
+                                            $vSlug       = $villa->slug[$locale] ?? ($villa->slug[$base] ?? null);
                                             $vCoverImage = $villa->cover_image;
                                         @endphp
 
@@ -298,13 +298,15 @@
 
                         @foreach ($sidebarTours as $tour)
                             @php
-                                $tName   = $tour->name[$locale] ?? ($tour->name[$base] ?? '');
-                                $tSlug   = $tour->slug[$locale] ?? ($tour->slug[$base] ?? null);
+                                $tName      = $tour->name[$locale] ?? ($tour->name[$base] ?? '');
+                                $tSlug      = $tour->slug[$locale] ?? ($tour->slug[$base] ?? null);
                                 $tCoverImage = $tour->cover_image;
 
-                                $priceAdult = data_get($tour->prices, "{$currencyCode}.adult");
-                                $priceChild = data_get($tour->prices, "{$currencyCode}.child");
-                                $priceInfant = data_get($tour->prices, "{$currencyCode}.infant");
+                                $priceAdult  = $currencyCode ? data_get($tour->prices, "{$currencyCode}.adult")  : null;
+                                $priceChild  = $currencyCode ? data_get($tour->prices, "{$currencyCode}.child")  : null;
+                                $priceInfant = $currencyCode ? data_get($tour->prices, "{$currencyCode}.infant") : null;
+
+                                $tShort = $tour->short_description[$locale] ?? ($tour->short_description[$base] ?? null);
                             @endphp
 
                             <div class="card shadow-sm position-relative overflow-hidden mb-4">
@@ -320,12 +322,12 @@
                                             />
                                         </a>
                                     @else
-                                        <img
-                                            src="{{ $tImg }}"
+                                        <x-responsive-image
+                                            :image="$tCoverImage"
+                                            preset="listing-card"
                                             class="card-img-top object-fit-cover"
-                                            alt="{{ $tName }}"
-                                            height="200"
-                                        >
+                                            sizes="(max-width: 1200px) 100vw, 360px"
+                                        />
                                     @endif
 
                                     {{-- Kategori --}}
@@ -340,34 +342,40 @@
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="card-title mb-1">{{ $tName }}</h5>
 
-                                    @if(!empty($tour->short_description[$locale] ?? null))
+                                    @if(!empty($tShort))
                                         <p class="card-text small text-muted">
-                                            {{ $tour->short_description[$locale] }}
+                                            {{ $tShort }}
                                         </p>
                                     @endif
 
                                     {{-- Fiyatlar --}}
                                     <div class="d-flex mb-3">
-                                    @if($priceAdult)
-                                        <div class="mt-auto me-3">
-                                            <div class="text-muted small">Yetişkin</div>
-                                            <div class="fw-bold fs-5">{{ number_format($priceAdult) }} {{ $currencySymbol }}</div>
-                                        </div>
-                                    @endif
+                                        @if($priceAdult !== null)
+                                            <div class="mt-auto me-3">
+                                                <div class="text-muted small">Yetişkin</div>
+                                                <div class="fw-bold fs-5">
+                                                    {{ ((float) $priceAdult) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceAdult, $currencyCode) }}
+                                                </div>
+                                            </div>
+                                        @endif
 
-                                    @if($priceChild)
-                                        <div class="mt-auto me-3">
-                                            <div class="text-muted small">Çocuk</div>
-                                            <div class="fw-bold fs-5">{{ number_format($priceChild) }} {{ $currencySymbol }}</div>
-                                        </div>
-                                    @endif
+                                        @if($priceChild !== null)
+                                            <div class="mt-auto me-3">
+                                                <div class="text-muted small">Çocuk</div>
+                                                <div class="fw-bold fs-5">
+                                                    {{ ((float) $priceChild) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceChild, $currencyCode) }}
+                                                </div>
+                                            </div>
+                                        @endif
 
-                                    @if($priceInfant)
-                                        <div class="mt-auto me-3">
-                                            <div class="text-muted small">Bebek</div>
-                                            <div class="fw-bold fs-5">{{ number_format($priceInfant) }} {{ $currencySymbol }}</div>
-                                        </div>
-                                    @endif
+                                        @if($priceInfant !== null)
+                                            <div class="mt-auto me-3">
+                                                <div class="text-muted small">Bebek</div>
+                                                <div class="fw-bold fs-5">
+                                                    {{ ((float) $priceInfant) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceInfant, $currencyCode) }}
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
 
                                     {{-- CTA --}}

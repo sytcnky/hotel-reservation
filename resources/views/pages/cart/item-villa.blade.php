@@ -98,39 +98,24 @@
                 @if ($prepayment > 0)
                 <div class="fw-bold fs-5 text-primary">
                     <small>Ön ödeme:</small><br>
-                    {{ number_format($prepayment, 0, ',', '.') }}
-                    @if ($currency)
-                    {{ $currency }}
-                    @endif
+                    {{ \App\Support\Currency\CurrencyPresenter::format($prepayment, $currency) }}
                 </div>
                 <div class="small text-muted">
-                    Kalan:
-                    {{ number_format($remaining, 0, ',', '.') }}
-                    @if ($currency)
-                    {{ $currency }}
-                    @endif
+                    Kalan: {{ \App\Support\Currency\CurrencyPresenter::format($remaining, $currency) }}
                     <i class="fi fi-rr-info"
                        data-bs-toggle="tooltip"
                        data-bs-placement="top"
                        title="Kalan ücret konaklama sırasında alınır."></i>
                 </div>
                 <div class="small text-muted">
-                    Toplam:
-                    {{ number_format($total, 0, ',', '.') }}
-                    @if ($currency)
-                    {{ $currency }}
-                    @endif
+                    Toplam: {{ \App\Support\Currency\CurrencyPresenter::format($total, $currency) }}
                 </div>
                 @else
                 <div class="fw-bold fs-5 text-primary">
-                    {{ number_format($amount, 0, ',', '.') }}
-                    @if ($currency)
-                    {{ $currency }}
-                    @endif
+                    {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currency) }}
                 </div>
                 @endif
             </div>
-
         </div>
     </div>
 </div>

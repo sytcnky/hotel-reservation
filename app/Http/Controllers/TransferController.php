@@ -6,7 +6,7 @@ use App\Models\Location;
 use App\Models\StaticPage;
 use App\Models\TransferRoute;
 use App\Models\TransferVehicle;
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
@@ -72,7 +72,7 @@ class TransferController extends Controller
                 $vehicle = $this->findBestVehicle($totalPassengers);
 
                 if ($vehicle) {
-                    $currentCurrency = CurrencyHelper::currentCode();
+                    $currentCurrency = CurrencyContext::code($request);
 
                     $pricing = $this->calculatePrice(
                         $route,
@@ -167,7 +167,7 @@ class TransferController extends Controller
         int $adults,
         int $children,
         int $infants,
-        string $preferredCurrency
+        ?string $preferredCurrency
     ): ?array {
         $prices = $route->prices;
 
@@ -175,17 +175,16 @@ class TransferController extends Controller
             return null;
         }
 
-        $preferredCurrency = strtoupper($preferredCurrency);
-
-        if (array_key_exists($preferredCurrency, $prices)) {
-            $currency = $preferredCurrency;
-        } elseif (array_key_exists('TRY', $prices)) {
-            $currency = 'TRY';
-        } else {
-            $currency = array_key_first($prices);
+        $preferredCurrency = strtoupper(trim((string) $preferredCurrency));
+        if ($preferredCurrency === '') {
+            return null;
         }
 
-        $cfg = $prices[$currency] ?? null;
+        if (! array_key_exists($preferredCurrency, $prices)) {
+            return null;
+        }
+
+        $cfg = $prices[$preferredCurrency] ?? null;
         if (! is_array($cfg)) {
             return null;
         }
@@ -207,7 +206,7 @@ class TransferController extends Controller
             : $oneWay;
 
         return [
-            'currency' => $currency,
+            'currency' => $preferredCurrency,
             'total'    => $total,
         ];
     }

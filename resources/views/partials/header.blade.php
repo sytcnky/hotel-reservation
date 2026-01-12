@@ -5,7 +5,7 @@
     use Illuminate\Support\Str;
 
     $currentRoute = Str::after(request()->route()->getName(), app()->getLocale() . '.');
-    $currencies      = CurrencyHelper::active();
+    $currencies      = CurrencyHelper::activeOptions();
     $currentCurrency = CurrencyHelper::currentCode();
 
     /** @var \App\Models\User|null $authUser */
@@ -137,7 +137,7 @@
                                     <a href="{{ $cartCount > 0 ? '#' : $switchUrl }}"
                                        class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }} {{ $cartCount > 0 ? 'js-currency-switch' : '' }}"
                                        data-currency-url="{{ $confirmUrl }}">
-                                        {{ $c['symbol'] }} {{ $c['code'] }}
+                                        {{ \App\Support\Currency\CurrencyPresenter::label($c['code']) }}
                                     </a>
                                 @endforeach
                             </div>

@@ -88,9 +88,8 @@
                 $statusLabel = (string) ($meta['label'] ?? $status);
                 $statusClass = (string) ($meta['bootstrap_class'] ?? 'bg-secondary');
 
-                $currency = strtoupper((string) ($order->currency ?? ''));
-                $amountText = number_format((float) ($order->total_amount ?? 0), 0, ',', '.');
-                $totalText  = trim($amountText . ($currency !== '' ? (' ' . $currency) : ''));
+                $currency = $order->currency ?? null;
+                $totalText = \App\Support\Currency\CurrencyPresenter::format($order->total_amount ?? null, $currency);
 
                 $whenIso   = optional($order->created_at)->format('Y-m-d') ?? '';
                 $whenHuman = optional($order->created_at)->translatedFormat('d M Y') ?? '';
@@ -101,8 +100,7 @@
 
                 if ($order->relationLoaded('refundAttempts')) {
                     $refundRows = collect($order->refundAttempts ?? [])->map(function ($r) use ($currency) {
-                        $amount = number_format((float) ($r->amount ?? 0), 2, ',', '.');
-                        $amountText = trim($amount . ($currency !== '' ? (' ' . $currency) : ''));
+                        $amountText = \App\Support\Currency\CurrencyPresenter::format($r->amount ?? null, $currency);
 
                         return [
                             'reason' => $r->reason ?: null,

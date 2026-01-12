@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Coupon;
 use App\Models\User;
 use App\Models\UserCoupon;
+use App\Support\Currency\CurrencyPresenter;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Carbon;
 
@@ -265,11 +266,7 @@ class CouponViewModelService
             && $discountAmount > 0
             && $discountCurrency
         ) {
-            $currencyOptions = CurrencyHelper::options();
-            $symbol = $currencyOptions[$discountCurrency]['symbol'] ?? $discountCurrency;
-
-            // 300₺, 1.000₺ vb (sembol sonda)
-            $badgeMainValue = number_format($discountAmount, 0, ',', '.') . $symbol;
+            $badgeMainValue = CurrencyPresenter::format($discountAmount, $discountCurrency);
         }
 
         return [

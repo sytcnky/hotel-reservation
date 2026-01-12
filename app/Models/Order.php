@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Currency\CurrencyPresenter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -345,9 +346,7 @@ class Order extends Model
                         return null;
                     }
 
-                    $amount = (float) $amount;
-
-                    return number_format($amount, 0, ',', '.') . ' ' . $currency;
+                    return CurrencyPresenter::formatAdmin($amount, $currency);
                 };
 
                 $formatDateTime = function (?string $date, ?string $time = null): ?string {
@@ -526,7 +525,10 @@ class Order extends Model
                     return null;
                 }
 
-                $amountFormatted = number_format($amount, 2, ',', '.') . ' ' . $currency;
+                $amountFormatted = CurrencyPresenter::format(
+                    $row['discount'] ?? null,
+                    $this->currency ?? null
+                );
 
                 $label = $row['title']
                     ?? $row['code']
@@ -571,7 +573,7 @@ class Order extends Model
                     'badge'  => $role !== '' ? $role : '-',
                     'reason' => $r->reason ?: null,
                     'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
-                    'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $currency,
+                    'amount' => CurrencyPresenter::formatAdmin($r->amount, $this->currency ?? null),
                 ];
             })
             ->values()

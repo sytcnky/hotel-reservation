@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PaymentAttempts\Tables;
 
 use App\Models\PaymentAttempt;
+use App\Support\Currency\CurrencyPresenter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -34,10 +35,14 @@ class PaymentAttemptsTable
                 TextColumn::make('amount')
                     ->label(__('admin.payment_attempts.table.amount'))
                     ->formatStateUsing(function ($state, $record) {
-                        $currency = strtoupper((string) ($record->currency ?? ''));
-                        $amount   = (float) $state;
+                        if ($state === null) {
+                            return '-';
+                        }
 
-                        return number_format($amount, 2, ',', '.') . ' ' . $currency;
+                        return CurrencyPresenter::formatAdmin(
+                            (float) $state,
+                            $record->currency ?? null
+                        );
                     })
                     ->sortable(),
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Currency;
 use App\Models\Language as SiteLanguage;
 use App\Models\Setting;
 use Filament\Actions\Action;
@@ -38,7 +39,10 @@ class GeneralSettings extends Page
     public function mount(): void
     {
         $this->form->fill([
-            'default_locale'        => Setting::get('default_locale', config('app.locale', 'tr')),
+            'default_locale'        => Setting::get('default_locale'),
+            'default_currency'      => Setting::get('default_currency', ''),
+            'currency_display' => Setting::get('currency_display', 'symbol'),
+
             'google_analytics_code' => Setting::get('google_analytics_code', ''),
 
             // sosyal medya (url)
@@ -78,6 +82,18 @@ class GeneralSettings extends Page
             ->all();
 
         $langCodes = array_keys($languages);
+
+        $currencyOptions = Currency::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['code', 'name'])
+            ->mapWithKeys(function (Currency $c) {
+                $label = $c->name_l ?: $c->code;
+                return [
+                    $c->code => ($c->symbol ? ($c->symbol . ' ') : '') . $c->code . ' — ' . $label,
+                ];
+            })
+            ->all();
 
         // Aynı tab altındaki tüm i18n alanları tek "Dil" Tabs içinde göster
         $contactLocaleTabs = array_map(function (string $code) {
@@ -166,7 +182,24 @@ class GeneralSettings extends Page
                                 ->schema([
                                     Select::make('default_locale')
                                         ->label('Varsayılan Dil')
+                                        ->native(false)
                                         ->options($languages)
+                                        ->required(),
+
+                                    Select::make('default_currency')
+                                        ->label('Varsayılan Para Birimi')
+                                        ->native(false)
+                                        ->options($currencyOptions)
+                                        ->searchable()
+                                        ->required(fn () => count($currencyOptions) > 0),
+
+                                    Select::make('currency_display')
+                                        ->label('Para Birimi Gösterimi')
+                                        ->native(false)
+                                        ->options([
+                                            'symbol' => 'Sembol (₺, €, £)',
+                                            'code'   => 'Kısaltma (TRY, EUR, GBP)',
+                                        ])
                                         ->required(),
                                 ]),
 
@@ -230,8 +263,13 @@ class GeneralSettings extends Page
     {
         $data = $this->form->getState();
 
-        $locale = $data['default_locale'] ?? config('app.locale', 'tr');
-        Setting::set('default_locale', $locale);
+        $locale = $data['default_locale'] ?? null;
+        if ($locale !== null) {
+            Setting::set('default_locale', $locale);
+        }
+
+        Setting::set('default_currency', (string) ($data['default_currency'] ?? ''));
+        Setting::set('currency_display', (string) $data['currency_display']);
 
         Setting::set('google_analytics_code', (string) ($data['google_analytics_code'] ?? ''));
 

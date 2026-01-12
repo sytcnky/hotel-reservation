@@ -460,12 +460,11 @@
                             </div>
 
                             <div class="row mt-3 align-items-center">
-                                <div class="col-12 col-xl-6 d-flex align-items-baseline gap-2">
+                                <div class="col-12 col-xl-6 d-flex align-items-end gap-2">
                                     <h2 class="m-0">
-                                        {{ number_format($transferOffer['price_total'], 0, ',', '.') }}
-                                        <small class="fs-6">{{ $transferOffer['currency'] }}</small>
+                                        <span class="text-muted fs-6">Toplam fiyat</span><br>
+                                        {{ \App\Support\Currency\CurrencyPresenter::format($transferOffer['price_total'], $transferOffer['currency']) }}
                                     </h2>
-                                    <span class="text-muted small">Toplam fiyat</span>
                                 </div>
                                 <div class="col-12 col-xl-6 d-grid mt-3 mt-xl-0">
                                     <button type="submit" class="btn btn-primary">

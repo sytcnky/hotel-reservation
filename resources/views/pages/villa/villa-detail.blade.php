@@ -86,7 +86,7 @@
             {{-- Rezervasyon Formu (tarih + kişi + fiyat kutusu) --}}
             @php
             $price          = $villa['base_price'] ?? null;
-            $currency       = $villa['currency'] ?? \App\Support\Helpers\CurrencyHelper::currentCode();
+            $currency       = \App\Support\Currency\CurrencyContext::code();
             $prepaymentRate = (float) ($villa['prepayment_rate'] ?? 0);
             $hasPrice       = ! is_null($price);
 
@@ -225,14 +225,14 @@
                                 {{-- Tarih seçilmemiş görünüm --}}
                                 <div id="price-before-selection">
                                     @if($hasPrice)
-                                    <div class="fs-5 fw-semibold text-primary">
-                                        {{ number_format($price, 0, ',', '.') }} {{ $currency }}
-                                        <small>/ Gece</small>
-                                    </div>
+                                        <div class="fs-5 fw-semibold text-primary">
+                                            {{ \App\Support\Currency\CurrencyPresenter::format($price, $currency) }}
+                                            <small>/ Gece</small>
+                                        </div>
                                     @else
-                                    <div class="text-muted small">
-                                        Fiyat bilgisi bulunamadı
-                                    </div>
+                                        <div class="text-muted small">
+                                            Fiyat bilgisi bulunamadı
+                                        </div>
                                     @endif
                                 </div>
 

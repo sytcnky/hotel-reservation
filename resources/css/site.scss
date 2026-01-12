@@ -73,6 +73,13 @@ i.fi {
     direction: ltr;
 }
 
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 a:focus,
 .btn:focus,
 .dropdown-toggle:focus {
@@ -449,7 +456,6 @@ $bottom-nav-height: 64px;
     padding-bottom: 10px;
 }
 
-/* örneğin app.css içine */
 .tooltip.coupon-tooltip .tooltip-inner {
     max-width: 260px;
     text-align: left !important;

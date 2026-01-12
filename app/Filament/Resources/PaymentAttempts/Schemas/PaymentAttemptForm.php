@@ -6,6 +6,7 @@ use App\Filament\Resources\Orders\OrderResource;
 use App\Models\PaymentAttempt;
 use App\Models\RefundAttempt;
 use App\Services\RefundService;
+use App\Support\Currency\CurrencyPresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -177,11 +178,13 @@ class PaymentAttemptForm
                                             }
 
                                             $remaining = max(((float) $record->amount) - $successSum, 0);
-                                            $cur = strtoupper((string) $record->currency);
+                                            $cur = (string) ($record->currency ?? null);
 
-                                            return
-                                                'İade edilen: ' . number_format($successSum, 2, ',', '.') . ' ' . $cur .
-                                                '  Kalan: ' . number_format($remaining, 2, ',', '.') . ' ' . $cur;
+                                            return 'İade edilen: '
+                                                . (CurrencyPresenter::formatAdmin($successSum, $cur) ?? '-')
+                                                . '  Kalan: '
+                                                . (CurrencyPresenter::formatAdmin($remaining, $cur) ?? '-');
+
                                         })
                                         ->afterHeader([
                                             Action::make('refund')

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StaticPage;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class VillaController extends Controller
     {
         $locale       = app()->getLocale();              // uiLocale
         $baseLang     = LocaleHelper::defaultCode();     // baseLocale
-        $currencyCode = CurrencyHelper::currentCode();
+        $currencyCode = CurrencyContext::code($request);
 
         $villas = Villa::query()
             ->with(['location.parent.parent', 'category', 'media', 'rateRules.currency'])
@@ -43,12 +43,15 @@ class VillaController extends Controller
                 $region = $area?->parent?->parent?->name;
 
                 // Fiyat (liste için helper)
-                $price = $villa->getBasePrice($currencyCode);
+                $price = null;
+                if ($currencyCode) {
+                    $price = $villa->getBasePrice($currencyCode);
+                }
 
                 return [
                     'id'             => $villa->id,
                     'slug'           => $slug,
-                    'name'           => $name ?? 'Villa', // mevcut davranış korunur
+                    'name'           => $name, // mevcut davranış korunur
                     'max_guests'     => $villa->max_guests,
                     'bedroom_count'  => $villa->bedroom_count,
                     'bathroom_count' => $villa->bathroom_count,
@@ -129,15 +132,18 @@ class VillaController extends Controller
         }
 
         // === FİYAT + MIN/MAX NIGHTS ===
-        $selectedCurrency = CurrencyHelper::currentCode();
+        $selectedCurrency = CurrencyContext::code(request());
 
-        $rule = $villa->rateRules()
-            ->whereHas('currency', fn ($q) => $q->where('code', $selectedCurrency))
-            ->where('is_active', true)
-            ->where('closed', false)
-            ->orderBy('priority', 'asc')
-            ->orderBy('date_start', 'asc')
-            ->first();
+        $rule = null;
+        if ($selectedCurrency) {
+            $rule = $villa->rateRules()
+                ->whereHas('currency', fn ($q) => $q->where('code', $selectedCurrency))
+                ->where('is_active', true)
+                ->where('closed', false)
+                ->orderBy('priority', 'asc')
+                ->orderBy('date_start', 'asc')
+                ->first();
+        }
 
         $basePrice = null;
         $currency  = $selectedCurrency;
@@ -151,10 +157,6 @@ class VillaController extends Controller
             $maxNights = $rule->max_nights ?: null;
         }
 
-        // Görseller (standart accessor'lar)
-        // - cover_image: normalize + placeholder + alt policy helper içinde
-        // - gallery_images: normalize edilmiş dizi, BOŞ gelebilir
-        // Gallery boşsa cover gösterme kararı controller'da değil, Blade tarafında ele alınacak.
         $cover   = $villa->cover_image;
         $gallery = $villa->gallery_images;
 

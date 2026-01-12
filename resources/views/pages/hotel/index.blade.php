@@ -50,48 +50,48 @@
         <div class="col-xl-9" id="listingCol">
             <div class="row g-3 hotel-list-container list-view" id="hotelList">
                 @foreach ($hotels as $hotel)
-                @php
-                $locale = app()->getLocale();
+                    @php
+                    $locale = app()->getLocale();
 
-                // Slug (jsonb ise aktive dile göre çek)
-                $slugSource = $hotel->slug ?? null;
-                if (is_array($slugSource)) {
-                $slug = $slugSource[$locale] ?? reset($slugSource);
-                } else {
-                $slug = $slugSource;
-                }
+                    // Slug (jsonb ise aktive dile göre çek)
+                    $slugSource = $hotel->slug ?? null;
+                    if (is_array($slugSource)) {
+                        $slug = $slugSource[$locale] ?? reset($slugSource);
+                    } else {
+                        $slug = $slugSource;
+                    }
 
-                // Cover görsel (thumb + thumb2x)
-                $cover = $hotel->getFirstMedia('cover');
-                if ($cover) {
-                $coverThumb  = $cover->getUrl('thumb');
-                $coverThumb2 = $cover->getUrl('thumb2x');
-                } else {
-                $coverThumb  = asset('/images/default.jpg');
-                $coverThumb2 = $coverThumb;
-                }
+                    // Cover görsel (thumb + thumb2x)
+                    $cover = $hotel->getFirstMedia('cover');
+                    if ($cover) {
+                        $coverThumb  = $cover->getUrl('thumb');
+                        $coverThumb2 = $cover->getUrl('thumb2x');
+                    } else {
+                        $coverThumb  = asset('/images/default.jpg');
+                        $coverThumb2 = $coverThumb;
+                    }
 
-                $hotelName = $hotel->name_l ?? $hotel->name ?? 'Otel';
+                    $hotelName = $hotel->name_l ?? $hotel->name ?? 'Otel';
 
-                // Yıldız (starRating ilişkisinden)
-                $stars = (int) ($hotel->starRating?->rating_value ?? 0);
+                    // Yıldız (starRating ilişkisinden)
+                    $stars = (int) ($hotel->starRating?->rating_value ?? 0);
 
-                // Lokasyon: area -> city -> region hiyerarşisi
-                $area   = $hotel->location;
-                $city   = $area?->parent?->name;
-                $region = $area?->parent?->parent?->name;
-                $locationLabel = collect([$city, $region])
-                ->filter()
-                ->implode(', ');
+                    // Lokasyon: area -> city -> region hiyerarşisi
+                    $area   = $hotel->location;
+                    $city   = $area?->parent?->name;
+                    $region = $area?->parent?->parent?->name;
+                    $locationLabel = collect([$city, $region])
+                    ->filter()
+                    ->implode(', ');
 
-                // Özellik rozetleri (featureGroups üzerinden, varsa)
-                $featureGroups = $hotel->featureGroups ?? collect();
-                $allFeatures   = $featureGroups instanceof \Illuminate\Support\Collection
-                ? $featureGroups->flatMap(fn($fg) => $fg->facilities->pluck('name_l'))
-                : collect();
+                    // Özellik rozetleri (featureGroups üzerinden, varsa)
+                    $featureGroups = $hotel->featureGroups ?? collect();
+                    $allFeatures   = $featureGroups instanceof \Illuminate\Support\Collection
+                    ? $featureGroups->flatMap(fn($fg) => $fg->facilities->pluck('name_l'))
+                    : collect();
 
-                $totalFeatures   = $allFeatures->count();
-                $visibleFeatures = 5;
+                    $totalFeatures   = $allFeatures->count();
+                    $visibleFeatures = 5;
                 @endphp
 
                 <div class="col-12">
@@ -175,7 +175,7 @@
                                                 <div class="mb-2">
                                                     <span class="text-muted small d-block">Başlayan fiyat</span>
                                                     <div class="fw-semibold fs-5">
-                                                        {{ number_format((float) $amount, 0, ',', '.') }} {{ $currencyCode ?? '' }}
+                                                        {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currencyCode ?? null) }}
                                                         <span class="text-muted small">{{ $suffix }}</span>
                                                     </div>
                                                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\LocaleHelper;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,8 +14,7 @@ class SetLocaleFromRequest
         $activeCodes = LocaleHelper::active();
         $defaultCode = LocaleHelper::defaultCode();
 
-        // Bootstrap edge-case: no session (CLI-like, stateless, etc.)
-        // Contract: even without session, prefer browser match; else default.
+        // Bootstrap edge-case: no session
         if (! $request->hasSession()) {
             $code = LocaleHelper::codeFromBrowser($request) ?: $defaultCode;
             app()->setLocale($code);
@@ -39,6 +39,9 @@ class SetLocaleFromRequest
 
         $request->session()->put('locale', $code);
         app()->setLocale($code);
+
+        // Locale belirlendikten sonra: ilk ziyaret currency bootstrap (overwrite yok).
+        CurrencyContext::bootstrapFromLocale($code, $request);
 
         return $next($request);
     }

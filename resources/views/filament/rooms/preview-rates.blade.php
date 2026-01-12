@@ -43,13 +43,13 @@
         <td class="py-2 px-3">{{ $r['label'] ?: '—' }}</td>
 
         <td class="py-2 px-3">
-            {{ number_format($adultTotal, 2, ',', '.') }} {{ $currency }}
+            {{ \App\Support\Currency\CurrencyPresenter::format($adultTotal, $currency ?? null) }}
         </td>
         <td class="py-2 px-3">
-            {{ number_format($childTotal, 2, ',', '.') }} {{ $currency }}
+            {{ \App\Support\Currency\CurrencyPresenter::format($childTotal, $currency ?? null) }}
         </td>
         <td class="py-2 px-3">
-            {{ number_format($r['total'], 2, ',', '.') }} {{ $currency }}
+            {{ \App\Support\Currency\CurrencyPresenter::format($r['total'] ?? null, $currency ?? null) }}
         </td>
         @endif
     </tr>

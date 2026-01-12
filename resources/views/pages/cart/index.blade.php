@@ -289,8 +289,7 @@
                             <div class="d-flex justify-content-between small mb-2">
                                 <span>{{ $txt['summary_subtotal'] }}</span>
                                 <span>
-                                    {{ number_format($cartSubtotal,0,',','.') }}
-                                    @if($cartCurrency) {{ $cartCurrency }} @endif
+                                    {{ \App\Support\Currency\CurrencyPresenter::format($cartSubtotal, $cartCurrency) }}
                                 </span>
                             </div>
 
@@ -311,8 +310,7 @@
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>{{ $txt['summary_discount_coupon'] ?? 'Kupon İndirimi' }}</span>
                                         <span>
-                                            -{{ number_format($couponDiscountTotal, 0, ',', '.') }}
-                                            @if($cartCurrency) {{ $cartCurrency }} @endif
+                                            -{{ \App\Support\Currency\CurrencyPresenter::format($couponDiscountTotal, $cartCurrency) }}
                                         </span>
                                     </div>
                                 @endif
@@ -331,8 +329,7 @@
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>{{ $label }}</span>
                                         <span>
-                                            -{{ number_format($amount, 0, ',', '.') }}
-                                            @if($cartCurrency) {{ $cartCurrency }} @endif
+                                            -{{ \App\Support\Currency\CurrencyPresenter::format($amount, $cartCurrency) }}
                                         </span>
                                     </div>
                                 @endforeach
@@ -343,8 +340,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-semibold">{{ $txt['summary_total'] }}</span>
                                 <span class="fw-bold fs-5">
-                                    {{ number_format($finalTotal,0,',','.') }}
-                                    @if($cartCurrency) {{ $cartCurrency }} @endif
+                                    {{ \App\Support\Currency\CurrencyPresenter::format($finalTotal, $cartCurrency) }}
                                 </span>
                             </div>
 

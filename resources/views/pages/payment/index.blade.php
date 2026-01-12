@@ -12,7 +12,7 @@
 
         $paymentCode  = $checkout->code;
         $totalAmount  = isset($totalAmount) ? (float) $totalAmount : max((float) $checkout->cart_total - (float) $checkout->discount_amount, 0);
-        $currency     = $currency ?? ($checkout->currency ?? 'TRY');
+        $currency = $currency ?? ($checkout->currency ?? null);
         $submitNonce  = $submitNonce ?? null;
         $attemptError = $attemptError ?? null;
     @endphp
@@ -27,7 +27,7 @@
                 <h3 class="text-muted mb-3">
                     Ödenecek Tutar:
                     <span class="fw-semibold text-body">
-                        {{ number_format($totalAmount, 2, ',', '.') }} {{ $currency }}
+                        {{ \App\Support\Currency\CurrencyPresenter::format($totalAmount, $currency) }}
                     </span>
                 </h3>
 

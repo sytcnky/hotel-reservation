@@ -1,9 +1,6 @@
 @php
-    /** @var \App\Models\Order $order */
-
     $items = collect($order->items_for_infolist ?? []);
     $discounts = collect($order->discounts_for_infolist ?? []);
-    $currency = strtoupper((string) ($order->currency ?? ''));
 
     $labels = [
         'hotel_name'       => 'Otel',
@@ -145,8 +142,7 @@
     <tr>
         <td>Toplam Tutar</td>
         <td align="right" style="white-space:nowrap;">
-            {{ number_format((float) ($order->total_amount ?? 0), 2, ',', '.') }}
-            {{ $currency }}
+            {{ \App\Support\Currency\CurrencyPresenter::format($order->total_amount ?? null, $order->currency ?? null) }}
         </td>
     </tr>
 </table>

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Orders\Schemas;
 use App\Models\Order;
 use App\Models\RefundAttempt;
 use App\Services\RefundService;
+use App\Support\Currency\CurrencyPresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -144,10 +145,10 @@ class OrderForm
                                                         return '-';
                                                     }
 
-                                                    $amount   = number_format((float) $record->total_amount, 2, ',', '.');
-                                                    $currency = strtoupper($record->currency ?? '');
-
-                                                    return trim($amount . ' ' . $currency);
+                                                    return CurrencyPresenter::formatAdmin(
+                                                        $record->total_amount,
+                                                        $record->currency
+                                                    );
                                                 }),
 
                                             Section::make(__('admin.orders.sections.discounts'))
@@ -189,10 +190,10 @@ class OrderForm
                                                         return '-';
                                                     }
 
-                                                    $amount   = number_format((float) $record->discount_amount, 2, ',', '.');
-                                                    $currency = strtoupper($record->currency ?? '');
-
-                                                    return trim($amount . ' ' . $currency);
+                                                    return CurrencyPresenter::formatAdmin(
+                                                        $record->discount_amount,
+                                                        $record->currency
+                                                    );
                                                 }),
 
                                             TextEntry::make('payable_total')
@@ -206,10 +207,10 @@ class OrderForm
                                                     $discount = (float) ($record->discount_amount ?? 0);
                                                     $payable  = max($gross - $discount, 0);
 
-                                                    $amount   = number_format($payable, 2, ',', '.');
-                                                    $currency = strtoupper($record->currency ?? '');
-
-                                                    return trim($amount . ' ' . $currency);
+                                                    return CurrencyPresenter::formatAdmin(
+                                                        $payable,
+                                                        $record->currency
+                                                    );
                                                 }),
 
                                             Grid::make()->columns(2)->schema([
@@ -355,11 +356,13 @@ class OrderForm
                                             }
 
                                             $remaining = max(((float) $attempt->amount) - $successSum, 0);
-                                            $cur = strtoupper((string) $attempt->currency);
+                                            $currency = $attempt->currency;
 
                                             return
-                                                'İade edilen: ' . number_format($successSum, 2, ',', '.') . ' ' . $cur .
-                                                '  Kalan: ' . number_format($remaining, 2, ',', '.') . ' ' . $cur;
+                                                'İade edilen: ' .
+                                                CurrencyPresenter::formatAdmin($successSum, $currency) .
+                                                '  Kalan: ' .
+                                                CurrencyPresenter::formatAdmin($remaining, $currency);
                                         })
                                         ->schema([
                                             RepeatableEntry::make('refunds_for_infolist')

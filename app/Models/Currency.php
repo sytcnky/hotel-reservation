@@ -16,6 +16,7 @@ class Currency extends Model
         'description',
         'code',
         'symbol',
+        'affix_position',
         'exponent',
         'is_active',
         'sort_order',

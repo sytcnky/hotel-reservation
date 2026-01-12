@@ -21,19 +21,10 @@ class CurrencyResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name_l';
 
-    public static function getNavigationGroup(): ?string { return __('admin.nav.taxonomies'); }
+    public static function getNavigationGroup(): ?string { return __('admin.nav.settings_group'); }
     public static function getNavigationLabel(): string { return __('admin.ent.currency.plural'); }
     public static function getModelLabel(): string { return __('admin.ent.currency.singular'); }
     public static function getPluralModelLabel(): string { return __('admin.ent.currency.plural'); }
-
-    public static function getNavigationBadge(): ?string
-    {
-        try {
-            return (string) static::getModel()::query()->count();
-        } catch (Throwable) {
-            return null;
-        }
-    }
 
     public static function form(Schema $schema): Schema
     {

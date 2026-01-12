@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Currencies\Schemas;
 
 use App\Support\Helpers\LocaleHelper;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -68,6 +69,15 @@ class CurrencyForm
                 ->label('Symbol')
                 ->maxLength(8)
                 ->helperText('Örn: ₺, €, $, £'),
+
+            Select::make('affix_position')
+                ->label(__('admin.field.affix_position'))
+                ->options([
+                    'prefix' => 'Prefix ($ 100)',
+                    'suffix' => 'Suffix (100 $)',
+                ])
+                ->required()
+                ->default('prefix'),
 
             TextInput::make('exponent')
                 ->label('Minor units')

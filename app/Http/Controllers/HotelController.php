@@ -13,7 +13,7 @@ use App\Models\RoomRateRule;
 use App\Models\StaticPage;
 use App\Services\CampaignPlacementViewService;
 use App\Services\RoomRateResolver;
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
@@ -231,7 +231,11 @@ class HotelController extends Controller
         $total = $range->sum('total');
 
         $currencyCode = $this->resolveCurrencyCode();
-        $priceMode    = $first['price_mode'] ?? null; // 'room' | 'person'
+        if (! $currencyCode) {
+            return null;
+        }
+
+        $priceMode = $first['price_mode'] ?? null; // 'room' | 'person'
 
         if ($priceMode === 'room') {
             $roomPerNight = (float) ($first['unit_amount'] ?? 0);
@@ -356,7 +360,6 @@ class HotelController extends Controller
             ->all();
     }
 
-
     /**
      * Lokasyon bilgisini (region / city) map eder.
      */
@@ -378,17 +381,24 @@ class HotelController extends Controller
         ];
     }
 
-    private function resolveCurrencyCode(): string
+    private function resolveCurrencyCode(): ?string
     {
-        return strtoupper(CurrencyHelper::currentCode());
+        $code = CurrencyContext::code(request());
+
+        $code = strtoupper(trim((string) $code));
+        return $code !== '' ? $code : null;
     }
 
     private function resolveCurrencyId(): ?int
     {
         $code = $this->resolveCurrencyCode();
+        if (! $code) {
+            return null;
+        }
 
         return Currency::query()
             ->where('code', $code)
+            ->where('is_active', true)
             ->value('id');
     }
 
@@ -443,7 +453,7 @@ class HotelController extends Controller
             }
         }
 
-        $gallery = $hotel->gallery_images;
+        $gallery   = $hotel->gallery_images;
         $location  = $this->mapLocation($hotel->location);
         $features  = $this->mapFeatureGroups($hotel);
         $notes     = $this->localizeNotes($hotel->notes);
@@ -545,11 +555,9 @@ class HotelController extends Controller
             }
         }
 
-        // ---- Currency ----
-        $currencyCode = CurrencyHelper::currentCode();
-        $currencyId   = Currency::query()
-            ->where('code', strtoupper($currencyCode))
-            ->value('id');
+        // ---- Currency (tek otorite) ----
+        $currencyCode = $this->resolveCurrencyCode();
+        $currencyId   = $this->resolveCurrencyId();
 
         if (! $currencyId) {
             return view('pages.hotel.index', [
@@ -557,7 +565,7 @@ class HotelController extends Controller
                 'page' => $page,
                 'c' => $c,
                 'loc' => $loc,
-                'currencyCode' => strtoupper($currencyCode),
+                'currencyCode' => $currencyCode,
                 'categories' => collect(),
                 'boardTypes' => collect(),
                 'maxGuests' => 1,
@@ -952,7 +960,7 @@ class HotelController extends Controller
             'page' => $page,
             'c' => $c,
             'loc' => $loc,
-            'currencyCode' => strtoupper($currencyCode),
+            'currencyCode' => $currencyCode,
 
             'categories' => $categories,
             'boardTypes' => $boardTypes,

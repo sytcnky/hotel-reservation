@@ -51,7 +51,6 @@
 
         $basePrice  = $villa['price']    ?? null;
         $currency   = $villa['currency'] ?? null;
-        $discounted = $basePrice ? round($basePrice * 0.85) : null;
         @endphp
 
         <div class="col-lg-9 mx-auto">
@@ -120,14 +119,11 @@
 
                                 <div>
                                     @if($basePrice)
-                                    <div class="small text-muted text-decoration-line-through">
-                                        {{ number_format($basePrice, 0, ',', '.') }} {{ $currency }}
-                                    </div>
-                                    <div class="fs-5 fw-bold text-primary">
-                                        {{ number_format($discounted, 0, ',', '.') }} {{ $currency }}
-                                    </div>
+                                        <div class="fs-5 fw-bold text-primary">
+                                            {{ \App\Support\Currency\CurrencyPresenter::format($basePrice, $currency) }}
+                                        </div>
                                     @else
-                                    <div class="text-muted small">Fiyat bilgisi bulunamadı</div>
+                                        <div class="text-muted small">Fiyat bilgisi bulunamadı</div>
                                     @endif
                                 </div>
 

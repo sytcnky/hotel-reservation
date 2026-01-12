@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Coupons\Tables;
 
+use App\Support\Currency\CurrencyPresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -58,17 +58,20 @@ class CouponsTable
                             return null;
                         }
 
-                        $preferred = strtoupper((string) config('app.default_currency', 'TRY'));
-                        $code = array_key_exists($preferred, $data)
-                            ? $preferred
-                            : (string) array_key_first($data);
+                        $parts = collect($data)
+                            ->map(function ($row, $code) {
+                                $amount = $row['amount'] ?? null;
+                                if ($amount === null) {
+                                    return null;
+                                }
 
-                        $amount = $data[$code]['amount'] ?? null;
-                        if ($amount === null) {
-                            return null;
-                        }
+                                return CurrencyPresenter::formatAdmin($amount, (string) $code);
+                            })
+                            ->filter()
+                            ->values()
+                            ->all();
 
-                        return number_format((float) $amount, 0, ',', '.') . ' ' . $code;
+                        return $parts ? implode(' - ', $parts) : null;
                     }),
 
                 TextColumn::make('scope_type')
@@ -133,9 +136,6 @@ class CouponsTable
                         'product_type' => __('admin.coupons.form.scope_type_product_type'),
                         'product'      => __('admin.coupons.form.scope_type_product'),
                     ]),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

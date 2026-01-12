@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Languages\Schemas;
 
+use App\Models\Currency;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
@@ -82,6 +84,21 @@ class LanguageForm
                                                 ->label(__('admin.field.sort_order'))
                                                 ->numeric()
                                                 ->default(0),
+
+                                            Select::make('currency_id')
+                                                ->label(__('admin.field.currency'))
+                                                ->placeholder(__('admin.field.optional'))
+                                                ->options(function (): array {
+                                                    return Currency::query()
+                                                        ->where('is_active', true)
+                                                        ->orderBy('sort_order')
+                                                        ->get()
+                                                        ->mapWithKeys(fn (Currency $c) => [
+                                                            $c->id => (($c->symbol ? ($c->symbol . ' ') : '') . $c->code . ' — ' . ($c->name_l ?: $c->code)),
+                                                        ])
+                                                        ->all();
+                                                })
+                                                ->searchable(),
                                         ]),
                                 ]),
                         ]),

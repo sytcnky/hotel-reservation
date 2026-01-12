@@ -119,7 +119,9 @@ return [
         'district' => 'District',
         'province' => 'City',
         'hotel' => 'Hotel',
-        'status'=> 'Status'
+        'status'=> 'Status',
+        'currency' => 'Currency',
+        'affix_position'=> 'Currency Position',
     ],
     'user' => [
         'singular' => 'User',

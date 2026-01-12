@@ -42,8 +42,7 @@
 
             if ($minBookingAmount && $minBookingAmount > 0 && $minBookingCurrency) {
                 $altLimitText = 'Alt limit: ' .
-                    number_format($minBookingAmount, 0, ',', '.') .
-                    ' ' . $minBookingCurrency;
+                    \App\Support\Currency\CurrencyPresenter::format($minBookingAmount, $minBookingCurrency);
             } elseif ($minNights && $minNights > 0) {
                 $altLimitText = 'Alt limit: ' . $minNights . ' Gece';
             } else {
@@ -58,14 +57,13 @@
 
             $discountSummary = null;
             if ($discountAmount && $discountAmount > 0 && $discountCurrency) {
-                $discountSummary = number_format($discountAmount, 0, ',', '.') . ' ' . $discountCurrency;
+                $discountSummary = \App\Support\Currency\CurrencyPresenter::format($discountAmount, $discountCurrency);
             }
 
             $maxDiscountText = null;
             if ($maxDiscountAmount && $maxDiscountAmount > 0 && $maxDiscountCurrency) {
                 $maxDiscountText = 'Maksimum indirim: ' .
-                    number_format($maxDiscountAmount, 0, ',', '.') .
-                    ' ' . $maxDiscountCurrency;
+                    \App\Support\Currency\CurrencyPresenter::format($maxDiscountAmount, $maxDiscountCurrency);
             }
 
             // Kalan kullanım metni

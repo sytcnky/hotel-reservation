@@ -22,7 +22,7 @@
         @else
         <td class="py-2 px-3">{{ $r['label'] ?: '—' }}</td>
         <td class="py-2 px-3">
-            {{ number_format($unit, 2, ',', '.') }} {{ $currency }}
+            {{ \App\Support\Currency\CurrencyPresenter::format($unit, $currency ?? null) }}
         </td>
         @endif
     </tr>

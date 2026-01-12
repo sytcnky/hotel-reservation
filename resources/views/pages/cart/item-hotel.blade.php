@@ -88,10 +88,7 @@
             {{-- Fiyat --}}
             <div class="col-12 col-md-3 text-md-end">
                 <div class="fw-bold fs-5 text-primary">
-                    {{ number_format($amount, 0, ',', '.') }}
-                    @if ($currency)
-                    {{ $currency }}
-                    @endif
+                    {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currency) }}
                 </div>
             </div>
 

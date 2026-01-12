@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Language extends Model
@@ -16,6 +17,7 @@ class Language extends Model
         'name',
         'native_name',
         'flag',        // dosya path
+        'currency_id', // FK
         'is_active',
         'sort_order',
     ];
@@ -24,4 +26,9 @@ class Language extends Model
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
 }

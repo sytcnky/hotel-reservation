@@ -51,7 +51,7 @@
 
                 @elseif($state === 'over_capacity')
                 <div class="text-danger small">
-                    {{ $room['capacity_message'] ?? 'Bu odanın maksimum kapasitesi aşıldı.' }}
+                    {{ $room['capacity_message'] }}
                 </div>
 
                 @elseif($state === 'over_max_nights')
@@ -65,38 +65,35 @@
                 </div>
 
                 @elseif($state === 'priced' && $pricing)
-                {{-- Ana: Toplam fiyat --}}
-                <div class="fs-5 fw-bold">
-                    {{ number_format($pricing['total_amount'] ?? 0, 0, ',', '.') }}
-                    {{ $pricing['currency'] ?? '₺' }}
-                </div>
+                    {{-- Ana: Toplam fiyat --}}
+                    <div class="fs-5 fw-bold">
+                        {{ \App\Support\Currency\CurrencyPresenter::format($pricing['total_amount'] ?? null, $pricing['currency'] ?? null) }}
+                    </div>
 
-                {{-- Alt satırlar: oda bazlı / kişi bazlı detay --}}
-                @if(($pricing['mode'] ?? null) === 'per_room')
-                {{-- Oda bazlı fiyat --}}
-                <div class="small text-muted">
-                    {{ number_format($pricing['room_per_night'] ?? 0, 0, ',', '.') }}
-                    {{ $pricing['currency'] ?? '₺' }} / gece
-                </div>
+                    {{-- Alt satırlar: oda bazlı / kişi bazlı detay --}}
+                    @if(($pricing['mode'] ?? null) === 'per_room')
+                        <div class="small text-muted">
+                            {{ \App\Support\Currency\CurrencyPresenter::format($pricing['room_per_night'] ?? null, $pricing['currency'] ?? null) }}
+                            / gece
+                        </div>
 
-                @elseif(($pricing['mode'] ?? null) === 'per_person')
-                {{-- Kişi bazlı fiyat --}}
-                @if(($pricing['adult_count'] ?? 0) > 0)
-                <div class="small text-muted">
-                    Yetişkin:
-                    {{ number_format($pricing['adult_per_night'] ?? 0, 0, ',', '.') }}
-                    {{ $pricing['currency'] ?? '₺' }} / gece
-                </div>
-                @endif
+                    @elseif(($pricing['mode'] ?? null) === 'per_person')
+                        @if(($pricing['adult_count'] ?? 0) > 0)
+                            <div class="small text-muted">
+                                Yetişkin:
+                                {{ \App\Support\Currency\CurrencyPresenter::format($pricing['adult_per_night'] ?? null, $pricing['currency'] ?? null) }}
+                                / gece
+                            </div>
+                        @endif
 
-                @if(($pricing['child_count'] ?? 0) > 0)
-                <div class="small text-muted">
-                    Çocuk:
-                    {{ number_format($pricing['child_per_night'] ?? 0, 0, ',', '.') }}
-                    {{ $pricing['currency'] ?? '₺' }} / gece
-                </div>
-                @endif
-                @endif
+                        @if(($pricing['child_count'] ?? 0) > 0)
+                            <div class="small text-muted">
+                                Çocuk:
+                                {{ \App\Support\Currency\CurrencyPresenter::format($pricing['child_per_night'] ?? null, $pricing['currency'] ?? null) }}
+                                / gece
+                            </div>
+                        @endif
+                    @endif
 
                 @else
                 <div class="small text-muted">
@@ -251,8 +248,8 @@
                     <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
 
                 @if($pricing)
-                    <input type="hidden" name="currency"    value="{{ $pricing['currency'] ?? 'TRY' }}">
-                    <input type="hidden" name="price_total" value="{{ $pricing['total_amount'] ?? 0 }}">
+                    <input type="hidden" name="currency" value="{{ $pricing['currency'] ?? '' }}">
+                    <input type="hidden" name="price_total" value="{{ $pricing['total_amount'] ?? '' }}">
                 @endif
 
                 <button type="submit"

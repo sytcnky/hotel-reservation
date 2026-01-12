@@ -8,12 +8,12 @@
 
 @section('content')
     @php
-        /** @var \App\Models\RefundAttempt $refund */
         $order = $refund->order;
 
-        $amount = number_format((float) ($refund->amount ?? 0), 2, ',', '.');
-        $currency = strtoupper((string) ($refund->currency ?? ''));
-        $amountText = trim($amount . ($currency !== '' ? (' ' . $currency) : ''));
+    $amountText = \App\Support\Currency\CurrencyPresenter::format(
+        $refund->amount ?? null,
+        $refund->currency ?? null
+    );
     @endphp
 
     <h2>Geri ödemeniz yapıldı,</h2>

@@ -7,7 +7,7 @@ use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\TourService;
 use App\Services\CampaignPlacementViewService;
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 
@@ -69,12 +69,44 @@ class TourController extends Controller
     }
 
     /**
+     * UI currency için "adult" fiyatını çözer.
+     * - Hardcode TRY yok.
+     * - firstCurrency fallback yok.
+     * - currency yoksa veya o currency altında adult yoksa null döner.
+     */
+    private function resolveAdultPriceForCurrency(array $prices, ?string $currencyCode): array
+    {
+        $code = strtoupper(trim((string) $currencyCode));
+        if ($code === '' || empty($prices)) {
+            return ['currency' => null, 'adult' => null];
+        }
+
+        $cfg = $prices[$code] ?? null;
+        if (! is_array($cfg)) {
+            return ['currency' => null, 'adult' => null];
+        }
+
+        $adult = $cfg['adult'] ?? null;
+        if (! is_numeric($adult)) {
+            return ['currency' => null, 'adult' => null];
+        }
+
+        $adult = (float) $adult;
+        if ($adult <= 0) {
+            return ['currency' => null, 'adult' => null];
+        }
+
+        return ['currency' => $code, 'adult' => $adult];
+    }
+
+    /**
      * Listeleme sayfası
      */
     public function index()
     {
         $uiLocale   = app()->getLocale();
         $baseLocale = LocaleHelper::defaultCode();
+        $uiCurrency = CurrencyContext::code();
 
         $page = StaticPage::query()
             ->where('key', 'tour_page')
@@ -89,9 +121,14 @@ class TourController extends Controller
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(function (Tour $t) use ($uiLocale, $baseLocale) {
+            ->map(function (Tour $t) use ($uiLocale, $baseLocale, $uiCurrency) {
                 $prices   = $t->prices ?? [];
                 $tourName = $this->localize($t->name, $uiLocale, $baseLocale);
+
+                $resolved = $this->resolveAdultPriceForCurrency(
+                    is_array($prices) ? $prices : [],
+                    $uiCurrency
+                );
 
                 // NOTE:
                 // - cover_image accessor'ı her zaman ImageHelper::normalize(...) formatı döner (yoksa placeholder).
@@ -104,7 +141,11 @@ class TourController extends Controller
                     'short_description' => $this->localize($t->short_description, $uiLocale, $baseLocale),
                     'category'          => $t->category?->name_l,
                     'category_slug'     => $t->category?->slug_l,
-                    'prices'            => $prices,
+
+                    // Fiyatlar (ham + UI currency için çözülmüş adult)
+                    'prices'            => is_array($prices) ? $prices : [],
+                    'ui_currency'       => $resolved['currency'],
+                    'adult_price'       => $resolved['adult'],
 
                     // Media (standart accessor)
                     'cover'             => $t->cover_image,
@@ -143,7 +184,7 @@ class TourController extends Controller
     {
         $uiLocale   = app()->getLocale();
         $baseLocale = LocaleHelper::defaultCode();
-        $currency   = strtoupper(CurrencyHelper::currentCode());
+        $uiCurrency = CurrencyContext::code();
 
         $tour = Tour::query()
             ->with(['category', 'media'])
@@ -158,6 +199,11 @@ class TourController extends Controller
         // - cover_image accessor'ı placeholder döndürdüğü için "cover boşsa placeholder" otomatik.
         $cover   = $tour->cover_image;
         $gallery = $tour->gallery_images;
+
+        $pricesRaw = $tour->prices ?? [];
+        $pricesRaw = is_array($pricesRaw) ? $pricesRaw : [];
+
+        $resolved = $this->resolveAdultPriceForCurrency($pricesRaw, $uiCurrency);
 
         // Hizmet isimleri (dahil / hariç)
         $includedIds = $tour->included_service_ids ?? [];
@@ -200,7 +246,12 @@ class TourController extends Controller
             'short_description' => $this->localize($tour->short_description, $uiLocale, $baseLocale),
             'long_description'  => $this->localize($tour->long_description, $uiLocale, $baseLocale),
             'notes'             => $this->localize($tour->notes, $uiLocale, $baseLocale),
-            'prices'            => $tour->prices ?? [],
+
+            // Fiyatlar (ham + UI currency için çözülmüş adult)
+            'prices'            => $pricesRaw,
+            'ui_currency'       => $resolved['currency'],
+            'adult_price'       => $resolved['adult'],
+
             'duration'          => $tour->duration,
             'start_time'        => $tour->start_time ? $tour->start_time->format('H:i') : null,
             'min_age'           => $tour->min_age,
@@ -218,7 +269,7 @@ class TourController extends Controller
 
         return view('pages.excursion.excursion-detail', [
             'tour'      => $viewData,
-            'currency'  => $currency,
+            'currency'  => $resolved['currency'], // Blade eski değişkeni bekliyorsa uyum için
             'campaigns' => $campaignService->buildForPlacement('tour_detail'),
         ]);
     }

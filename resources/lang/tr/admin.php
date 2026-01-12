@@ -119,7 +119,9 @@ return [
         'district' => 'İlçe',
         'province' => 'Şehir',
         'hotel' => 'Otel',
-        'status'=> 'Durum'
+        'status'=> 'Durum',
+        'currency' => 'Para Birimi',
+        'affix_position'=> 'Birim Pozisyonu',
     ],
     'user' => [
         'singular' => 'Kullanıcı',
