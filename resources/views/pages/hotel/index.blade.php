@@ -165,15 +165,15 @@
                                                 $type   = $hotel->from_price_type ?? null;
 
                                                 $suffix = match ($type) {
-                                                    'room_per_night'   => '/oda',
-                                                    'person_per_night' => '/kişi',
+                                                    'room_per_night'   => '/ oda',
+                                                    'person_per_night' => '/ kişi',
                                                     default            => '',
                                                 };
                                             @endphp
 
                                             @if(!is_null($amount))
                                                 <div class="mb-2">
-                                                    <span class="text-muted small d-block">Başlayan fiyat</span>
+                                                    <span class="text-muted small d-block">Gecelik başlayan fiyat</span>
                                                     <div class="fw-semibold fs-5">
                                                         {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currencyCode ?? null) }}
                                                         <span class="text-muted small">{{ $suffix }}</span>

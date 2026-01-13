@@ -7,7 +7,7 @@ use App\Models\Currency;
 use App\Models\Hotel;
 use App\Models\HotelCategory;
 use App\Models\StaticPage;
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -39,10 +39,16 @@ class HotelListingPageService
         [$checkin, $checkout] = $this->parseCheckinRange($checkinRaw);
 
         // ---- Currency ----
-        $currencyCode = CurrencyHelper::currentCode();
-        $currencyId   = Currency::query()
-            ->where('code', strtoupper($currencyCode))
-            ->value('id');
+        $currencyCode = CurrencyContext::code($request);
+        $currencyCode = $currencyCode ? strtoupper($currencyCode) : null;
+        $currencyId = null;
+
+        if ($currencyCode) {
+            $currencyId = Currency::query()
+                ->where('code', $currencyCode)
+                ->where('is_active', true)
+                ->value('id');
+        }
 
         if (! $currencyId) {
             return [
@@ -50,7 +56,7 @@ class HotelListingPageService
                 'page' => $page,
                 'c' => $c,
                 'loc' => $loc,
-                'currencyCode' => strtoupper($currencyCode),
+                'currencyCode' => $currencyCode,
 
                 'categories' => collect(),
                 'boardTypes' => collect(),
@@ -110,6 +116,8 @@ class HotelListingPageService
         );
 
         // ---- Min price subquery (only within base hotel ids) ----
+        // Not: tarih seçimi fiyatı DEĞİŞTİRMEZ; sadece baseHotelsSub ile listeyi daraltır.
+        // Buradaki from_price_amount her zaman odanın "mevcut en ucuz baz fiyatı"dır.
         $minPriceSub = \DB::table('room_rate_rules as rrr')
             ->join('rooms as r', 'r.id', '=', 'rrr.room_id')
             ->selectRaw('DISTINCT ON (r.hotel_id) r.hotel_id, rrr.amount as from_price_amount, rrr.price_type as from_price_type')
@@ -168,7 +176,7 @@ class HotelListingPageService
         );
 
         // ---- Location options (3-level: city > district > area) ----
-        [$cities, $districts, $areas, $ui] = $this->locationOptions3Level(
+        [$cities, $districts, $areas, $ui, $locked] = $this->locationOptions3Level(
             $currencyId,
             $validRule,
             [
@@ -513,6 +521,12 @@ class HotelListingPageService
         $hideDistrict = $districts->count() <= 1;
         $hideArea     = $areas->count() <= 1;
 
+        $locked = [
+            'city_id' => $cityId ? (int) $cityId : null,
+            'district_id' => $districtId ? (int) $districtId : null,
+            'area_id' => $areaId ? (int) $areaId : null,
+        ];
+
         return [
             $cities,
             $districts,
@@ -522,11 +536,7 @@ class HotelListingPageService
                 'hide_district' => $hideDistrict,
                 'hide_area' => $hideArea,
             ],
-            [
-                'city_id' => $cityId ? (int) $cityId : null,
-                'district_id' => $districtId ? (int) $districtId : null,
-                'area_id' => $areaId ? (int) $areaId : null,
-            ],
+            $locked,
         ];
     }
 }

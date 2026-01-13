@@ -502,7 +502,7 @@ class PaymentController extends Controller
         return redirect()->to(localized_route('payment', ['code' => $checkout->code]));
     }
 
-    public function startGuest(Request $request)
+    public function startGuest(Request $request, CampaignViewModelService $campaignVm)
     {
         $guest = $request->validate([
             'guest_first_name' => ['required', 'string', 'min:2'],
@@ -526,9 +526,6 @@ class PaymentController extends Controller
 
         $campaignDiscountTotal = 0.0;
         $campaignSnapshot      = [];
-
-        /** @var CampaignViewModelService $campaignVm */
-        $campaignVm = app(CampaignViewModelService::class);
 
         $cartCampaigns = $campaignVm->buildCartCampaignsForUser(
             null,

@@ -6,7 +6,6 @@ use App\Models\Coupon;
 use App\Models\User;
 use App\Models\UserCoupon;
 use App\Support\Currency\CurrencyPresenter;
-use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Carbon;
 
 class CouponViewModelService
@@ -164,16 +163,11 @@ class CouponViewModelService
          |--------------------------------------------------------------------------
          | Para birimi bazlı alt limit / maksimum indirim
          |--------------------------------------------------------------------------
+         |
+         | NOT: currency_data model cast (array) üzerinden okunur.
+         | getRawOriginal + json_decode kaldırıldı.
          */
-        $currencyDataRaw = $coupon->getRawOriginal('currency_data');
-
-        $currencyData = [];
-        if (! empty($currencyDataRaw)) {
-            $decoded = json_decode($currencyDataRaw, true);
-            if (is_array($decoded)) {
-                $currencyData = $decoded;
-            }
-        }
+        $currencyData = (array) ($coupon->currency_data ?? []);
 
         $currencyRow = null;
 
@@ -270,7 +264,12 @@ class CouponViewModelService
         }
 
         return [
+            // Pivot id (UserCoupon)
             'id'                    => $pivot->id,
+
+            // P0-2 için sözleşme alanı (Coupon id) — PaymentController snapshot mapping bunu kullanacak.
+            'coupon_id'             => $coupon->id,
+
             'code'                  => $coupon->code ?: ('#' . $coupon->id),
 
             'badge_main'            => $badgeMainValue,
@@ -370,5 +369,4 @@ class CouponViewModelService
 
         return [$isApplicable, $disabledReason, $discount];
     }
-
 }

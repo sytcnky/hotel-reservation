@@ -6,12 +6,11 @@ use App\Models\BedType;
 use App\Models\BoardType;
 use App\Models\Currency;
 use App\Models\Hotel;
-use App\Models\HotelCategory;
 use App\Models\Location;
 use App\Models\Room;
 use App\Models\RoomRateRule;
-use App\Models\StaticPage;
 use App\Services\CampaignPlacementViewService;
+use App\Services\HotelListingPageService;
 use App\Services\RoomRateResolver;
 use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
@@ -184,6 +183,12 @@ class HotelController extends Controller
 
     /**
      * Verilen oda + form context için fiyatı çözer.
+     *
+     * Kararlar:
+     * - Oda kartında üstte: total (çocuk indirimi dahil olabilir)
+     * - Altta küçük: nightly baz fiyat (çocuk indirimi uygulanmadan)
+     * - price_mode=room ise nightly = room_per_night
+     * - price_mode=person ise nightly = adult_per_night (baz), child_per_night opsiyonel taşınabilir
      */
     private function resolveRoomPricing(Room $room, array $context): ?array
     {
@@ -203,6 +208,7 @@ class HotelController extends Controller
         $checkin  = $context['checkin'];
         $checkout = $context['checkout'];
 
+        // checkout (çıkış) fiyatlanmaz; range inclusive çalıştığı için checkout-1
         $rangeEnd = (clone $checkout)->subDay();
 
         $range = $resolver->resolveRange(
@@ -219,33 +225,37 @@ class HotelController extends Controller
             return null;
         }
 
+        // Kapalı / ok değilse fiyat çıkmaz
         if ($range->contains(fn ($d) => ($d['closed'] ?? false) === true)) {
             return null;
         }
-
         if ($range->contains(fn ($d) => ($d['ok'] ?? false) !== true)) {
             return null;
         }
 
         $first = $range->first();
-        $total = $range->sum('total');
+        $total = (float) $range->sum('total');
 
         $currencyCode = $this->resolveCurrencyCode();
         if (! $currencyCode) {
             return null;
         }
 
-        $priceMode = $first['price_mode'] ?? null; // 'room' | 'person'
+        $priceMode  = $first['price_mode'] ?? null; // 'room' | 'person'
+        $unitAmount = (float) ($first['unit_amount'] ?? 0); // baz nightly (adult baz / room baz)
 
+        // Baz nightly her zaman unit_amount (çocuk indirimsiz baz)
         if ($priceMode === 'room') {
-            $roomPerNight = (float) ($first['unit_amount'] ?? 0);
-
             return [
                 'mode'             => 'per_room',
                 'nights'           => $nights,
                 'total_amount'     => $total,
                 'currency'         => $currencyCode,
-                'room_per_night'   => $roomPerNight,
+
+                // UI küçük satır: gecelik baz oda fiyatı
+                'room_per_night'   => $unitAmount,
+
+                // bilgi amaçlı
                 'adult_count'      => $adults,
                 'child_count'      => $children,
                 'adult_per_night'  => null,
@@ -253,15 +263,19 @@ class HotelController extends Controller
             ];
         }
 
-        $unitAmount = (float) ($first['unit_amount'] ?? 0);
-        $childPct   = $first['meta']['child_discount_percent'] ?? null;
-
+        // person mode: nightly küçük satırda yetişkin baz fiyatı gösterilecek
         $adultPerNight = $unitAmount;
-        $childPerNight = $unitAmount;
 
-        if ($childPct !== null) {
-            $pct           = max(0, min(100, (float) $childPct));
-            $childPerNight = $unitAmount * (1 - $pct / 100);
+        // Çocuk indirimi sadece bilgi/opsiyonel; UI isterse ayrı satır gösterebilir.
+        $childPerNight = null;
+        if ($children > 0) {
+            $childPerNight = $unitAmount;
+
+            $childPct = $first['meta']['child_discount_percent'] ?? null;
+            if ($childPct !== null) {
+                $pct = max(0, min(100, (float) $childPct));
+                $childPerNight = $unitAmount * (1 - $pct / 100);
+            }
         }
 
         return [
@@ -269,11 +283,15 @@ class HotelController extends Controller
             'nights'          => $nights,
             'total_amount'    => $total,
             'currency'        => $currencyCode,
+
+            // UI küçük satır (baz): yetişkin gecelik (indirimsiz baz)
             'room_per_night'  => null,
             'adult_count'     => $adults,
             'child_count'     => $children,
             'adult_per_night' => $adultPerNight,
-            'child_per_night' => $children > 0 ? $childPerNight : null,
+
+            // bilgi/opsiyonel
+            'child_per_night' => $childPerNight,
         ];
     }
 
@@ -521,466 +539,13 @@ class HotelController extends Controller
         ]);
     }
 
-    public function index(Request $request)
+    /**
+     * Otel listeleme sayfası: tek kaynak HotelListingPageService.
+     */
+    public function index(Request $request, HotelListingPageService $service)
     {
-        $locale = App::getLocale();
+        $data = $service->build($request);
 
-        $page = StaticPage::query()
-            ->where('key', 'hotel_page')
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        $c   = $page->content ?? [];
-        $loc = app()->getLocale();
-
-        // ---- Filter inputs (Sprint-1 contract) ----
-        $categoryId  = $request->query('category_id');
-        $boardTypeId = $request->query('board_type_id');
-
-        $cityId     = $request->query('city_id');
-        $districtId = $request->query('district_id');
-        $areaId     = $request->query('area_id');
-
-        $guests = max(1, (int) $request->query('guests', 2));
-
-        $checkinRaw = $request->query('checkin');
-
-        $checkin  = null;
-        $checkout = null;
-
-        if ($checkinRaw) {
-            $range = $this->parseDateRange($checkinRaw);
-            if ($range !== null) {
-                [$checkin, $checkout] = $range;
-            }
-        }
-
-        // ---- Currency (tek otorite) ----
-        $currencyCode = $this->resolveCurrencyCode();
-        $currencyId   = $this->resolveCurrencyId();
-
-        if (! $currencyId) {
-            return view('pages.hotel.index', [
-                'hotels' => collect(),
-                'page' => $page,
-                'c' => $c,
-                'loc' => $loc,
-                'currencyCode' => $currencyCode,
-                'categories' => collect(),
-                'boardTypes' => collect(),
-                'maxGuests' => 1,
-                'cityOptions' => collect(),
-                'districtOptions' => collect(),
-                'areaOptions' => collect(),
-                'filters' => [
-                    'category_id' => $categoryId ? (int) $categoryId : null,
-                    'board_type_id' => $boardTypeId ? (int) $boardTypeId : null,
-                    'guests' => $guests,
-                    'checkin' => $checkinRaw,
-                    'city_id' => $cityId ? (int) $cityId : null,
-                    'district_id' => $districtId ? (int) $districtId : null,
-                    'area_id' => $areaId ? (int) $areaId : null,
-                ],
-            ]);
-        }
-
-        // ---- Base validity rule for listing/filters (AC-2 + AC-7) ----
-        $validRule = function ($q) use ($currencyId) {
-            $q->where('rrr.is_active', true)
-                ->where('rrr.closed', false)
-                ->where('rrr.currency_id', $currencyId)
-                ->where(function ($qq) {
-                    $qq->whereNull('rrr.allotment')
-                        ->orWhere('rrr.allotment', '>', 0);
-                });
-        };
-
-        // ---- Eligible hotel location ids (for location option datasets) ----
-        $eligibleAreaLocationIds = Hotel::query()
-            ->where('hotels.is_active', true)
-            ->when($categoryId, fn ($q) => $q->where('hotels.hotel_category_id', (int) $categoryId))
-            ->when($guests > 0, function ($q) use ($guests) {
-                $q->whereExists(function ($qq) use ($guests) {
-                    $qq->selectRaw('1')
-                        ->from('rooms as rcap')
-                        ->whereColumn('rcap.hotel_id', 'hotels.id')
-                        ->where('rcap.is_active', true)
-                        ->whereRaw('(COALESCE(rcap.capacity_adults,0) + COALESCE(rcap.capacity_children,0)) >= ?', [$guests]);
-                });
-            })
-            ->when($boardTypeId, function ($q) use ($boardTypeId, $validRule) {
-                $boardTypeId = (int) $boardTypeId;
-
-                $q->whereExists(function ($qq) use ($boardTypeId, $validRule) {
-                    $qq->selectRaw('1')
-                        ->from('rooms as r')
-                        ->join('room_rate_rules as rrr', 'rrr.room_id', '=', 'r.id')
-                        ->whereColumn('r.hotel_id', 'hotels.id')
-                        ->where('r.is_active', true)
-                        ->where('rrr.board_type_id', $boardTypeId);
-
-                    $validRule($qq);
-                });
-            })
-            ->when($checkin && $checkout, function ($q) use ($checkin, $checkout, $validRule) {
-                $rangeStart = $checkin->toDateString();
-                $rangeEnd   = (clone $checkout)->subDay()->toDateString();
-
-                $q->whereExists(function ($qq) use ($rangeStart, $rangeEnd, $validRule) {
-                    $qq->selectRaw('1')
-                        ->from('rooms as r')
-                        ->join('room_rate_rules as rrr', 'rrr.room_id', '=', 'r.id')
-                        ->whereColumn('r.hotel_id', 'hotels.id')
-                        ->where('r.is_active', true);
-
-                    $validRule($qq);
-
-                    $qq->where(function ($q0) use ($rangeStart, $rangeEnd) {
-                        $q0->where(function ($a) {
-                            $a->whereNull('rrr.date_start')
-                                ->whereNull('rrr.date_end');
-                        })->orWhere(function ($b) use ($rangeStart, $rangeEnd) {
-                            $b->where(function ($x) use ($rangeEnd) {
-                                $x->whereNull('rrr.date_start')
-                                    ->orWhere('rrr.date_start', '<=', $rangeEnd);
-                            })->where(function ($y) use ($rangeStart) {
-                                $y->whereNull('rrr.date_end')
-                                    ->orWhere('rrr.date_end', '>=', $rangeStart);
-                            });
-                        });
-                    });
-                });
-            })
-            ->select('hotels.location_id')
-            ->distinct()
-            ->pluck('location_id')
-            ->filter()
-            ->map(fn ($v) => (int) $v)
-            ->values()
-            ->all();
-
-        $areasWithParents = Location::query()
-            ->with('parent.parent')
-            ->whereIn('id', $eligibleAreaLocationIds)
-            ->get(['id', 'parent_id', 'name', 'type']);
-
-        $availableDistrictIds = $areasWithParents
-            ->map(fn ($a) => $a->parent?->id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $availableCityIds = $areasWithParents
-            ->map(fn ($a) => $a->parent?->parent?->id)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $cityOptions = Location::query()
-            ->whereIn('id', $availableCityIds)
-            ->where('type', 'province')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        if (! $cityId && $cityOptions->count() === 1) {
-            $cityId = (int) $cityOptions->first()->id;
-        }
-
-        $districtOptions = Location::query()
-            ->whereIn('id', $availableDistrictIds)
-            ->where('type', 'district')
-            ->when($cityId, fn ($q) => $q->where('parent_id', (int) $cityId))
-            ->orderBy('name')
-            ->get(['id', 'parent_id', 'name']);
-
-        if (! $districtId && $districtOptions->count() === 1) {
-            $districtId = (int) $districtOptions->first()->id;
-        }
-
-        $areaOptions = Location::query()
-            ->whereIn('id', $eligibleAreaLocationIds)
-            ->where('type', 'area')
-            ->when($districtId, fn ($q) => $q->where('parent_id', (int) $districtId))
-            ->orderBy('name')
-            ->get(['id', 'parent_id', 'name']);
-
-        if (! $areaId && $areaOptions->count() === 1) {
-            $areaId = (int) $areaOptions->first()->id;
-        }
-
-        // priority: area > district > city
-        $selectedLocationId = $areaId ?: ($districtId ?: $cityId);
-
-        // ---- Location subtree ids (adjacency) ----
-        $locationIds = null;
-
-        if ($selectedLocationId) {
-            $selectedLocationId = (int) $selectedLocationId;
-
-            $rows = \DB::select(
-                "
-                WITH RECURSIVE tree AS (
-                    SELECT id FROM locations WHERE id = ?
-                    UNION ALL
-                    SELECT l.id
-                    FROM locations l
-                    JOIN tree t ON l.parent_id = t.id
-                )
-                SELECT id FROM tree
-                ",
-                [$selectedLocationId]
-            );
-
-            $locationIds = collect($rows)->pluck('id')->map(fn ($v) => (int) $v)->values()->all();
-
-            if (empty($locationIds)) {
-                $locationIds = [$selectedLocationId];
-            }
-        }
-
-        // ---- Subquery: min price + price_type per hotel (unchanged) ----
-        $minPriceSub = \DB::table('room_rate_rules as rrr')
-            ->join('rooms as r', 'r.id', '=', 'rrr.room_id')
-            ->selectRaw('DISTINCT ON (r.hotel_id) r.hotel_id, rrr.amount as from_price_amount, rrr.price_type as from_price_type')
-            ->where('r.is_active', true)
-            ->where(function ($q) use ($validRule) {
-                $validRule($q);
-            })
-            ->orderBy('r.hotel_id')
-            ->orderBy('rrr.amount', 'asc')
-            ->orderBy('rrr.id', 'asc');
-
-        // ---- Hotels query ----
-        $hotelsQuery = Hotel::query()
-            ->with([
-                'location.parent.parent',
-                'featureGroups.facilities',
-                'starRating',
-                'media',
-            ])
-            ->joinSub($minPriceSub, 'mp', function ($join) {
-                $join->on('mp.hotel_id', '=', 'hotels.id');
-            })
-            ->where('hotels.is_active', true)
-            ->addSelect('hotels.*')
-            ->addSelect([
-                'from_price_amount' => 'mp.from_price_amount',
-                'from_price_type'   => 'mp.from_price_type',
-            ]);
-
-        // F-1: Category
-        if ($categoryId) {
-            $hotelsQuery->where('hotels.hotel_category_id', (int) $categoryId);
-        }
-
-        // F-3: Location (selected + descendants)
-        if (is_array($locationIds)) {
-            $hotelsQuery->whereIn('hotels.location_id', $locationIds);
-        }
-
-        // F-5: Capacity total
-        if ($guests > 0) {
-            $hotelsQuery->whereExists(function ($q) use ($guests) {
-                $q->selectRaw('1')
-                    ->from('rooms as rcap')
-                    ->whereColumn('rcap.hotel_id', 'hotels.id')
-                    ->where('rcap.is_active', true)
-                    ->whereRaw('(COALESCE(rcap.capacity_adults,0) + COALESCE(rcap.capacity_children,0)) >= ?', [$guests]);
-            });
-        }
-
-        // F-4: Board type
-        if ($boardTypeId) {
-            $boardTypeId = (int) $boardTypeId;
-
-            $hotelsQuery->whereExists(function ($q) use ($boardTypeId, $validRule) {
-                $q->selectRaw('1')
-                    ->from('rooms as r')
-                    ->join('room_rate_rules as rrr', 'rrr.room_id', '=', 'r.id')
-                    ->whereColumn('r.hotel_id', 'hotels.id')
-                    ->where('r.is_active', true)
-                    ->where('rrr.board_type_id', $boardTypeId);
-
-                $validRule($q);
-            });
-        }
-
-        // F-2: Date range (only narrow list)
-        if ($checkin && $checkout) {
-            $rangeStart = $checkin->toDateString();
-            $rangeEnd   = (clone $checkout)->subDay()->toDateString();
-
-            $hotelsQuery->whereExists(function ($q) use ($rangeStart, $rangeEnd, $validRule) {
-                $q->selectRaw('1')
-                    ->from('rooms as r')
-                    ->join('room_rate_rules as rrr', 'rrr.room_id', '=', 'r.id')
-                    ->whereColumn('r.hotel_id', 'hotels.id')
-                    ->where('r.is_active', true);
-
-                $validRule($q);
-
-                $q->where(function ($qq) use ($rangeStart, $rangeEnd) {
-                    $qq->where(function ($q0) {
-                        $q0->whereNull('rrr.date_start')
-                            ->whereNull('rrr.date_end');
-                    })->orWhere(function ($q1) use ($rangeStart, $rangeEnd) {
-                        $q1->where(function ($a) use ($rangeEnd) {
-                            $a->whereNull('rrr.date_start')
-                                ->orWhere('rrr.date_start', '<=', $rangeEnd);
-                        })->where(function ($b) use ($rangeStart) {
-                            $b->whereNull('rrr.date_end')
-                                ->orWhere('rrr.date_end', '>=', $rangeStart);
-                        });
-                    });
-                });
-            });
-        }
-
-        // UI için max kapasite (1..max) — guests filtresi hariç
-        $maxGuests = (int) \DB::table('rooms as r')
-            ->join('hotels as h', 'h.id', '=', 'r.hotel_id')
-            ->where('h.is_active', true)
-            ->where('r.is_active', true)
-            ->when($categoryId, fn ($q) => $q->where('h.hotel_category_id', (int) $categoryId))
-            ->when(is_array($locationIds), fn ($q) => $q->whereIn('h.location_id', $locationIds))
-            ->whereExists(function ($q) use ($currencyId, $boardTypeId, $checkin, $checkout, $validRule) {
-                $q->selectRaw('1')
-                    ->from('room_rate_rules as rrr')
-                    ->whereColumn('rrr.room_id', 'r.id');
-
-                $validRule($q);
-
-                if ($boardTypeId) {
-                    $q->where('rrr.board_type_id', (int) $boardTypeId);
-                }
-
-                if ($checkin && $checkout) {
-                    $rangeStart = $checkin->toDateString();
-                    $rangeEnd   = (clone $checkout)->subDay()->toDateString();
-
-                    $q->where(function ($qq) use ($rangeStart, $rangeEnd) {
-                        $qq->where(function ($q0) {
-                            $q0->whereNull('rrr.date_start')
-                                ->whereNull('rrr.date_end');
-                        })->orWhere(function ($q1) use ($rangeStart, $rangeEnd) {
-                            $q1->where(function ($a) use ($rangeEnd) {
-                                $a->whereNull('rrr.date_start')
-                                    ->orWhere('rrr.date_start', '<=', $rangeEnd);
-                            })->where(function ($b) use ($rangeStart) {
-                                $b->whereNull('rrr.date_end')
-                                    ->orWhere('rrr.date_end', '>=', $rangeStart);
-                            });
-                        });
-                    });
-                }
-            })
-            ->max(\DB::raw('(COALESCE(r.capacity_adults,0) + COALESCE(r.capacity_children,0))'));
-
-        $maxGuests = max(1, $maxGuests);
-
-        $hotels = $hotelsQuery
-            ->orderByRaw("hotels.name->>? asc", [$locale])
-            ->get();
-
-        // ---- Option datasets for other filter UI ----
-        $categories = HotelCategory::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get(['id', 'name']);
-
-        // ---- BoardType options: sadece kayıt varsa (mevcut filtre bağlamında) ----
-        // Not: board type options üretirken, mevcut board_type_id filtresini bilerek KULLANMIYORUZ
-        // (yoksa select kendini kilitler).
-        $availableBoardTypeIdsQuery = \DB::table('room_rate_rules as rrr')
-            ->join('rooms as r', 'r.id', '=', 'rrr.room_id')
-            ->join('hotels as h', 'h.id', '=', 'r.hotel_id')
-            ->where('h.is_active', true)
-            ->where('r.is_active', true)
-            ->whereNotNull('rrr.board_type_id');
-
-        // geçerli kural (AC-2 + AC-7)
-        $validRule($availableBoardTypeIdsQuery);
-
-        // category
-        if ($categoryId) {
-            $availableBoardTypeIdsQuery->where('h.hotel_category_id', (int) $categoryId);
-        }
-
-        // location (city/district/area seçimine göre ürettiğin $locationIds varsa)
-        if (is_array($locationIds)) {
-            $availableBoardTypeIdsQuery->whereIn('h.location_id', $locationIds);
-        }
-
-        // guests
-        if ($guests > 0) {
-            $availableBoardTypeIdsQuery->whereRaw('(COALESCE(r.capacity_adults,0) + COALESCE(r.capacity_children,0)) >= ?', [$guests]);
-        }
-
-        // date range
-        if ($checkin && $checkout) {
-            $rangeStart = $checkin->toDateString();
-            $rangeEnd   = (clone $checkout)->subDay()->toDateString();
-
-            $availableBoardTypeIdsQuery->where(function ($qq) use ($rangeStart, $rangeEnd) {
-                $qq->where(function ($q0) {
-                    $q0->whereNull('rrr.date_start')
-                        ->whereNull('rrr.date_end');
-                })->orWhere(function ($q1) use ($rangeStart, $rangeEnd) {
-                    $q1->where(function ($a) use ($rangeEnd) {
-                        $a->whereNull('rrr.date_start')
-                            ->orWhere('rrr.date_start', '<=', $rangeEnd);
-                    })->where(function ($b) use ($rangeStart) {
-                        $b->whereNull('rrr.date_end')
-                            ->orWhere('rrr.date_end', '>=', $rangeStart);
-                    });
-                });
-            });
-        }
-
-        $availableBoardTypeIds = $availableBoardTypeIdsQuery
-            ->distinct()
-            ->pluck('rrr.board_type_id')
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $boardTypes = empty($availableBoardTypeIds)
-            ? collect()
-            : BoardType::query()
-                ->where('is_active', true)
-                ->whereIn('id', $availableBoardTypeIds)
-                ->orderBy('sort_order')
-                ->get(['id', 'name']);
-
-        return view('pages.hotel.index', [
-            'hotels' => $hotels,
-            'page' => $page,
-            'c' => $c,
-            'loc' => $loc,
-            'currencyCode' => $currencyCode,
-
-            'categories' => $categories,
-            'boardTypes' => $boardTypes,
-            'maxGuests' => $maxGuests,
-
-            // NEW: location UI options
-            'cityOptions' => $cityOptions,
-            'districtOptions' => $districtOptions,
-            'areaOptions' => $areaOptions,
-
-            'filters' => [
-                'category_id' => $categoryId ? (int) $categoryId : null,
-                'board_type_id' => $boardTypeId ? (int) $boardTypeId : null,
-                'guests' => $guests,
-                'checkin' => $checkinRaw,
-
-                'city_id' => $cityId ? (int) $cityId : null,
-                'district_id' => $districtId ? (int) $districtId : null,
-                'area_id' => $areaId ? (int) $areaId : null,
-            ],
-        ]);
+        return view('pages.hotel.index', $data);
     }
 }
