@@ -15,22 +15,61 @@ class CheckoutController extends Controller
 {
     /**
      * Tüm sepet ekleme işlemleri için ortak helper.
+     *
+     * @return bool true: eklendi, false: currency mismatch → cart reset
      */
-    private function addToCart(string $productType, int $productId, float $amount, string $currency, array $snapshot): void
+    private function addToCart(string $productType, int $productId, float $amount, string $currency, array $snapshot): bool
     {
         $cart = session()->get('cart', [
             'items' => [],
         ]);
 
-        $cart['items'][] = [
+        $items = (array) ($cart['items'] ?? []);
+
+        $incomingCurrency = strtoupper((string) $currency);
+
+        // Mixed currency guard (fail-fast): cart invariant bozulursa resetle
+        $cartCurrency = null;
+        foreach ($items as $ci) {
+            $c = $ci['currency'] ?? null;
+            if (! $c) {
+                continue;
+            }
+
+            $c = strtoupper((string) $c);
+
+            if ($cartCurrency === null) {
+                $cartCurrency = $c;
+                continue;
+            }
+
+            // extra safety: mevcut items içinde mismatch varsa da resetle
+            if ($c !== $cartCurrency) {
+                session()->forget('cart');
+                session()->forget('cart.applied_coupons');
+                return false;
+            }
+        }
+
+        if ($cartCurrency !== null && $incomingCurrency !== $cartCurrency) {
+            session()->forget('cart');
+            session()->forget('cart.applied_coupons');
+            return false;
+        }
+
+        $items[] = [
             'product_type' => $productType,
             'product_id'   => $productId,
             'amount'       => $amount,
-            'currency'     => strtoupper($currency),
+            'currency'     => $incomingCurrency,
             'snapshot'     => $snapshot,
         ];
 
+        $cart['items'] = $items;
+
         session()->put('cart', $cart);
+
+        return true;
     }
 
     /**
@@ -66,13 +105,19 @@ class CheckoutController extends Controller
         $currency = $snapshot['currency'];
         $routeId  = (int) ($snapshot['route_id'] ?? 0);
 
-        $this->addToCart(
+        $ok = $this->addToCart(
             'transfer',
             $routeId,
             $amount,
             $currency,
             $snapshot,
         );
+
+        if (! $ok) {
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         return redirect()
             ->to(localized_route('cart'))
@@ -97,13 +142,19 @@ class CheckoutController extends Controller
         $data['children'] = $data['children'] ?? 0;
         $data['infants']  = $data['infants'] ?? 0;
 
-        $this->addToCart(
+        $ok = $this->addToCart(
             'tour',
             (int) $data['tour_id'],
             (float) $data['price_total'],
             $data['currency'],
             $data,
         );
+
+        if (! $ok) {
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         return redirect()
             ->to(localized_route('cart'))
@@ -138,13 +189,19 @@ class CheckoutController extends Controller
             $snapshot['hotel_image'] = $img;
         }
 
-        $this->addToCart(
+        $ok = $this->addToCart(
             'hotel_room',
             (int) $data['room_id'],
             (float) $data['price_total'],
             $data['currency'],
             $snapshot,
         );
+
+        if (! $ok) {
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         return redirect()
             ->to(localized_route('cart'))
@@ -177,13 +234,19 @@ class CheckoutController extends Controller
         }
 
         // Sepette “şimdi ödenecek” tutar olarak ön ödemeyi kullanıyoruz
-        $this->addToCart(
+        $ok = $this->addToCart(
             'villa',
             (int) $data['villa_id'],
             (float) $data['price_prepayment'],
             $data['currency'],
             $data,
         );
+
+        if (! $ok) {
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         return redirect()
             ->to(localized_route('cart'))

@@ -10,6 +10,38 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    /**
+     * Sepette currency mismatch varsa cart'ı invalidate eder.
+     * - cart + applied_coupons temizlenir
+     * - true döner (guard triggered)
+     */
+    private function resetCartIfCurrencyMismatch(array $items): bool
+    {
+        $cartCurrency = null;
+
+        foreach ($items as $ci) {
+            $c = $ci['currency'] ?? null;
+            if (! $c) {
+                continue;
+            }
+
+            $c = strtoupper((string) $c);
+
+            if ($cartCurrency === null) {
+                $cartCurrency = $c;
+                continue;
+            }
+
+            if ($c !== $cartCurrency) {
+                session()->forget('cart');
+                session()->forget('cart.applied_coupons');
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function index(
         Request $request,
         CouponViewModelService $couponVm,
@@ -22,6 +54,13 @@ class CartController extends Controller
 
         $items = $cart['items'] ?? [];
 
+        // Mixed currency guard (fail-fast)
+        if ($this->resetCartIfCurrencyMismatch($items)) {
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
+
         $cartItems    = $items;
         $cartSubtotal = 0;
         $cartCurrency = null;
@@ -31,7 +70,7 @@ class CartController extends Controller
             $cartSubtotal += $amount;
 
             if ($cartCurrency === null && ! empty($ci['currency'])) {
-                $cartCurrency = $ci['currency'];
+                $cartCurrency = strtoupper((string) $ci['currency']);
             }
         }
 
@@ -153,6 +192,13 @@ class CartController extends Controller
                 ->with('err', 'err_cart_empty');
         }
 
+        // Mixed currency guard (fail-fast)
+        if ($this->resetCartIfCurrencyMismatch($items)) {
+            return redirect()
+                ->back()
+                ->with('err', 'err_cart_currency_mismatch');
+        }
+
         $cartSubtotal = 0;
         $cartCurrency = null;
 
@@ -161,7 +207,7 @@ class CartController extends Controller
             $cartSubtotal += $amount;
 
             if ($cartCurrency === null && ! empty($ci['currency'])) {
-                $cartCurrency = $ci['currency'];
+                $cartCurrency = strtoupper((string) $ci['currency']);
             }
         }
 

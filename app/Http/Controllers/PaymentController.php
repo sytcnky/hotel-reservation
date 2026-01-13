@@ -390,7 +390,16 @@ class PaymentController extends Controller
 
         $items = $cart['items'];
 
-        [$cartTotal, $cartCurrency] = $this->computeCartTotalAndCurrency($items);
+        [$cartTotal, $cartCurrency, $isCurrencyMismatch] = $this->computeCartTotalAndCurrency($items);
+
+        if ($isCurrencyMismatch) {
+            session()->forget('cart');
+            session()->forget('cart.applied_coupons');
+
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         if ($cartTotal <= 0 || $cartCurrency === null) {
             return redirect()->to(localized_route('cart'))->with('err', 'err_cart_empty');
@@ -518,7 +527,16 @@ class PaymentController extends Controller
 
         $items = $cart['items'];
 
-        [$cartTotal, $cartCurrency] = $this->computeCartTotalAndCurrency($items);
+        [$cartTotal, $cartCurrency, $isCurrencyMismatch] = $this->computeCartTotalAndCurrency($items);
+
+        if ($isCurrencyMismatch) {
+            session()->forget('cart');
+            session()->forget('cart.applied_coupons');
+
+            return redirect()
+                ->to(localized_route('cart'))
+                ->with('err', 'err_cart_currency_mismatch');
+        }
 
         if ($cartTotal <= 0 || $cartCurrency === null) {
             return redirect()->to(localized_route('cart'))->with('err', 'err_cart_empty');
@@ -716,21 +734,40 @@ class PaymentController extends Controller
         }
     }
 
+    /**
+     * Cart totals + currency invariant.
+     *
+     * @return array{0: float, 1: ?string, 2: bool} [cartTotal, cartCurrency, isCurrencyMismatch]
+     */
     private function computeCartTotalAndCurrency(array $items): array
     {
         $cartTotal    = 0.0;
         $cartCurrency = null;
+        $mismatch     = false;
 
         foreach ($items as $ci) {
             $amount = (float) ($ci['amount'] ?? 0);
             $cartTotal += $amount;
 
-            if ($cartCurrency === null && ! empty($ci['currency'])) {
-                $cartCurrency = $ci['currency'];
+            $c = $ci['currency'] ?? null;
+            if (! $c) {
+                continue;
+            }
+
+            $c = strtoupper((string) $c);
+
+            if ($cartCurrency === null) {
+                $cartCurrency = $c;
+                continue;
+            }
+
+            if ($c !== $cartCurrency) {
+                $mismatch = true;
+                break;
             }
         }
 
-        return [$cartTotal, $cartCurrency ? strtoupper($cartCurrency) : null];
+        return [$cartTotal, $cartCurrency, $mismatch];
     }
 
     private function generateCheckoutCode(): string

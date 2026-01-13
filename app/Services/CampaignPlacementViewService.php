@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Campaign;
+use App\Support\Helpers\I18nHelper;
+use App\Support\Helpers\LocaleHelper;
 
 class CampaignPlacementViewService
 {
@@ -20,8 +22,10 @@ class CampaignPlacementViewService
         $campaigns = Campaign::query()
             ->where('is_active', true)
             ->whereJsonContains('placements', $placement)
-            ->orderBy('priority')
-            ->orderByRaw('priority is null, priority asc')
+            // priority NULL en sonda, sonra priority DESC, stabil: id DESC
+            ->orderByRaw('priority is null asc')
+            ->orderByDesc('priority')
+            ->orderByDesc('id')
             ->get();
 
         return $campaigns
@@ -32,11 +36,14 @@ class CampaignPlacementViewService
 
     protected function toViewModel(Campaign $campaign): array
     {
-        $baseLocale = config('app.locale', 'tr');
-        $uiLocale   = app()->getLocale() ?: $baseLocale;
+        $uiLocale   = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
 
         $content = (array) ($campaign->content ?? []);
-        $block   = $this->pickLocaleBlock($content, $uiLocale, $baseLocale);
+        $block   = I18nHelper::pick($content, $uiLocale, $baseLocale);
+
+        // pick() array döndürmüyorsa güvenli boş array (fallback üretmeden)
+        $block = is_array($block) ? $block : [];
 
         $discount = (array) ($campaign->discount ?? []);
         $bgClass  = (string) ($discount['background_class'] ?? 'bg-primary');
@@ -64,25 +71,5 @@ class CampaignPlacementViewService
             'background_image'  => $campaign->background_image,
             'transparent_image' => $campaign->transparent_image,
         ];
-    }
-
-    protected function pickLocaleBlock(array $content, string $uiLocale, string $baseLocale): array
-    {
-        if (isset($content[$uiLocale]) && is_array($content[$uiLocale])) {
-            return $content[$uiLocale];
-        }
-
-        if (isset($content[$baseLocale]) && is_array($content[$baseLocale])) {
-            return $content[$baseLocale];
-        }
-
-        if (! empty($content)) {
-            $first = reset($content);
-            if (is_array($first)) {
-                return $first;
-            }
-        }
-
-        return [];
     }
 }
