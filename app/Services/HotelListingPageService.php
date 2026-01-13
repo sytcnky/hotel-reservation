@@ -38,17 +38,11 @@ class HotelListingPageService
         $checkinRaw = $request->query('checkin');
         [$checkin, $checkout] = $this->parseCheckinRange($checkinRaw);
 
-        // ---- Currency ----
+        // ---- Currency (tek otorite) ----
         $currencyCode = CurrencyContext::code($request);
         $currencyCode = $currencyCode ? strtoupper($currencyCode) : null;
-        $currencyId = null;
 
-        if ($currencyCode) {
-            $currencyId = Currency::query()
-                ->where('code', $currencyCode)
-                ->where('is_active', true)
-                ->value('id');
-        }
+        $currencyId = CurrencyContext::id($request);
 
         if (! $currencyId) {
             return [
@@ -244,7 +238,7 @@ class HotelListingPageService
             'page' => $page,
             'c' => $c,
             'loc' => $loc,
-            'currencyCode' => strtoupper($currencyCode),
+            'currencyCode' => $currencyCode,
 
             'categories' => $categories,
             'boardTypes' => $boardTypes,

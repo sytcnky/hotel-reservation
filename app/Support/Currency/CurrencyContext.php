@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 class CurrencyContext
 {
     /**
+     * Basit request-lifecycle cache:
+     * - code => active bool
+     * - code => Currency model
+     */
+    private static array $activeCache = [];
+    private static array $modelCache  = [];
+
+    /**
      * Çözüm sırası:
      * 1) auth()->user()->currency (aktifse)
      * 2) session('currency') (aktifse)
@@ -54,6 +62,9 @@ class CurrencyContext
         return null;
     }
 
+    /**
+     * Aktif Currency modelini döner (tek otorite).
+     */
     public static function model(?Request $request = null): ?Currency
     {
         $code = self::code($request);
@@ -61,10 +72,45 @@ class CurrencyContext
             return null;
         }
 
-        return Currency::query()
+        if (array_key_exists($code, self::$modelCache)) {
+            return self::$modelCache[$code];
+        }
+
+        $model = Currency::query()
             ->where('is_active', true)
             ->where('code', $code)
             ->first();
+
+        self::$modelCache[$code] = $model;
+
+        return $model;
+    }
+
+    /**
+     * Code -> ID çözümlemesini controller/service'lerden alıp tek otoriteye taşır.
+     */
+    public static function id(?Request $request = null): ?int
+    {
+        $m = self::model($request);
+        return $m?->id;
+    }
+
+    /**
+     * Code + ID birlikte gerektiğinde tek call.
+     *
+     * @return array{code:string, id:int}|null
+     */
+    public static function active(?Request $request = null): ?array
+    {
+        $m = self::model($request);
+        if (! $m) {
+            return null;
+        }
+
+        return [
+            'code' => (string) $m->code,
+            'id'   => (int) $m->id,
+        ];
     }
 
     /**
@@ -169,9 +215,17 @@ class CurrencyContext
 
     private static function isActiveCode(string $code): bool
     {
-        return Currency::query()
+        if (array_key_exists($code, self::$activeCache)) {
+            return (bool) self::$activeCache[$code];
+        }
+
+        $ok = Currency::query()
             ->where('is_active', true)
             ->where('code', $code)
             ->exists();
+
+        self::$activeCache[$code] = $ok;
+
+        return $ok;
     }
 }

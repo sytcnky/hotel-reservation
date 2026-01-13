@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\BedType;
 use App\Models\BoardType;
-use App\Models\Currency;
 use App\Models\Hotel;
 use App\Models\Location;
 use App\Models\Room;
@@ -192,8 +191,15 @@ class HotelController extends Controller
      */
     private function resolveRoomPricing(Room $room, array $context): ?array
     {
-        $currencyId = $this->resolveCurrencyId();
-        if (! $currencyId) {
+        // P2-3: Currency tek otorite (code + id burada çözülür)
+        $currency = CurrencyContext::model(request());
+        if (! $currency) {
+            return null;
+        }
+
+        $currencyId   = (int) $currency->id;
+        $currencyCode = strtoupper(trim((string) $currency->code));
+        if ($currencyId <= 0 || $currencyCode === '') {
             return null;
         }
 
@@ -235,11 +241,6 @@ class HotelController extends Controller
 
         $first = $range->first();
         $total = (float) $range->sum('total');
-
-        $currencyCode = $this->resolveCurrencyCode();
-        if (! $currencyCode) {
-            return null;
-        }
 
         $priceMode  = $first['price_mode'] ?? null; // 'room' | 'person'
         $unitAmount = (float) ($first['unit_amount'] ?? 0); // baz nightly (adult baz / room baz)
@@ -397,27 +398,6 @@ class HotelController extends Controller
             'region' => $region ?: $city,
             'city'   => $city,
         ];
-    }
-
-    private function resolveCurrencyCode(): ?string
-    {
-        $code = CurrencyContext::code(request());
-
-        $code = strtoupper(trim((string) $code));
-        return $code !== '' ? $code : null;
-    }
-
-    private function resolveCurrencyId(): ?int
-    {
-        $code = $this->resolveCurrencyCode();
-        if (! $code) {
-            return null;
-        }
-
-        return Currency::query()
-            ->where('code', $code)
-            ->where('is_active', true)
-            ->value('id');
     }
 
     /**

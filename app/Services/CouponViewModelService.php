@@ -135,29 +135,25 @@ class CouponViewModelService
         /** @var Coupon $coupon */
         $coupon = $pivot->coupon;
 
-        $baseLocale = config('app.locale', 'tr');
-        $uiLocale   = app()->getLocale();
+        $uiLocale = app()->getLocale();
 
         /*
          |--------------------------------------------------------------------------
          | Çoklu dil alanları (title / description / badge_main / badge_label)
          |--------------------------------------------------------------------------
          */
-        $titleData       = (array) ($coupon->title ?? []);
-        $descriptionData = (array) ($coupon->description ?? []);
-        $badgeLabelData  = (array) ($coupon->badge_label ?? []);
+        $title = is_array($coupon->title ?? null)
+            ? (string) ($coupon->title[$uiLocale] ?? '')
+            : '';
 
-        $title = $titleData[$uiLocale]
-            ?? $titleData[$baseLocale]
-            ?? (string) (array_values($titleData)[0] ?? '');
+        $description = is_array($coupon->description ?? null)
+            ? (string) ($coupon->description[$uiLocale] ?? '')
+            : '';
 
-        $description = $descriptionData[$uiLocale]
-            ?? $descriptionData[$baseLocale]
-            ?? (string) (array_values($descriptionData)[0] ?? '');
+        $badgeLabel = is_array($coupon->badge_label ?? null)
+            ? (string) ($coupon->badge_label[$uiLocale] ?? '')
+            : '';
 
-        $badgeLabel = $badgeLabelData[$uiLocale]
-            ?? $badgeLabelData[$baseLocale]
-            ?? (string) (array_values($badgeLabelData)[0] ?? '');
 
         /*
          |--------------------------------------------------------------------------
