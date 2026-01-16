@@ -43,7 +43,10 @@
 
                         <form method="post"
                               id="paymentForm"
-                              action="{{ localized_route('payment.process', ['code' => $paymentCode]) }}"
+                              action="{{ $checkout->type === \App\Models\CheckoutSession::TYPE_GUEST
+                                  ? URL::signedRoute(app()->getLocale() . '.payment.process', ['code' => $checkout->code])
+                                  : localized_route('payment.process', ['code' => $checkout->code])
+                              }}"
                               autocomplete="on"
                               novalidate>
                             @csrf

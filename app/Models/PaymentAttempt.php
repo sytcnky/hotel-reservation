@@ -16,7 +16,33 @@ class PaymentAttempt extends Model
     public const STATUS_CANCELLED   = 'cancelled';
     public const STATUS_EXPIRED     = 'expired';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'checkout_session_id',
+        'order_id',
+
+        'amount',
+        'currency',
+
+        'gateway',
+        'gateway_reference',
+
+        'status',
+
+        'idempotency_key',
+
+        'meta',
+        'ip_address',
+        'user_agent',
+
+        'started_at',
+        'completed_at',
+
+        'raw_request',
+        'raw_response',
+
+        'error_code',
+        'error_message',
+    ];
 
     protected $casts = [
         'amount'       => 'float',

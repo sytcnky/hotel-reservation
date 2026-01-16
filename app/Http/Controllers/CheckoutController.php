@@ -9,7 +9,7 @@ use App\Http\Requests\VillaBookingRequest;
 use App\Models\Hotel;
 use App\Models\TransferVehicle;
 use App\Models\Villa;
-use Illuminate\Http\Request;
+use App\Services\CartInvariant;
 
 class CheckoutController extends Controller
 {
@@ -18,8 +18,14 @@ class CheckoutController extends Controller
      *
      * @return bool true: eklendi, false: currency mismatch → cart reset
      */
-    private function addToCart(string $productType, int $productId, float $amount, string $currency, array $snapshot): bool
-    {
+    private function addToCart(
+        string $productType,
+        int $productId,
+        float $amount,
+        string $currency,
+        array $snapshot,
+        CartInvariant $cartInvariant
+    ): bool {
         $cart = session()->get('cart', [
             'items' => [],
         ]);
@@ -29,39 +35,30 @@ class CheckoutController extends Controller
         $incomingCurrency = strtoupper((string) $currency);
 
         // Mixed currency guard (fail-fast): cart invariant bozulursa resetle
-        $cartCurrency = null;
-        foreach ($items as $ci) {
-            $c = $ci['currency'] ?? null;
-            if (! $c) {
-                continue;
-            }
-
-            $c = strtoupper((string) $c);
-
-            if ($cartCurrency === null) {
-                $cartCurrency = $c;
-                continue;
-            }
-
-            // extra safety: mevcut items içinde mismatch varsa da resetle
-            if ($c !== $cartCurrency) {
-                session()->forget('cart');
-                session()->forget('cart.applied_coupons');
-                return false;
-            }
+        // - Mevcut davranış korunur: mismatch => cart + applied_coupons temizlenir => false
+        if ($cartInvariant->resetIfCurrencyMismatch($items)) {
+            return false;
         }
 
-        if ($cartCurrency !== null && $incomingCurrency !== $cartCurrency) {
-            session()->forget('cart');
-            session()->forget('cart.applied_coupons');
+        // Sepette currency varsa incoming ile aynı olmalı (aksi halde reset)
+        if ($cartInvariant->resetIfCannotAcceptIncomingCurrency($items, $incomingCurrency)) {
             return false;
         }
 
         $items[] = [
             'product_type' => $productType,
             'product_id'   => $productId,
+
+            // Tahsil edilecek satır tutarı (payable)
             'amount'       => $amount,
             'currency'     => $incomingCurrency,
+
+            // Cart item sözleşmesi (kilitli)
+            'quantity'     => 1,
+            'unit_price'   => $amount,
+            'total_price'  => $amount,
+
+            // Ürüne özel donmuş veri
             'snapshot'     => $snapshot,
         ];
 
@@ -75,7 +72,7 @@ class CheckoutController extends Controller
     /**
      * Transfer booking -> sepete ekleme
      */
-    public function bookTransfer(TransferBookingRequest $request)
+    public function bookTransfer(TransferBookingRequest $request, CartInvariant $cartInvariant)
     {
         // Validasyon
         $data = $request->validated();
@@ -111,6 +108,7 @@ class CheckoutController extends Controller
             $amount,
             $currency,
             $snapshot,
+            $cartInvariant
         );
 
         if (! $ok) {
@@ -127,7 +125,7 @@ class CheckoutController extends Controller
     /**
      * Excursion (tour) booking -> sepete ekleme
      */
-    public function bookTour(TourBookingRequest $request)
+    public function bookTour(TourBookingRequest $request, CartInvariant $cartInvariant)
     {
         $data = $request->validated();
 
@@ -148,6 +146,7 @@ class CheckoutController extends Controller
             (float) $data['price_total'],
             $data['currency'],
             $data,
+            $cartInvariant
         );
 
         if (! $ok) {
@@ -164,7 +163,7 @@ class CheckoutController extends Controller
     /**
      * Hotel room booking -> sepete ekleme
      */
-    public function bookHotel(HotelBookingRequest $request)
+    public function bookHotel(HotelBookingRequest $request, CartInvariant $cartInvariant)
     {
         $data = $request->validated();
 
@@ -195,6 +194,7 @@ class CheckoutController extends Controller
             (float) $data['price_total'],
             $data['currency'],
             $snapshot,
+            $cartInvariant
         );
 
         if (! $ok) {
@@ -211,7 +211,7 @@ class CheckoutController extends Controller
     /**
      * Villa booking -> sepete ekleme
      */
-    public function bookVilla(VillaBookingRequest $request)
+    public function bookVilla(VillaBookingRequest $request, CartInvariant $cartInvariant)
     {
         $data = $request->validated();
 
@@ -240,6 +240,7 @@ class CheckoutController extends Controller
             (float) $data['price_prepayment'],
             $data['currency'],
             $data,
+            $cartInvariant
         );
 
         if (! $ok) {

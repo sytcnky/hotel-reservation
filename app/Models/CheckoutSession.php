@@ -14,14 +14,37 @@ class CheckoutSession extends Model
     public const STATUS_EXPIRED   = 'expired';
     public const STATUS_ABANDONED = 'abandoned';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'code',
+        'type',
+        'user_id',
+        'order_id',
+
+        'customer_snapshot',
+
+        'cart_total',
+        'discount_amount',
+        'currency',
+
+        'status',
+
+        'ip_address',
+        'user_agent',
+
+        'started_at',
+        'completed_at',
+        'expires_at',
+    ];
 
     protected $casts = [
         'customer_snapshot' => 'array',
+
         'cart_total'        => 'float',
         'discount_amount'   => 'float',
+
         'started_at'        => 'datetime',
         'completed_at'      => 'datetime',
+        'expires_at'        => 'datetime',
     ];
 
     /*
@@ -32,11 +55,16 @@ class CheckoutSession extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(\App\Models\Order::class);
     }
 
     public function paymentAttempts()
     {
-        return $this->hasMany(PaymentAttempt::class);
+        return $this->hasMany(\App\Models\PaymentAttempt::class);
     }
 }

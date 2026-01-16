@@ -35,7 +35,6 @@
             // Summary
             'summary_title'     => 'Sipariş Özeti',
             'summary_subtotal'  => 'Ara toplam',
-            'summary_tax'       => 'Vergiler',
             'summary_discount'  => 'Kupon İndirimleri',
             'summary_total'     => 'Ödenecek Toplam',
 
@@ -293,13 +292,6 @@
                                 </span>
                             </div>
 
-                            <div class="d-flex justify-content-between small mb-2">
-                                <span>{{ $txt['summary_tax'] }}</span>
-                                <span>
-                                    0 @if($cartCurrency) {{ $cartCurrency }} @endif
-                                </span>
-                            </div>
-
                             @if ($couponDiscountTotal > 0 || !empty($cartCampaigns))
                                 <div class="small fw-semibold mt-2 mb-1">
                                     {{ $txt['summary_discounts'] ?? 'İndirimler' }}
@@ -315,7 +307,6 @@
                                     </div>
                                 @endif
 
-                                {{-- Kampanya indirim satırları (ileride dolduracağız) --}}
                                 @foreach ($cartCampaigns as $campaign)
                                     @php
                                         $amount = (float) ($campaign['calculated_discount'] ?? 0);

@@ -96,23 +96,52 @@ class OrderForm
                                                 ->schema([
                                                     TextEntry::make('invoice_company')
                                                         ->label(__('admin.orders.form.invoice_company'))
-                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['company'] ?? '-'),
+                                                        ->state(function (?Order $record) {
+                                                            if (! $record) {
+                                                                return '-';
+                                                            }
+
+                                                            return data_get($record->metadata ?? [], 'invoice.company', '-') ?: '-';
+                                                        }),
+
 
                                                     TextEntry::make('invoice_tax_office')
                                                         ->label(__('admin.orders.form.invoice_tax_office'))
-                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['tax_office'] ?? '-'),
+                                                        ->state(function (?Order $record) {
+                                                            if (! $record) {
+                                                                return '-';
+                                                            }
+
+                                                            return data_get($record->metadata ?? [], 'invoice.tax_office', '-') ?: '-';
+                                                        }),
+
 
                                                     TextEntry::make('invoice_tax_no')
                                                         ->label(__('admin.orders.form.invoice_tax_no'))
-                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['tax_no'] ?? '-'),
+                                                        ->state(function (?Order $record) {
+                                                            if (! $record) {
+                                                                return '-';
+                                                            }
+
+                                                            return data_get($record->metadata ?? [], 'invoice.tax_no', '-') ?: '-';
+                                                        }),
 
                                                     TextEntry::make('invoice_address')
                                                         ->label(__('admin.orders.form.invoice_address'))
-                                                        ->state(fn (?Order $record) => $record?->metadata['invoice']['address'] ?? '-'),
+                                                        ->state(function (?Order $record) {
+                                                            if (! $record) {
+                                                                return '-';
+                                                            }
+
+                                                            return data_get($record->metadata ?? [], 'invoice.address', '-') ?: '-';
+                                                        }),
                                                 ])
                                                 ->hidden(function (?Order $record) {
-                                                    $inv = $record?->metadata['invoice'] ?? [];
-                                                    return empty($inv['is_corporate']);
+                                                    if (! $record) {
+                                                        return true;
+                                                    }
+
+                                                    return ! (bool) data_get($record->metadata ?? [], 'invoice.is_corporate', false);
                                                 }),
                                         ]),
 

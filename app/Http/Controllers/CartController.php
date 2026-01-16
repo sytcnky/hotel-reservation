@@ -3,150 +3,38 @@
 namespace App\Http\Controllers;
 
 use App\Services\CampaignPlacementViewService;
+use App\Services\CartInvariant;
+use App\Services\CartPageViewService;
 use App\Services\CouponViewModelService;
-use App\Services\CampaignViewModelService;
 use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    /**
-     * Sepette currency mismatch varsa cart'ı invalidate eder.
-     * - cart + applied_coupons temizlenir
-     * - true döner (guard triggered)
-     */
-    private function resetCartIfCurrencyMismatch(array $items): bool
-    {
-        $cartCurrency = null;
-
-        foreach ($items as $ci) {
-            $c = $ci['currency'] ?? null;
-            if (! $c) {
-                continue;
-            }
-
-            $c = strtoupper((string) $c);
-
-            if ($cartCurrency === null) {
-                $cartCurrency = $c;
-                continue;
-            }
-
-            if ($c !== $cartCurrency) {
-                session()->forget('cart');
-                session()->forget('cart.applied_coupons');
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public function index(
         Request $request,
-        CouponViewModelService $couponVm,
-        CampaignViewModelService $campaignVm,
+        CartPageViewService $cartPage,
         CampaignPlacementViewService $campaignPlacement
     ) {
-        $cart = session('cart', [
-            'items' => [],
-        ]);
+        $data = $cartPage->buildIndexViewData($request);
 
-        $items = $cart['items'] ?? [];
-
-        // Mixed currency guard (fail-fast)
-        if ($this->resetCartIfCurrencyMismatch($items)) {
+        // Mixed currency guard (fail-fast) — mevcut davranış: mismatch => cart reset + redirect err
+        if (!empty($data['guard_triggered'])) {
             return redirect()
                 ->to(localized_route('cart'))
                 ->with('err', 'err_cart_currency_mismatch');
         }
 
-        $cartItems    = $items;
-        $cartSubtotal = 0;
-        $cartCurrency = null;
-
-        foreach ($items as $ci) {
-            $amount = (float) ($ci['amount'] ?? 0);
-            $cartSubtotal += $amount;
-
-            if ($cartCurrency === null && ! empty($ci['currency'])) {
-                $cartCurrency = strtoupper((string) $ci['currency']);
-            }
-        }
-
-        $cartCoupons         = [];
-        $appliedCouponIds    = (array) session('cart.applied_coupons', []);
-        $couponDiscountTotal = 0.0;
-
-        // Kampanyalar için sepet değişkenleri
-        $cartCampaigns         = [];
-        $campaignDiscountTotal = 0.0;
-
-        $user = $request->user();
-        if ($user && $cartSubtotal > 0 && $cartCurrency) {
-            $userCurrency = CurrencyHelper::currentCode();
-
-            // -----------------------------
-            // Kuponlar
-            // -----------------------------
-            $cartCoupons = $couponVm->buildCartCouponsForUser(
-                $user,
-                $userCurrency,
-                $cartSubtotal,
-                $cartCurrency
-            );
-
-            foreach ($cartCoupons as &$vm) {
-                $id = $vm['id'] ?? null;
-
-                $isApplied         = $id !== null && in_array($id, $appliedCouponIds, true);
-                $vm['is_applied']  = $isApplied;
-
-                if ($isApplied && empty($vm['is_applicable'])) {
-                    $appliedCouponIds = array_values(array_filter(
-                        $appliedCouponIds,
-                        fn($aid) => (int)$aid !== (int)$id
-                    ));
-                    session(['cart.applied_coupons' => $appliedCouponIds]);
-                    $vm['is_applied'] = false;
-                    continue;
-                }
-
-                if ($isApplied) {
-                    $couponDiscountTotal += (float) ($vm['calculated_discount'] ?? 0);
-                }
-            }
-            unset($vm);
-
-            // -----------------------------
-            // Kampanyalar
-            // -----------------------------
-            $cartCampaigns = $campaignVm->buildCartCampaignsForUser(
-                $user,
-                $cartItems,
-                $cartCurrency,
-                $cartSubtotal
-            );
-
-            foreach ($cartCampaigns as $cvm) {
-                if (! empty($cvm['is_applicable'])) {
-                    $campaignDiscountTotal += (float) ($cvm['calculated_discount'] ?? 0);
-                }
-            }
-        }
-
-        $finalTotal = max(0, $cartSubtotal - $couponDiscountTotal - $campaignDiscountTotal);
-
         return view('pages.cart.index', [
-            'cartItems'           => $cartItems,
-            'cartSubtotal'        => $cartSubtotal,
-            'cartCurrency'        => $cartCurrency,
-            'cartCoupons'         => $cartCoupons,
-            'couponDiscountTotal' => $couponDiscountTotal,
-            'finalTotal'          => $finalTotal,
+            'cartItems'           => $data['cartItems'],
+            'cartSubtotal'        => $data['cartSubtotal'],
+            'cartCurrency'        => $data['cartCurrency'],
+            'cartCoupons'         => $data['cartCoupons'],
+            'couponDiscountTotal' => $data['couponDiscountTotal'],
+            'finalTotal'          => $data['finalTotal'],
 
-            'cartCampaigns'         => $cartCampaigns,
-            'campaignDiscountTotal' => $campaignDiscountTotal,
+            'cartCampaigns'         => $data['cartCampaigns'],
+            'campaignDiscountTotal' => $data['campaignDiscountTotal'],
 
             'campaigns' => $campaignPlacement->buildForPlacement('basket'),
         ]);
@@ -172,8 +60,11 @@ class CartController extends Controller
             ->with('ok', 'cart_item_removed');
     }
 
-    public function applyCoupon(Request $request, CouponViewModelService $couponVm)
-    {
+    public function applyCoupon(
+        Request $request,
+        CouponViewModelService $couponVm,
+        CartInvariant $cartInvariant
+    ) {
         $user = $request->user();
         if (! $user) {
             return redirect()
@@ -184,7 +75,7 @@ class CartController extends Controller
         $userCouponId = (int) $request->input('user_coupon_id');
 
         $cart  = session('cart', ['items' => []]);
-        $items = $cart['items'] ?? [];
+        $items = (array) ($cart['items'] ?? []);
 
         if (empty($items)) {
             return redirect()
@@ -192,26 +83,16 @@ class CartController extends Controller
                 ->with('err', 'err_cart_empty');
         }
 
-        // Mixed currency guard (fail-fast)
-        if ($this->resetCartIfCurrencyMismatch($items)) {
+        // Mixed currency guard (fail-fast) — mevcut davranış: mismatch => cart reset + err
+        if ($cartInvariant->resetIfCurrencyMismatch($items)) {
             return redirect()
                 ->back()
                 ->with('err', 'err_cart_currency_mismatch');
         }
 
-        $cartSubtotal = 0;
-        $cartCurrency = null;
+        [$cartSubtotal, $cartCurrency] = $cartInvariant->computeSubtotalAndCurrency($items);
 
-        foreach ($items as $ci) {
-            $amount = (float) ($ci['amount'] ?? 0);
-            $cartSubtotal += $amount;
-
-            if ($cartCurrency === null && ! empty($ci['currency'])) {
-                $cartCurrency = strtoupper((string) $ci['currency']);
-            }
-        }
-
-        if ($cartSubtotal <= 0 || ! $cartCurrency) {
+        if ((float) $cartSubtotal <= 0 || ! $cartCurrency) {
             return redirect()
                 ->back()
                 ->with('err', 'err_no_amount');
@@ -222,8 +103,8 @@ class CartController extends Controller
         $cartCoupons = $couponVm->buildCartCouponsForUser(
             $user,
             $userCurrency,
-            $cartSubtotal,
-            $cartCurrency
+            (float) $cartSubtotal,
+            (string) $cartCurrency
         );
 
         $target = collect($cartCoupons)->firstWhere('id', $userCouponId);

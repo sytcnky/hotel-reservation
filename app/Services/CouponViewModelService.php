@@ -81,6 +81,8 @@ class CouponViewModelService
             return [];
         }
 
+        $cartCurrency = strtoupper((string) $cartCurrency);
+
         $userCoupons = $user->userCoupons()
             ->with('coupon')
             ->orderByDesc('assigned_at')
@@ -93,7 +95,74 @@ class CouponViewModelService
                 continue;
             }
 
+            // Genel VM (account vb. context’lerle ortak)
             $vm = $this->buildViewModel($user, $userCoupon, $userCurrency);
+
+            // Sepet bağlamında badge_main tutarlılığı:
+            // Amount-type kuponlarda badge_main, cartCurrency ile gösterilmeli.
+            // Percent-type zaten currency bağımsız.
+            if (($vm['discount_type'] ?? null) === 'amount') {
+                $vm['badge_main'] = '';
+
+                if (
+                    ! empty($vm['discount_amount'])
+                    && (float) $vm['discount_amount'] > 0
+                    && ! empty($vm['discount_currency'])
+                ) {
+                    $vm['badge_main'] = \App\Support\Currency\CurrencyPresenter::format(
+                        (float) $vm['discount_amount'],
+                        (string) $vm['discount_currency']
+                    );
+                }
+            }
+
+            /*
+             |--------------------------------------------------------------------------
+             | Sepet bağlamında currency-based alanlar için TEK OTORİTE: cartCurrency
+             |--------------------------------------------------------------------------
+             |
+             | Bu override, min limit ve amount-type indirimlerde “userCurrency” yerine
+             | sepetin currency’sini baz alır.
+             */
+            $currencyData = (array) ($userCoupon->coupon->currency_data ?? []);
+            $currencyRow  = null;
+
+            if (isset($currencyData[$cartCurrency]) && is_array($currencyData[$cartCurrency])) {
+                $currencyRow = $currencyData[$cartCurrency];
+            }
+
+            // Varsayılan: sepet bağlamında currency satırı yoksa ilgili alanları null bırak (fallback üretme)
+            $vm['min_booking_amount']   = null;
+            $vm['min_booking_currency'] = null;
+
+            $vm['discount_amount']      = null;
+            $vm['discount_currency']    = null;
+
+            $vm['max_discount_amount']   = null;
+            $vm['max_discount_currency'] = null;
+
+            if ($currencyRow) {
+                if (
+                    array_key_exists('min_booking_amount', $currencyRow)
+                    && $currencyRow['min_booking_amount'] !== null
+                ) {
+                    $vm['min_booking_amount']   = (float) $currencyRow['min_booking_amount'];
+                    $vm['min_booking_currency'] = $cartCurrency;
+                }
+
+                if (array_key_exists('amount', $currencyRow) && $currencyRow['amount'] !== null) {
+                    $vm['discount_amount']   = (float) $currencyRow['amount'];
+                    $vm['discount_currency'] = $cartCurrency;
+                }
+
+                if (
+                    array_key_exists('max_discount_amount', $currencyRow)
+                    && $currencyRow['max_discount_amount'] !== null
+                ) {
+                    $vm['max_discount_amount']   = (float) $currencyRow['max_discount_amount'];
+                    $vm['max_discount_currency'] = $cartCurrency;
+                }
+            }
 
             $status = $vm['status'] ?? 'active';
             $maxUses = $vm['max_uses_per_user'] ?? null;
@@ -153,7 +222,6 @@ class CouponViewModelService
         $badgeLabel = is_array($coupon->badge_label ?? null)
             ? (string) ($coupon->badge_label[$uiLocale] ?? '')
             : '';
-
 
         /*
          |--------------------------------------------------------------------------

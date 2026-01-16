@@ -11,7 +11,23 @@ class OrderItem extends Model
 
     protected $table = 'order_items';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'order_id',
+
+        'product_type',
+        'product_id',
+
+        'title',
+
+        'quantity',
+
+        'unit_price',
+        'total_price',
+
+        'currency',
+
+        'snapshot',
+    ];
 
     protected $casts = [
         'unit_price'  => 'float',

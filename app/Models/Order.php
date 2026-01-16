@@ -21,7 +21,31 @@ class Order extends Model
 
     protected $table = 'orders';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'code',
+
+        'user_id',
+
+        'status',
+        'payment_status',
+
+        'currency',
+        'total_amount',
+        'discount_amount',
+
+        'coupon_code',
+        'coupon_snapshot',
+
+        'customer_name',
+        'customer_email',
+        'customer_phone',
+
+        'billing_address',
+        'metadata',
+
+        'payment_expires_at',
+        'locale',
+    ];
 
     protected $casts = [
         'total_amount'       => 'float',
@@ -35,25 +59,6 @@ class Order extends Model
         'approved_at'        => 'datetime',
         'completed_at'       => 'datetime',
     ];
-
-    protected static function booted(): void
-    {
-        static::creating(function (Order $order) {
-            if (blank($order->code)) {
-                $last = static::withTrashed()
-                    ->where('code', 'LIKE', 'ORD-%')
-                    ->orderByDesc('id')
-                    ->value('code');
-
-                $n = 1;
-                if ($last && preg_match('/ORD-(\d+)/', $last, $m)) {
-                    $n = ((int) $m[1]) + 1;
-                }
-
-                $order->code = sprintf('ORD-%06d', $n);
-            }
-        });
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -100,164 +105,6 @@ class Order extends Model
         $this->cancelled_at = $now;
         $this->cancelled_by = $adminUserId;
         $this->cancelled_reason = $reason;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Status meta (tek kaynak)
-    |--------------------------------------------------------------------------
-    */
-    public static function statusMeta(?string $status): array
-    {
-        $status = (string) ($status ?? '');
-
-        return match ($status) {
-            self::STATUS_PENDING => [
-                'status'          => self::STATUS_PENDING,
-                'label_key'       => 'admin.orders.status.pending',
-                'label'           => 'Onay Bekliyor',
-                'filament_color'  => 'warning',
-                'bootstrap_class' => 'bg-warning',
-            ],
-
-            self::STATUS_CONFIRMED => [
-                'status'          => self::STATUS_CONFIRMED,
-                'label_key'       => 'admin.orders.status.confirmed',
-                'label'           => 'Onaylandı',
-                'filament_color'  => 'success',
-                'bootstrap_class' => 'bg-success',
-            ],
-
-            self::STATUS_CANCELLED => [
-                'status'          => self::STATUS_CANCELLED,
-                'label_key'       => 'admin.orders.status.cancelled',
-                'label'           => 'İptal Edildi',
-                'filament_color'  => 'danger',
-                'bootstrap_class' => 'bg-danger',
-            ],
-
-            self::STATUS_COMPLETED => [
-                'status'          => self::STATUS_COMPLETED,
-                'label_key'       => 'admin.orders.status.completed',
-                'label'           => 'Tamamlandı',
-                'filament_color'  => 'gray',
-                'bootstrap_class' => 'bg-dark',
-            ],
-
-            default => [
-                'status'          => $status,
-                'label_key'       => null,
-                'label'           => $status !== '' ? $status : '-',
-                'filament_color'  => 'gray',
-                'bootstrap_class' => 'bg-secondary',
-            ],
-        };
-    }
-
-    public static function statusList(): array
-    {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_CONFIRMED,
-            self::STATUS_CANCELLED,
-            self::STATUS_COMPLETED,
-        ];
-    }
-
-    public static function filamentStatusOptions(): array
-    {
-        $out = [];
-
-        foreach (self::statusList() as $st) {
-            $meta = self::statusMeta($st);
-            $out[$st] = $meta['label_key'] ? __($meta['label_key']) : $st;
-        }
-
-        return $out;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Completed hesabı (runtime)
-    |--------------------------------------------------------------------------
-    */
-    public function computeServiceEndAt(): ?Carbon
-    {
-        $items = $this->items;
-
-        if (! $items || $items->isEmpty()) {
-            return null;
-        }
-
-        $tz = config('app.timezone', 'Europe/Istanbul');
-
-        $endCandidates = [];
-
-        foreach ($items as $item) {
-            $type = (string) ($item->product_type ?? '');
-            $s    = (array) ($item->snapshot ?? []);
-
-            if ($type === 'hotel') {
-                continue;
-            }
-
-            if ($type === 'hotel_room') {
-                $dt = $this->parseYmdDateToEndOfDay($s['checkout'] ?? null, $tz);
-                if ($dt) $endCandidates[] = $dt;
-                continue;
-            }
-
-            if ($type === 'villa') {
-                $dt = $this->parseYmdDateToEndOfDay($s['checkout'] ?? null, $tz);
-                if ($dt) $endCandidates[] = $dt;
-                continue;
-            }
-
-            if ($type === 'tour' || $type === 'excursion') {
-                $dt = $this->parseYmdDateToEndOfDay($s['date'] ?? null, $tz);
-                if ($dt) $endCandidates[] = $dt;
-                continue;
-            }
-
-            if ($type === 'transfer') {
-                $direction = (string) ($s['direction'] ?? 'oneway');
-
-                $date = $direction === 'roundtrip'
-                    ? ($s['return_date'] ?? null)
-                    : ($s['departure_date'] ?? null);
-
-                $dt = $this->parseYmdDateToEndOfDay($date, $tz);
-                if ($dt) $endCandidates[] = $dt;
-                continue;
-            }
-        }
-
-        if (empty($endCandidates)) {
-            return null;
-        }
-
-        /** @var Carbon $max */
-        $max = collect($endCandidates)->sort()->last();
-
-        return $max;
-    }
-
-    private function parseYmdDateToEndOfDay($value, string $tz): ?Carbon
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-        if ($value === '') {
-            return null;
-        }
-
-        try {
-            return Carbon::createFromFormat('Y-m-d', $value, $tz)->endOfDay();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 
     /*
@@ -580,48 +427,60 @@ class Order extends Model
             ->all();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CUSTOMER ACCESSORS
-    |--------------------------------------------------------------------------
-    */
-    public function getCustomerNameAttribute(): ?string
-    {
-        $guest = $this->metadata['guest'] ?? null;
-        if (is_array($guest)) {
-            $first = $guest['first_name'] ?? null;
-            $last  = $guest['last_name'] ?? null;
-
-            return trim($first . ' ' . $last) ?: null;
-        }
-
-        if ($this->user) {
-            return $this->user->name ?? null;
-        }
-
-        return null;
-    }
-
-    public function getCustomerEmailAttribute(): ?string
-    {
-        if (! empty($this->metadata['guest']['email'])) {
-            return $this->metadata['guest']['email'];
-        }
-
-        return $this->user->email ?? null;
-    }
-
-    public function getCustomerPhoneAttribute(): ?string
-    {
-        if (! empty($this->metadata['guest']['phone'])) {
-            return $this->metadata['guest']['phone'];
-        }
-
-        return $this->user->phone ?? null;
-    }
-
     public function getCustomerTypeAttribute(): string
     {
         return $this->user_id ? 'member' : 'guest';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status meta (tek kaynak)
+    |--------------------------------------------------------------------------
+    */
+    public static function statusMeta(?string $status): array
+    {
+        $status = (string) ($status ?? '');
+
+        return match ($status) {
+            self::STATUS_PENDING => [
+                'status'          => self::STATUS_PENDING,
+                'label_key'       => 'admin.orders.status.pending',
+                'label'           => 'Onay Bekliyor',
+                'filament_color'  => 'warning',
+                'bootstrap_class' => 'bg-warning',
+            ],
+
+            self::STATUS_CONFIRMED => [
+                'status'          => self::STATUS_CONFIRMED,
+                'label_key'       => 'admin.orders.status.confirmed',
+                'label'           => 'Onaylandı',
+                'filament_color'  => 'success',
+                'bootstrap_class' => 'bg-success',
+            ],
+
+            self::STATUS_CANCELLED => [
+                'status'          => self::STATUS_CANCELLED,
+                'label_key'       => 'admin.orders.status.cancelled',
+                'label'           => 'İptal Edildi',
+                'filament_color'  => 'danger',
+                'bootstrap_class' => 'bg-danger',
+            ],
+
+            self::STATUS_COMPLETED => [
+                'status'          => self::STATUS_COMPLETED,
+                'label_key'       => 'admin.orders.status.completed',
+                'label'           => 'Tamamlandı',
+                'filament_color'  => 'gray',
+                'bootstrap_class' => 'bg-dark',
+            ],
+
+            default => [
+                'status'          => $status,
+                'label_key'       => null,
+                'label'           => $status !== '' ? $status : '-',
+                'filament_color'  => 'gray',
+                'bootstrap_class' => 'bg-secondary',
+            ],
+        };
     }
 }
