@@ -1,6 +1,4 @@
-{{-- resources/views/pages/account/tickets.blade.php --}}
-@extends('layouts.account')
-
+@extends('layouts.account', ['pageKey' => 'account-tickets'])
 @section('account_content')
 
     @php
@@ -13,16 +11,19 @@
                 <div class="fw-semibold mb-1">Henüz destek talebinde bulunmadınız.</div>
                 <div class="text-muted small mb-3">Bir sorun yaşarsanız buradan yeni talep oluşturabilirsiniz.</div>
 
-                <a href="{{ localized_route('account.tickets.create') }}" class="btn btn-primary">
+                <a href="{{ localized_route('account.tickets.create') }}" class="btn btn-success">
                     Yeni Talep Oluştur
                 </a>
             </div>
         </div>
     @else
-        <div class="p-3 bg-light mb-3">
-
-            <div class="d-flex justify-content-end">
-                <a href="{{ localized_route('account.tickets.create') }}" class="btn btn-primary btn-sm">
+        <div class="p-3 bg-light mb-3 rounded">
+            <div class="d-flex justify-content-between flex-column flex-lg-row">
+                <div>
+                    <h5 class="m-0 text-secondary">Yardıma mı ihtiyacınız var?</h5>
+                    <p class="m-0 text-secondary">Talep oluşturup sorununuzu bizimle paylaşın.</p>
+                </div>
+                <a href="{{ localized_route('account.tickets.create') }}" class="btn btn-success mt-3 align-self-lg-center">
                     Yeni Talep Oluştur
                 </a>
             </div>
@@ -95,5 +96,4 @@
             @endforeach
         </div>
     @endif
-
 @endsection

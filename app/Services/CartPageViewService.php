@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Support\Helpers\CurrencyHelper;
+use App\Support\Currency\CurrencyContext;
 use Illuminate\Http\Request;
 
 class CartPageViewService
@@ -69,7 +69,7 @@ class CartPageViewService
         $user = $request->user();
 
         if ($user && $cartSubtotal > 0 && $cartCurrency) {
-            $userCurrency = CurrencyHelper::currentCode();
+            $userCurrency = CurrencyContext::code($request);
 
             // -----------------------------
             // Kuponlar (mevcut akış)

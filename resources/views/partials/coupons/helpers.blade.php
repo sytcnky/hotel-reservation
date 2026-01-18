@@ -21,16 +21,15 @@
             /** @var \Illuminate\Support\Carbon|null $effectiveValidTo */
             $effectiveValidTo = $coupon['effective_valid_until'] ?? null;
 
-            if ($validFrom && $effectiveValidTo) {
-                $validityText = sprintf(
-                    'Geçerlilik: %s – %s',
-                    $validFrom->format('d.m.Y'),
-                    $effectiveValidTo->format('d.m.Y')
-                );
-            } elseif ($effectiveValidTo) {
-                $validityText = 'Son kullanım: ' . $effectiveValidTo->format('d.m.Y');
-            } elseif ($validFrom) {
-                $validityText = 'Başlangıç: ' . $validFrom->format('d.m.Y');
+            $fromText = $validFrom ? \App\Support\Date\DatePresenter::human($validFrom, 'd.m.Y') : null;
+            $toText   = $effectiveValidTo ? \App\Support\Date\DatePresenter::human($effectiveValidTo, 'd.m.Y') : null;
+
+            if ($fromText && $toText) {
+                $validityText = sprintf('Geçerlilik: %s – %s', $fromText, $toText);
+            } elseif ($toText) {
+                $validityText = 'Son kullanım: ' . $toText;
+            } elseif ($fromText) {
+                $validityText = 'Başlangıç: ' . $fromText;
             } else {
                 $validityText = 'Geçerlilik tarihi: Belirtilmemiş';
             }

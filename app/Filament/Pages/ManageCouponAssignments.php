@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Carbon\CarbonInterface;
 
 /**
  * Toplu Kupon İşlemleri
@@ -100,7 +101,6 @@ class ManageCouponAssignments extends Page
 
     public function form(Schema $schema): Schema
     {
-        $base = config('app.locale', 'tr');
         $ui   = app()->getLocale();
 
         // Kupon select’i için seçenekler
@@ -108,12 +108,10 @@ class ManageCouponAssignments extends Page
             ->where('is_active', true)
             ->orderByDesc('id')
             ->get()
-            ->mapWithKeys(function (Coupon $coupon) use ($ui, $base) {
+            ->mapWithKeys(function (Coupon $coupon) use ($ui) {
                 $titleData = (array) ($coupon->title ?? []);
 
-                $title = $titleData[$ui]
-                    ?? $titleData[$base]
-                    ?? (string) (array_values($titleData)[0] ?? '');
+                $title = is_string($titleData[$ui] ?? null) ? $titleData[$ui] : '';
 
                 $code  = $coupon->code ?: ('#' . $coupon->id);
                 $label = $title ? sprintf('%s — %s', $code, $title) : $code;
@@ -287,6 +285,46 @@ class ManageCouponAssignments extends Page
 
     /*
      |--------------------------------------------------------------------------
+     | Instant date parse tek otorite (Sprint D)
+     |--------------------------------------------------------------------------
+     */
+
+    /**
+     * Filament DateTimePicker state'i string veya CarbonInterface olabilir.
+     * Bu sayfada tek parse noktası.
+     */
+    private function toCarbonOrNull(mixed $value): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value->copy();
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return Carbon::instance($value);
+        }
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::make($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /*
+     |--------------------------------------------------------------------------
      | Yardımcı: tarih filtresini sorguya uygula
      |--------------------------------------------------------------------------
      */
@@ -297,13 +335,8 @@ class ManageCouponAssignments extends Page
             return $query;
         }
 
-        $from = ! empty($data['registered_from'] ?? null)
-            ? Carbon::parse($data['registered_from'])->startOfDay()
-            : null;
-
-        $to = ! empty($data['registered_to'] ?? null)
-            ? Carbon::parse($data['registered_to'])->endOfDay()
-            : null;
+        $from = $this->toCarbonOrNull($data['registered_from'] ?? null)?->startOfDay();
+        $to   = $this->toCarbonOrNull($data['registered_to'] ?? null)?->endOfDay();
 
         return $query
             ->when($from, fn (Builder $q) => $q->where('created_at', '>=', $from))
@@ -379,9 +412,7 @@ class ManageCouponAssignments extends Page
         /** @var Coupon $coupon */
         $coupon = Coupon::findOrFail($validated['coupon_id']);
 
-        $newExpiresAt = $validated['new_expires_at']
-            ? Carbon::parse($validated['new_expires_at'])
-            : null;
+        $newExpiresAt = $this->toCarbonOrNull($validated['new_expires_at'] ?? null);
 
         // Temel müşteri sorgusu + segment filtreleri
         $query = $this->applySegmentFilters(

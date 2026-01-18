@@ -1,6 +1,4 @@
-{{-- resources/views/pages/account/ticket-detail.blade.php --}}
-@extends('layouts.account')
-
+@extends('layouts.account', ['pageKey' => 'account-tickets'])
 @section('account_content')
 
     {{-- Başlık / meta --}}
@@ -36,12 +34,12 @@
             <dl class="row mb-0 small text-muted">
                 <dt class="col-sm-3">Oluşturulma</dt>
                 <dd class="col-sm-9">
-                    {{ optional($ticket->created_at)->format('d.m.Y — H:i') }}
+                    {{ \App\Support\Date\DatePresenter::humanDateTime($ticket->created_at) }}
                 </dd>
 
                 <dt class="col-sm-3">Son Güncelleme</dt>
                 <dd class="col-sm-9">
-                    {{ optional($ticket->last_message_at)->format('d.m.Y — H:i') }}
+                    {{ \App\Support\Date\DatePresenter::humanDateTime($ticket->last_message_at) }}
                 </dd>
 
                 @if(!empty($ticket->order_id))
@@ -72,7 +70,7 @@
                             @endif
                         </div>
                         <div class="text-muted small">
-                            {{ optional($message->created_at)->format('d.m.Y — H:i') }}
+                            {{ \App\Support\Date\DatePresenter::humanDateTime($message->created_at) }}
                         </div>
                     </div>
 

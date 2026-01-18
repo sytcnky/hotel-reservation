@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PaymentAttempts\Tables;
 
 use App\Models\PaymentAttempt;
 use App\Support\Currency\CurrencyPresenter;
+use App\Support\Date\DatePresenter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -57,12 +58,12 @@ class PaymentAttemptsTable
 
                 TextColumn::make('started_at')
                     ->label(__('admin.payment_attempts.table.started'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 TextColumn::make('completed_at')
                     ->label(__('admin.payment_attempts.table.completed'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 TextColumn::make('error_code')
@@ -77,7 +78,7 @@ class PaymentAttemptsTable
 
                 TextColumn::make('created_at')
                     ->label(__('admin.payment_attempts.table.created'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

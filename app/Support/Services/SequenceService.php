@@ -12,12 +12,12 @@ class SequenceService
      */
     public static function next(string $scope): array
     {
-        $today = CarbonImmutable::today()->toDateString(); // 'YYYY-MM-DD'
+        $today = CarbonImmutable::today(); // date objesi
         $table = $scope === 'payment' ? 'payment_counters' : 'order_counters';
 
         return DB::transaction(function () use ($table, $today, $scope) {
             // satırı kilitle
-            $row = DB::table($table)->where('counter_date', $today)->lockForUpdate()->first();
+            $row = DB::table($table)->whereDate('counter_date', $today)->lockForUpdate()->first();
 
             if (!$row) {
                 DB::table($table)->insert([
@@ -32,7 +32,7 @@ class SequenceService
             $next = $row->last_number + 1;
 
             DB::table($table)
-                ->where('counter_date', $today)
+                ->whereDate('counter_date', $today)
                 ->update(['last_number' => $next, 'updated_at' => now()]);
 
             // Format: O20251112-000123  /  P20251112-000123

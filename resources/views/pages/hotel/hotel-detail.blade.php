@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'hotel-details'])
 @section('title', $hotel['name'])
-
 @section('content')
 <div class="container py-5">
     <div class="row">
@@ -93,6 +91,8 @@
 
             <div class="border rounded p-3 my-4">
                 <form id="booking-form"
+                      data-initial-adults="{{ $initialAdults }}"
+                      data-initial-children="{{ $initialChildren }}"
                       class="row g-3"
                       method="GET"
                       action="{{ localized_route('hotel.detail', ['slug' => $hotel['slug']]) }}">
@@ -105,7 +105,7 @@
                                    id="checkin"
                                    name="checkin"
                                    class="form-control date-input"
-                                   placeholder="gg.aa.yyyy"
+                                   placeholder="Tarih seçin"
                                    value="{{ request('checkin') }}"
                                    autocomplete="off">
                             <span class="input-group-text bg-white">
@@ -374,66 +374,3 @@
     </div>
 </section>
 @endsection
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('booking-form');
-        const modal = document.getElementById('hotelVideoModal');
-        const iframe = document.getElementById('hotelVideoFrame');
-
-        // Guest picker & hidden input senkronizasyonu
-        if (form) {
-            const adultInput   = form.querySelector('input[data-type="adult"]');
-            const childInput   = form.querySelector('input[data-type="child"]');
-            const hiddenAdults = form.querySelector('#adultsInput');
-            const hiddenChilds = form.querySelector('#childrenInput');
-            const guestInput   = document.getElementById('guestInput');
-
-            const initialAdults   = {{ $initialAdults }};
-            const initialChildren = {{ $initialChildren }};
-
-            function updateGuestDisplay() {
-                if (!guestInput) return;
-
-                const a = parseInt(adultInput?.value || '0', 10);
-                const c = parseInt(childInput?.value || '0', 10);
-
-                const parts = [];
-                if (a > 0) parts.push(a + ' Yetişkin');
-                if (c > 0) parts.push(c + ' Çocuk');
-
-                guestInput.value = parts.join(', ');
-            }
-
-            function syncHidden() {
-                if (hiddenAdults && adultInput) {
-                    hiddenAdults.value = adultInput.value || 0;
-                }
-                if (hiddenChilds && childInput) {
-                    hiddenChilds.value = childInput.value || 0;
-                }
-            }
-
-            // İlk yüklemede server-side state'i inputlara bas
-            if (adultInput)   adultInput.value   = initialAdults;
-            if (childInput)   childInput.value   = initialChildren;
-            if (hiddenAdults) hiddenAdults.value = initialAdults;
-            if (hiddenChilds) hiddenChilds.value = initialChildren;
-            updateGuestDisplay();
-
-            // Form submit'te son değerleri gizli inputlara yaz
-            form.addEventListener('submit', function () {
-                syncHidden();
-            });
-        }
-
-        // Video modal kontrolü
-        if (modal && iframe) {
-            modal.addEventListener('hidden.bs.modal', function () {
-                const oldSrc = iframe.src;
-                iframe.src = '';
-                setTimeout(() => { iframe.src = oldSrc; }, 30);
-            });
-        }
-    });
-</script>

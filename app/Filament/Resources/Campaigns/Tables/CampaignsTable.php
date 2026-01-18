@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Campaigns\Tables;
 
 use App\Models\Campaign;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -32,12 +33,12 @@ class CampaignsTable
 
                 TextColumn::make('start_date')
                     ->label(__('admin.campaigns.table.start_date'))
-                    ->date()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 TextColumn::make('end_date')
                     ->label(__('admin.campaigns.table.end_date'))
-                    ->date()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 IconColumn::make('visible_on_web')
@@ -60,12 +61,12 @@ class CampaignsTable
 
                 TextColumn::make('created_at')
                     ->label(__('admin.campaigns.table.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

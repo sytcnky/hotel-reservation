@@ -1,8 +1,5 @@
-{{-- resources/views/pages/help/index.blade.php --}}
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'help'])
 @section('title', 'Yardım & SSS')
-
 @section('content')
     <section>
         <div class="text-center my-5 px-lg-5">

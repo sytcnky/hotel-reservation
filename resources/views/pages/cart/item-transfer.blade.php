@@ -43,7 +43,7 @@
                 <div class="small text-uppercase text-muted mb-1">
                     Transfer
                     <small>
-                        {{ $direction === 'roundtrip' ? '(Gidiş-Dönüş)' : '(Tek Yön)' }}
+                        {{ $direction === 'roundtrip' ? '(Geliş-Dönüş)' : '(Tek Yön)' }}
                     </small>
                 </div>
 
@@ -56,8 +56,11 @@
                 <div class="text-muted small">
                     @if (!empty($s['departure_date']))
                         <div>
-                            <i class="fi fi-rr-calendar"></i>
-                            {{ $s['departure_date'] }}
+                            Geliş:
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $s['departure_date'],
+                                pattern: 'd F'
+                            ) }}
                             @if (!empty($s['pickup_time_outbound'])),
                             {{ $s['pickup_time_outbound'] }}
                             @endif
@@ -66,8 +69,11 @@
 
                     @if ($direction === 'roundtrip' && !empty($s['return_date']))
                         <div>
-                            <i class="fi fi-rr-calendar"></i>
-                            {{ $s['return_date'] }}
+                            Dönüş
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $s['return_date'],
+                                pattern: 'd F'
+                            ) }}
                             @if (!empty($s['pickup_time_return'])),
                             {{ $s['pickup_time_return'] }}
                             @endif

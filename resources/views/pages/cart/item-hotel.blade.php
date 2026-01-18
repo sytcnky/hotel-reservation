@@ -9,9 +9,11 @@
     $img = $s['hotel_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
     // Tarih / gece
-    $checkin  = !empty($s['checkin']) ? \Illuminate\Support\Carbon::parse($s['checkin']) : null;
-    $checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
-    $nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
+    $checkinYmd  = !empty($s['checkin']) ? (string) $s['checkin'] : null;
+    $checkoutYmd = !empty($s['checkout']) ? (string) $s['checkout'] : null;
+
+    // Nights snapshot'ta geliyorsa onu kullan; yoksa hesaplamayı burada yapma (strict kalsın).
+    $nights = (int) ($s['nights'] ?? 0);
 
     // Kişi sayıları
     $adults   = (int)($s['adults']   ?? 0);
@@ -57,31 +59,36 @@
                 </h5>
 
                 <div class="text-muted small">
-                    @if ($checkin && $checkout)
-                    <div>
-                        <i class="fi fi-rr-calendar"></i>
-                        {{ $checkin->translatedFormat('d M') }}
-                        →
-                        {{ $checkout->translatedFormat('d M') }}
-                        @if ($nights)
-                        ({{ $nights }} Gece)
-                        @endif
-                    </div>
-                    @endif
-
-                    @if ($adults || $children)
-                    <div>
-                        <i class="fi fi-rr-users"></i>
-                        {{ $adults }} Yetişkin
-                        @if ($children)
-                        , {{ $children }} Çocuk
-                        @endif
-                    </div>
-                    @endif
-
                     <div>
                         {{ $roomName }}, {{ $boardTypeName }}
                     </div>
+                    @if ($checkinYmd && $checkoutYmd)
+                        <div>
+                            <i class="fi fi-rr-calendar"></i>
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $checkinYmd,
+                                pattern: 'd F'
+                            ) }}
+                            →
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $checkoutYmd,
+                                pattern: 'd F'
+                            ) }}
+                            @if ($nights)
+                                ({{ $nights }} Gece)
+                            @endif
+                        </div>
+                    @endif
+
+                    @if ($adults || $children)
+                        <div>
+                            <i class="fi fi-rr-users"></i>
+                            {{ $adults }} Yetişkin
+                            @if ($children)
+                            , {{ $children }} Çocuk
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
 

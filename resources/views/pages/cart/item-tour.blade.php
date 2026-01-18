@@ -58,8 +58,10 @@
                 <div class="text-muted small">
                     @if (!empty($s['date']))
                         <div>
-                            <i class="fi fi-rr-calendar"></i>
-                            {{ $s['date'] }}
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $s['date'],
+                                pattern: 'd F'
+                            ) }}
                         </div>
                     @endif
 

@@ -1,8 +1,5 @@
-{{-- resources/views/pages/payment/index.blade.php --}}
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'payment'])
 @section('title', 'Ödeme')
-
 @section('content')
     @php
         /** @var \App\Models\CheckoutSession $checkout */
@@ -242,30 +239,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </section>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('paymentForm')
-            const btn  = document.getElementById('btnSubmitPayment')
-            if (!form || !btn) return
-
-            const label   = btn.querySelector('.btn-label')
-            const loading = btn.querySelector('.btn-loading')
-
-            form.addEventListener('submit', (e) => {
-                if (form.dataset.submitted === '1') {
-                    e.preventDefault()
-                    return
-                }
-
-                form.dataset.submitted = '1'
-                btn.disabled = true
-                if (label) label.classList.add('d-none')
-                if (loading) loading.classList.remove('d-none')
-            })
-        })
-    </script>
 @endsection

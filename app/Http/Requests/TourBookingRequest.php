@@ -19,7 +19,10 @@ class TourBookingRequest extends FormRequest
         return [
             'tour_id'     => ['required'],
             'tour_name'   => ['required', 'string'],
-            'date'        => ['required', 'date'], // normalize sonrası Y-m-d bekliyoruz
+
+            // strict: Y-m-d
+            'date'        => ['required', 'date_format:Y-m-d'],
+
             'adults'      => ['required', 'integer', 'min:1'],
             'children'    => ['nullable', 'integer', 'min:0'],
             'infants'     => ['nullable', 'integer', 'min:0'],

@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'villa-details'])
 @section('title', $villa['name'])
-
 @section('content')
 <div class="container py-5">
     <div class="row">
@@ -83,6 +81,14 @@
                 </div>
             </div>
 
+            <div class="row my-2">
+                <div class="col">
+                    <small class="small text-info">
+                    <i class="fi fi-rr-info align-middle me-1"></i>Villa'larda sadece ön ödeme yaparsınız, kalan tutar konaklama sırasında nakit yapılır.
+                    </small>
+                </div>
+            </div>
+
             {{-- Rezervasyon Formu (tarih + kişi + fiyat kutusu) --}}
             @php
             $price          = $villa['base_price'] ?? null;
@@ -94,7 +100,7 @@
             $initialChildren = (int) request('children', 0);
             @endphp
 
-            <div class="card shadow-sm my-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <form id="villa-booking-form"method="POST"
                           action="{{ localized_route('villa.book') }}">
@@ -132,7 +138,7 @@
                                         id="checkin"
                                         name="checkin_display"
                                         class="form-control date-input"
-                                        placeholder="gg.aa.yyyy"
+                                        placeholder="Tarih seçin"
                                         autocomplete="off"
                                         data-price="{{ $hasPrice ? $price : 0 }}"
                                         data-prepayment-rate="{{ $prepaymentRate }}"
@@ -371,55 +377,3 @@
     </div>
 </div>
 @endsection
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('villa-booking-form');
-        if (!form) {
-            return;
-        }
-
-        const adultInput   = form.querySelector('input[data-type="adult"]');
-        const childInput   = form.querySelector('input[data-type="child"]');
-        const hiddenAdults = form.querySelector('#adultsInput');
-        const hiddenChilds = form.querySelector('#childrenInput');
-        const guestInput   = document.getElementById('guestInput');
-
-        const initialAdults   = {{ $initialAdults }};
-        const initialChildren = {{ $initialChildren }};
-
-        function updateGuestDisplay() {
-            if (!guestInput) return;
-
-            const a = parseInt(adultInput?.value || '0', 10);
-            const c = parseInt(childInput?.value || '0', 10);
-
-            const parts = [];
-            if (a > 0) parts.push(a + ' Yetişkin');
-            if (c > 0) parts.push(c + ' Çocuk');
-
-            guestInput.value = parts.join(', ');
-        }
-
-        function syncHidden() {
-            if (hiddenAdults && adultInput) {
-                hiddenAdults.value = adultInput.value || 0;
-            }
-            if (hiddenChilds && childInput) {
-                hiddenChilds.value = childInput.value || 0;
-            }
-        }
-
-        // İlk yüklemede server-side state'i inputlara bas
-        if (adultInput)   adultInput.value   = initialAdults;
-        if (childInput)   childInput.value   = initialChildren;
-        if (hiddenAdults) hiddenAdults.value = initialAdults;
-        if (hiddenChilds) hiddenChilds.value = initialChildren;
-        updateGuestDisplay();
-
-        // Form submit'te son değerleri gizli inputlara yaz
-        form.addEventListener('submit', function () {
-            syncHidden();
-        });
-    });
-</script>

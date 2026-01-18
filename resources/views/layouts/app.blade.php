@@ -6,11 +6,11 @@
     <title>@yield('title', 'TurAcenta')</title>
 
     {{-- Site tarafı: Bootstrap + site.css, tek entry --}}
-    @vite(['resources/js/site/site.js'])
+    @vite(['resources/css/site.scss', 'resources/js/site/site.js'])
 
 
 </head>
-<body>
+<body data-page="{{ $pageKey ?? '' }}">
 @include('partials.header')
 
 <main>@yield('content')</main>

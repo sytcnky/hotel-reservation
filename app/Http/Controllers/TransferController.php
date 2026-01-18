@@ -9,6 +9,7 @@ use App\Models\TransferVehicle;
 use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -41,11 +42,18 @@ class TransferController extends Controller
         // -------------------------------------------------
         $transferOffer = null;
 
-        $direction     = $request->get('direction', 'oneway') === 'roundtrip' ? 'roundtrip' : 'oneway';
-        $fromId        = $request->integer('from_location_id');
-        $toId          = $request->integer('to_location_id');
-        $departureDate = $request->input('departure_date');
-        $returnDate    = $request->input('return_date');
+        $direction = $request->get('direction', 'oneway') === 'roundtrip' ? 'roundtrip' : 'oneway';
+        $fromId    = $request->integer('from_location_id');
+        $toId      = $request->integer('to_location_id');
+
+        // STRICT: search GET dates must be Y-m-d. No legacy parse.
+        $departureDateRaw = $request->input('departure_date');
+        $returnDateRaw    = $request->input('return_date');
+
+        $departureDate = self::normalizeYmdDate($departureDateRaw);
+        $returnDate    = $direction === 'roundtrip'
+            ? self::normalizeYmdDate($returnDateRaw)
+            : null;
 
         $adults   = max(0, $request->integer('adults', 2));
         $children = max(0, $request->integer('children', 0));
@@ -58,6 +66,7 @@ class TransferController extends Controller
 
         $totalPassengers = $adults + $children + $infants;
 
+        // Invalid date format => no results (no error), and NO legacy parse.
         $isInputValid =
             $fromId && $toId && $fromId !== $toId &&
             $departureDate &&
@@ -92,6 +101,7 @@ class TransferController extends Controller
                             'from_location_id'       => $fromId,
                             'to_location_id'         => $toId,
                             'direction'              => $direction,
+                            // STRICT: Offer dates always Y-m-d (normalized)
                             'departure_date'         => $departureDate,
                             'return_date'            => $returnDate,
                             'adults'                 => $adults,
@@ -125,6 +135,38 @@ class TransferController extends Controller
             'locations'     => $locations,
             'hasSearch'     => $hasSearch,
         ]);
+    }
+
+    /**
+     * Strict Y-m-d normalize. Returns normalized Y-m-d or null.
+     * No legacy parse.
+     */
+    private static function normalizeYmdDate($value): ?string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        // Fast guard: must look like YYYY-MM-DD
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+            return null;
+        }
+
+        try {
+            $dt = Carbon::createFromFormat('Y-m-d', $raw)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        // createFromFormat can still produce a Carbon even when parts overflow;
+        // ensure exact match after re-format.
+        $normalized = $dt->format('Y-m-d');
+        if ($normalized !== $raw) {
+            return null;
+        }
+
+        return $normalized;
     }
 
     private function findActiveRoute(int $fromId, int $toId): ?TransferRoute

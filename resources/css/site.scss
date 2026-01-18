@@ -60,6 +60,11 @@ button:focus-visible {
     color: white;
 }
 
+/* input type="time" içindeki Chrome ikonunu gizler */
+input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    display: none;
+}
 
 .fi {
     line-height: 0;
@@ -496,3 +501,14 @@ $bottom-nav-height: 64px;
 }
 .cc-strip{ height:48px; background:#111; margin-top:18px; margin-bottom:28px; }
 .cc-cvv-box{ background:#fff; color:#111; padding:8px 10px; border-radius:6px; width:120px; text-align:right; margin-left:auto; }
+
+
+.popular-hotels-viewport { overflow: hidden; width: 100%; padding-bottom: 2px; }
+.popular-hotels-track {
+    display: flex;
+    gap: 1rem;
+    transition: transform 250ms ease;
+    will-change: transform;
+}
+
+.popular-hotels-page { flex: 0 0 100%; }

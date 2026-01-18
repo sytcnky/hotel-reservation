@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Coupons\Tables;
 
 use App\Support\Currency\CurrencyPresenter;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
@@ -88,12 +89,12 @@ class CouponsTable
 
                 TextColumn::make('valid_from')
                     ->label(__('admin.coupons.table.valid_from'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 TextColumn::make('valid_until')
                     ->label(__('admin.coupons.table.valid_until'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -109,7 +110,7 @@ class CouponsTable
 
                 TextColumn::make('created_at')
                     ->label(__('admin.coupons.table.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_active')

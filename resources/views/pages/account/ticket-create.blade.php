@@ -1,6 +1,4 @@
-{{-- resources/views/pages/account/ticket-create.blade.php --}}
-@extends('layouts.account')
-
+@extends('layouts.account', ['pageKey' => 'account-tickets'])
 @section('account_content')
 
     {{-- Başlık / meta (detail sayfasına benzer) --}}

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SupportTickets\RelationManagers;
 
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
@@ -72,7 +73,7 @@ class SupportMessagesRelationManager extends RelationManager
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
             ])
             ->headerActions([

@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\RefundAttempt;
 use App\Services\RefundService;
 use App\Support\Currency\CurrencyPresenter;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -50,10 +51,7 @@ class OrderForm
 
                                                 TextEntry::make('created_at')
                                                     ->label(__('admin.orders.form.created_at'))
-                                                    ->state(fn (?Order $record) => $record?->created_at
-                                                        ? $record->created_at->format('d.m.Y H:i')
-                                                        : '-'
-                                                    ),
+                                                    ->state(fn (?Order $record) => DatePresenter::humanDateTime($record?->created_at)),
                                             ]),
 
                                             Grid::make()->columns(2)->schema([
@@ -245,17 +243,11 @@ class OrderForm
                                             Grid::make()->columns(2)->schema([
                                                 TextEntry::make('paid_at')
                                                     ->label(__('admin.orders.form.paid_at'))
-                                                    ->state(fn (?Order $record) => $record?->paid_at
-                                                        ? $record->paid_at->format('d.m.Y H:i')
-                                                        : '-'
-                                                    ),
+                                                    ->state(fn (?Order $record) => DatePresenter::humanDateTime($record?->paid_at)),
 
                                                 TextEntry::make('cancelled_at')
                                                     ->label(__('admin.orders.form.cancelled_at'))
-                                                    ->state(fn (?Order $record) => $record?->cancelled_at
-                                                        ? $record->cancelled_at->format('d.m.Y H:i')
-                                                        : '-'
-                                                    ),
+                                                    ->state(fn (?Order $record) => DatePresenter::humanDateTime($record?->cancelled_at)),
                                             ]),
                                         ]),
 
@@ -595,10 +587,10 @@ class OrderForm
                                             TextEntry::make('date')
                                                 ->label(__('admin.orders.status_details.date'))
                                                 ->state(fn (?Order $record) => match ($record?->status) {
-                                                    Order::STATUS_CONFIRMED => $record->approved_at?->format('d.m.Y H:i'),
-                                                    Order::STATUS_CANCELLED => $record->cancelled_at?->format('d.m.Y H:i'),
-                                                    Order::STATUS_COMPLETED => $record->completed_at?->format('d.m.Y H:i'),
-                                                    default                 => '-',
+                                                    Order::STATUS_CONFIRMED => DatePresenter::humanDateTime($record?->approved_at),
+                                                    Order::STATUS_CANCELLED => DatePresenter::humanDateTime($record?->cancelled_at),
+                                                    Order::STATUS_COMPLETED => DatePresenter::humanDateTime($record?->completed_at),
+                                                    default => null,
                                                 })
                                                 ->visible(fn (?Order $record) => match ($record?->status) {
                                                     Order::STATUS_CONFIRMED => filled($record->approved_at),
@@ -613,7 +605,7 @@ class OrderForm
                                                     Order::STATUS_CONFIRMED => $record->approvedBy?->name,
                                                     Order::STATUS_CANCELLED => $record->cancelledBy?->name,
                                                     Order::STATUS_COMPLETED => __('admin.orders.status_details.system'),
-                                                    default                 => '-',
+                                                    default => null,
                                                 })
                                                 ->visible(fn (?Order $record) => match ($record?->status) {
                                                     Order::STATUS_CONFIRMED => filled($record->approvedBy),

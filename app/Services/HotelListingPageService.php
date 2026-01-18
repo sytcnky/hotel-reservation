@@ -3,13 +3,12 @@
 namespace App\Services;
 
 use App\Models\BoardType;
-use App\Models\Currency;
 use App\Models\Hotel;
 use App\Models\HotelCategory;
 use App\Models\StaticPage;
 use App\Support\Currency\CurrencyContext;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class HotelListingPageService
 {
@@ -36,7 +35,9 @@ class HotelListingPageService
         $guests = max(1, (int) $request->query('guests', 2));
 
         $checkinRaw = $request->query('checkin');
-        [$checkin, $checkout] = $this->parseCheckinRange($checkinRaw);
+        /** @var array{0: ?Carbon, 1: ?Carbon} $parsed */
+        $parsed = $this->parseCheckinRange($checkinRaw);
+        [$checkin, $checkout] = $parsed;
 
         // ---- Currency (tek otorite) ----
         $currencyCode = CurrencyContext::code($request);
@@ -125,7 +126,9 @@ class HotelListingPageService
             ->orderBy('rrr.id', 'asc');
 
         // ---- Hotels query ----
-        $hotels = Hotel::query()
+        $sortBy = (string) $request->query('sort_by', '');
+
+        $hotelsQuery = Hotel::query()
             ->with([
                 'location.parent.parent',
                 'featureGroups.facilities',
@@ -140,9 +143,33 @@ class HotelListingPageService
             ->addSelect([
                 'from_price_amount' => 'mp.from_price_amount',
                 'from_price_type'   => 'mp.from_price_type',
-            ])
-            ->orderByRaw("hotels.name->>? asc", [$locale])
-            ->get();
+            ]);
+
+        switch ($sortBy) {
+            case 'price_asc':
+                $hotelsQuery->orderByRaw('mp.from_price_amount IS NULL, mp.from_price_amount ASC')
+                    ->orderBy('hotels.id', 'asc');
+                break;
+
+            case 'price_desc':
+                $hotelsQuery->orderByRaw('mp.from_price_amount IS NULL, mp.from_price_amount DESC')
+                    ->orderBy('hotels.id', 'asc');
+                break;
+
+            case 'name_desc':
+                $hotelsQuery->orderByRaw("hotels.name->>? desc", [$locale])
+                    ->orderBy('hotels.id', 'asc');
+                break;
+
+            case 'name_asc':
+            default:
+                $hotelsQuery->orderByRaw("hotels.name->>? asc", [$locale])
+                    ->orderBy('hotels.id', 'asc');
+                break;
+        }
+
+        $hotels = $hotelsQuery->get();
+
 
         // ---- Option datasets (facet-style: exclude self) ----
         $categories = $this->categoryOptions(
@@ -223,10 +250,10 @@ class HotelListingPageService
                 }
 
                 if ($checkin && $checkout) {
-                    $rangeStart = $checkin->toDateString();
-                    $rangeEnd   = (clone $checkout)->subDay()->toDateString();
+                    $rangeStartYmd = $checkin->format('Y-m-d');
+                    $rangeEndYmd   = $checkout->copy()->subDay()->format('Y-m-d');
 
-                    $this->applyDateOverlap($q, $rangeStart, $rangeEnd);
+                    $this->applyDateOverlap($q, $rangeStartYmd, $rangeEndYmd);
                 }
             })
             ->max(\DB::raw('(COALESCE(r.capacity_adults,0) + COALESCE(r.capacity_children,0))'));
@@ -263,32 +290,59 @@ class HotelListingPageService
         ];
     }
 
+    /**
+     * @return array{0: ?Carbon, 1: ?Carbon}
+     */
     private function parseCheckinRange(?string $raw): array
     {
+        // Contract: only "YYYY-MM-DD - YYYY-MM-DD" accepted.
+        // Invalid format => legacy parse yok; filtre uygulanmaz (null, null).
         if (! $raw) {
             return [null, null];
         }
 
         $raw = trim($raw);
-        $parts = preg_split('/\s*-\s*/', $raw);
 
-        try {
-            if (count($parts) === 1) {
-                $start = Carbon::createFromFormat('d.m.Y', $parts[0])->startOfDay();
-                $end   = (clone $start)->addDay();
-            } else {
-                $start = Carbon::createFromFormat('d.m.Y', $parts[0])->startOfDay();
-                $end   = Carbon::createFromFormat('d.m.Y', $parts[1])->startOfDay();
-
-                if ($end->lte($start)) {
-                    $end = (clone $start)->addDay();
-                }
-            }
-
-            return [$start, $end];
-        } catch (\Throwable $e) {
+        // delimiter MUST be " - " (strict)
+        if (! str_contains($raw, ' - ')) {
             return [null, null];
         }
+
+        $parts = explode(' - ', $raw, 2);
+        if (count($parts) !== 2) {
+            return [null, null];
+        }
+
+        $startRaw = trim($parts[0]);
+        $endRaw   = trim($parts[1]);
+
+        if ($startRaw === '' || $endRaw === '') {
+            return [null, null];
+        }
+
+        if (! $this->isValidYmd($startRaw) || ! $this->isValidYmd($endRaw)) {
+            return [null, null];
+        }
+
+        $start = Carbon::createFromFormat('Y-m-d', $startRaw)->startOfDay();
+        $end   = Carbon::createFromFormat('Y-m-d', $endRaw)->startOfDay();
+
+        if ($end->lte($start)) {
+            $end = $start->copy()->addDay();
+        }
+
+        return [$start, $end];
+    }
+
+    private function isValidYmd(string $ymd): bool
+    {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
+            return false;
+        }
+
+        [$y, $m, $d] = array_map('intval', explode('-', $ymd, 3));
+
+        return checkdate($m, $d, $y);
     }
 
     private function resolveLocationSubtreeIds(int $locationId): array
@@ -348,10 +402,10 @@ class HotelListingPageService
                 });
             })
             ->when($checkin && $checkout, function ($q) use ($checkin, $checkout, $validRule) {
-                $rangeStart = $checkin->toDateString();
-                $rangeEnd   = (clone $checkout)->subDay()->toDateString();
+                $rangeStartYmd = $checkin->format('Y-m-d');
+                $rangeEndYmd   = $checkout->copy()->subDay()->format('Y-m-d');
 
-                $q->whereExists(function ($qq) use ($rangeStart, $rangeEnd, $validRule) {
+                $q->whereExists(function ($qq) use ($rangeStartYmd, $rangeEndYmd, $validRule) {
                     $qq->selectRaw('1')
                         ->from('rooms as r')
                         ->join('room_rate_rules as rrr', 'rrr.room_id', '=', 'r.id')
@@ -360,7 +414,7 @@ class HotelListingPageService
 
                     $validRule($qq);
 
-                    $this->applyDateOverlap($qq, $rangeStart, $rangeEnd);
+                    $this->applyDateOverlap($qq, $rangeStartYmd, $rangeEndYmd);
                 });
             });
     }
@@ -509,6 +563,11 @@ class HotelListingPageService
             ->groupBy('area_id')
             ->map(fn ($g) => (object) ['id' => (int) $g->first()->area_id, 'name' => $g->first()->area_name])
             ->values();
+
+        // Tek seçenekse area da kilitlenmeli (senin return payload'ındaki "locked" yorumuyla uyum)
+        if (! $areaId && $areas->count() === 1) {
+            $areaId = (int) $areas->first()->id;
+        }
 
         // UI hide flags (single option => hide)
         $hideCity     = $cities->count() <= 1;

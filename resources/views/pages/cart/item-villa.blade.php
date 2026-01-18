@@ -9,9 +9,9 @@
     $img = $s['villa_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
     // Tarih / gece
-    $checkin  = !empty($s['checkin'])  ? \Illuminate\Support\Carbon::parse($s['checkin'])  : null;
-    $checkout = !empty($s['checkout']) ? \Illuminate\Support\Carbon::parse($s['checkout']) : null;
-    $nights   = (int)($s['nights'] ?? ($checkin && $checkout ? $checkin->diffInDays($checkout) : 0));
+    $checkinYmd  = !empty($s['checkin'])  ? (string) $s['checkin']  : null;
+    $checkoutYmd = !empty($s['checkout']) ? (string) $s['checkout'] : null;
+    $nights      = (int) ($s['nights'] ?? 0);
 
     // Kişi sayıları
     $adults   = (int)($s['adults']   ?? 0);
@@ -69,16 +69,21 @@
                     </div>
                     @endif
 
-                    @if ($checkin && $checkout)
-                    <div>
-                        <i class="fi fi-rr-calendar"></i>
-                        {{ $checkin->translatedFormat('d M') }}
-                        →
-                        {{ $checkout->translatedFormat('d M') }}
-                        @if ($nights)
-                        ({{ $nights }} Gece)
-                        @endif
-                    </div>
+                    @if ($checkinYmd && $checkoutYmd)
+                        <div>
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $checkinYmd,
+                                pattern: 'd F'
+                            ) }}
+                            →
+                            {{ \App\Support\Date\DatePresenter::human(
+                                ymd: (string) $checkoutYmd,
+                                pattern: 'd F'
+                            ) }}
+                            @if ($nights)
+                                ({{ $nights }} Gece)
+                            @endif
+                        </div>
                     @endif
 
                     @if ($adults || $children)

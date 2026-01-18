@@ -6,6 +6,7 @@ use App\Filament\Resources\Orders\OrderResource;
 use App\Jobs\SendSupportTicketAgentMessageCustomerEmail;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -111,7 +112,7 @@ class SupportTicketForm
 
                                                 TextEntry::make('last_message_at')
                                                     ->label(__('admin.support_tickets.field.last_message_at'))
-                                                    ->state(fn (?SupportTicket $r) => $r?->last_message_at?->format('d.m.Y H:i') ?? '-'),
+                                                    ->state(fn (?SupportTicket $r) => DatePresenter::humanDateTime($r?->last_message_at)),
                                             ]),
 
                                             TextEntry::make('status')
@@ -168,7 +169,7 @@ class SupportTicketForm
 
                                                             TextEntry::make('created_at')
                                                                 ->hiddenLabel()
-                                                                ->state(fn (SupportMessage $m) => $m->created_at?->format('d.m.Y H:i')),
+                                                                ->state(fn (SupportMessage $m) => DatePresenter::humanDateTime($m->created_at)),
                                                         ]),
 
                                                     Group::make()

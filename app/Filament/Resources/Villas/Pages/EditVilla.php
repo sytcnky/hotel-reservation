@@ -98,9 +98,11 @@ class EditVilla extends EditRecord
                             (int) $currencyId,
                         );
 
+                        $cur = Currency::find($currencyId);
+
                         return [
                             'rows'     => $rows,
-                            'currency' => Currency::find($currencyId)?->symbol,
+                            'currency' => ($cur?->symbol) ?: ($cur?->code),
                         ];
                     }),
             ])

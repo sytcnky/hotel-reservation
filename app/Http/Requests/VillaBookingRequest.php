@@ -19,8 +19,11 @@ class VillaBookingRequest extends FormRequest
         return [
             'villa_id'         => ['required', 'integer'],
             'villa_name'       => ['required', 'string'],
-            'checkin'          => ['required', 'date'],
-            'checkout'         => ['required', 'date', 'after:checkin'],
+
+            // strict: Y-m-d
+            'checkin'          => ['required', 'date_format:Y-m-d'],
+            'checkout'         => ['required', 'date_format:Y-m-d', 'after:checkin'],
+
             'nights'           => ['required', 'integer', 'min:1'],
             'adults'           => ['required', 'integer', 'min:1'],
             'children'         => ['nullable', 'integer', 'min:0'],
@@ -34,9 +37,9 @@ class VillaBookingRequest extends FormRequest
     protected function passedValidation(): void
     {
         $this->merge([
-            'checkin'   => $this->normalizeDateToYmd($this->input('checkin')),
-            'checkout'  => $this->normalizeDateToYmd($this->input('checkout')),
-            'currency'  => $this->normalizeCurrency($this->input('currency')),
+            'checkin'  => $this->normalizeDateToYmd($this->input('checkin')),
+            'checkout' => $this->normalizeDateToYmd($this->input('checkout')),
+            'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }
 }

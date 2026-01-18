@@ -15,7 +15,7 @@ class MarkCompletedOrders extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
 
-        $today = Carbon::today(); // server tz (ICR’de prod’a geçerken TZ standardına göre çalışır)
+        $today = now()->startOfDay();
 
         // Yalnızca operasyon onaylı siparişler completed olabilir.
         // Cancelled zaten ayrı.
@@ -38,7 +38,7 @@ class MarkCompletedOrders extends Command
                 $toComplete[] = [
                     'order_id' => $order->id,
                     'code'     => $order->code,
-                    'latest'   => $latest->toDateString(),
+                    'latest'   => $latest, // Carbon (civil day start)
                 ];
             }
         }
@@ -52,8 +52,10 @@ class MarkCompletedOrders extends Command
 
         if ($dryRun) {
             foreach ($toComplete as $row) {
-                $this->line(" - {$row['code']} (#{$row['order_id']}), latest={$row['latest']}");
+                /** @var Carbon $latest */
+                $this->line(" - {$row['code']} (#{$row['order_id']})");
             }
+
             $this->warn('dry-run: DB güncellemesi yapılmadı.');
             return self::SUCCESS;
         }
@@ -64,12 +66,12 @@ class MarkCompletedOrders extends Command
                 ->where('status', 'confirmed')
                 ->update([
                     'status'       => 'completed',
-                    'completed_at' => Carbon::createFromFormat('Y-m-d', $row['latest'])->startOfDay(),
+                    'completed_at' => now(),
                     'updated_at'   => now(),
                 ]);
         }
 
-        $this->info('Güncellendi: ' . count($ids));
+        $this->info('Güncellendi: ' . count($toComplete));
 
         return self::SUCCESS;
     }
@@ -80,47 +82,38 @@ class MarkCompletedOrders extends Command
      */
     private function resolveLatestReservationDate(Order $order): ?Carbon
     {
-        $dates = [];
+        $latest = null;
 
         foreach ($order->items as $item) {
             $type = (string) ($item->product_type ?? '');
             $s    = (array) ($item->snapshot ?? []);
 
+            $d = null;
+
             if ($type === 'hotel_room') {
                 $d = $this->parseYmd($s['checkout'] ?? null);
-                if ($d) $dates[] = $d;
-                continue;
-            }
-
-            if ($type === 'villa') {
+            } elseif ($type === 'villa') {
                 $d = $this->parseYmd($s['checkout'] ?? null);
-                if ($d) $dates[] = $d;
-                continue;
-            }
-
-            if ($type === 'tour' || $type === 'excursion') {
+            } elseif ($type === 'tour' || $type === 'excursion') {
                 $d = $this->parseYmd($s['date'] ?? null);
-                if ($d) $dates[] = $d;
-                continue;
-            }
-
-            if ($type === 'transfer') {
+            } elseif ($type === 'transfer') {
                 // Roundtrip ise return_date; yoksa departure_date (oneway)
                 $d = $this->parseYmd($s['return_date'] ?? null) ?: $this->parseYmd($s['departure_date'] ?? null);
-                if ($d) $dates[] = $d;
+            } else {
+                // Diğer product_type’lar ignore
                 continue;
             }
 
-            // Diğer product_type’lar ignore
+            if (! $d) {
+                continue;
+            }
+
+            if (! $latest || $d->gt($latest)) {
+                $latest = $d;
+            }
         }
 
-        if (empty($dates)) {
-            return null;
-        }
-
-        // En geç tarih
-        usort($dates, fn (Carbon $a, Carbon $b) => $a->getTimestamp() <=> $b->getTimestamp());
-        return end($dates) ?: null;
+        return $latest;
     }
 
     private function parseYmd($value): ?Carbon

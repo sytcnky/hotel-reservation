@@ -7,6 +7,7 @@ use App\Models\PaymentAttempt;
 use App\Models\RefundAttempt;
 use App\Services\RefundService;
 use App\Support\Currency\CurrencyPresenter;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -105,11 +106,11 @@ class PaymentAttemptForm
 
                                                 TextEntry::make('started_at')
                                                     ->label(__('admin.payment_attempts.fields.started_at'))
-                                                    ->state(fn (?PaymentAttempt $record) => $record?->started_at?->format('d.m.Y H:i') ?? '-'),
+                                                    ->state(fn (?PaymentAttempt $record) => DatePresenter::humanDateTime($record?->started_at)),
 
                                                 TextEntry::make('completed_at')
                                                     ->label(__('admin.payment_attempts.fields.completed_at'))
-                                                    ->state(fn (?PaymentAttempt $record) => $record?->completed_at?->format('d.m.Y H:i') ?? '-'),
+                                                    ->state(fn (?PaymentAttempt $record) => DatePresenter::humanDateTime($record?->completed_at)),
 
                                                 TextEntry::make('error_code')
                                                     ->label(__('admin.payment_attempts.fields.error_code'))
@@ -283,7 +284,7 @@ class PaymentAttemptForm
                                                                 'name'   => $r->initiator_name,
                                                                 'reason' => $r->reason ?: null,
                                                                 'amount' => number_format((float) $r->amount, 2, ',', '.') . ' ' . $cur,
-                                                                'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+                                                                'time' => DatePresenter::humanDateTime($r->created_at),
                                                             ];
                                                         })
                                                         ->all();

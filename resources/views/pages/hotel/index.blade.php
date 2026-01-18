@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'hotel-listing'])
 @section('title', 'Oteller')
-
 @section('content')
 
 <section>
@@ -25,17 +23,20 @@
                 <i class="fi fi-rr-filter"></i> Filtre
             </button>
 
-
-            <!-- Sıralama -->
             <div class="d-flex align-items-center gap-2">
                 <!-- Sıralama -->
-                <select class="form-select form-select-sm" name="sort_by" id="sortBySelect">
+                <select
+                    class="form-select form-select-sm"
+                    name="sort_by"
+                    id="sortBySelect"
+                >
                     <option value="">Sıralama</option>
                     <option value="price_asc">Fiyat (Artan)</option>
                     <option value="price_desc">Fiyat (Azalan)</option>
                     <option value="name_asc">A-Z</option>
                     <option value="name_desc">Z-A</option>
                 </select>
+
             </div>
         </div>
 
@@ -61,28 +62,19 @@
                         $slug = $slugSource;
                     }
 
-                    // Cover görsel (thumb + thumb2x)
-                    $cover = $hotel->getFirstMedia('cover');
-                    if ($cover) {
-                        $coverThumb  = $cover->getUrl('thumb');
-                        $coverThumb2 = $cover->getUrl('thumb2x');
-                    } else {
-                        $coverThumb  = asset('/images/default.jpg');
-                        $coverThumb2 = $coverThumb;
-                    }
-
                     $hotelName = $hotel->name_l ?? $hotel->name ?? 'Otel';
 
                     // Yıldız (starRating ilişkisinden)
                     $stars = (int) ($hotel->starRating?->rating_value ?? 0);
 
                     // Lokasyon: area -> city -> region hiyerarşisi
-                    $area   = $hotel->location;
-                    $city   = $area?->parent?->name;
-                    $region = $area?->parent?->parent?->name;
-                    $locationLabel = collect([$city, $region])
-                    ->filter()
-                    ->implode(', ');
+                    $area     = $hotel->location;
+                    $district = $area?->parent?->name;
+                    $areaName = $area?->name;
+
+                    $locationLabel = collect([$areaName, $district])
+                        ->filter()
+                        ->implode(', ');
 
                     // Özellik rozetleri (featureGroups üzerinden, varsa)
                     $featureGroups = $hotel->featureGroups ?? collect();
@@ -97,7 +89,7 @@
                 <div class="col-12">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
-                            <div class="row align-items-end">
+                            <div class="row align-items-center">
                                 {{-- Sol: Görsel --}}
                                 <div class="col-lg-3 mb-3 mb-lg-0">
                                     <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}">
@@ -118,14 +110,16 @@
                                         </a>
                                     </h4>
 
-                                    <div class="mb-1 d-flex align-items-center">
-                                        @for ($i = 0; $i < $stars; $i++)
-                                        <i class="fi fi-ss-star text-warning"></i>
-                                        @endfor
-                                        @for ($i = $stars; $i < 5; $i++)
-                                        <i class="fi fi-rs-star text-warning"></i>
-                                        @endfor
-                                    </div>
+                                    @if($stars > 0)
+                                        <div class="mb-1 d-flex align-items-center">
+                                            @for ($i = 0; $i < $stars; $i++)
+                                                <i class="fi fi-ss-star text-warning"></i>
+                                            @endfor
+                                            @for ($i = $stars; $i < 5; $i++)
+                                                <i class="fi fi-rs-star text-warning"></i>
+                                            @endfor
+                                        </div>
+                                    @endif
 
                                     @if ($locationLabel)
                                     <div class="text-muted small">
@@ -154,11 +148,6 @@
                                 {{-- Sağ: Fiyat placeholder + buton --}}
                                 <div class="col-lg-3 text-lg-end">
                                     <div class="d-flex flex-column align-items-lg-end">
-                                        <div class="text-danger small mb-1">
-                                            <i class="fi fi-rs-user align-middle"></i>
-                                            yeni üyelere %15 indirim!
-                                        </div>
-
                                         <div class="mb-2">
                                             @php
                                                 $amount = $hotel->from_price_amount ?? null;
@@ -195,9 +184,9 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div> {{-- .row --}}
-                        </div> {{-- .card-body --}}
-                    </div> {{-- .card --}}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 @endforeach
             </div>

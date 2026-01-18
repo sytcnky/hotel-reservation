@@ -253,7 +253,7 @@ class TourController extends Controller
             'adult_price'       => $resolved['adult'],
 
             'duration'          => $tour->duration,
-            'start_time'        => $tour->start_time ? $tour->start_time->format('H:i') : null,
+            'start_time'        => $tour->start_time, // cast: datetime:H:i (string)
             'min_age'           => $tour->min_age,
             'days_of_week'      => $tour->days_of_week ?? [],
             'category_name'     => $tour->category?->name_l,

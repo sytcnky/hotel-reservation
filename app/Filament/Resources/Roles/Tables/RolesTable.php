@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Tables;
 
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
@@ -26,7 +27,7 @@ class RolesTable
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

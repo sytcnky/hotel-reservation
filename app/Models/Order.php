@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Currency\CurrencyPresenter;
+use App\Support\Date\DatePresenter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,7 +82,8 @@ class Order extends Model
             throw new \DomainException('Bu sipariş onaylanamaz.');
         }
 
-        $now = $now ?: Carbon::now(config('app.timezone', 'Europe/Istanbul'));
+        // Sprint D: instant date tek otorite (timezone app config’ten gelir)
+        $now = $now ?: now();
 
         $this->status = self::STATUS_CONFIRMED;
         $this->approved_at = $now;
@@ -99,7 +101,8 @@ class Order extends Model
             throw new \DomainException('İptal gerekçesi zorunludur.');
         }
 
-        $now = $now ?: Carbon::now(config('app.timezone', 'Europe/Istanbul'));
+        // Sprint D: instant date tek otorite (timezone app config’ten gelir)
+        $now = $now ?: now();
 
         $this->status = self::STATUS_CANCELLED;
         $this->cancelled_at = $now;
@@ -196,30 +199,55 @@ class Order extends Model
                     return CurrencyPresenter::formatAdmin($amount, $currency);
                 };
 
-                $formatDateTime = function (?string $date, ?string $time = null): ?string {
+                // Sprint D kapsamı: bu accessor snapshot tarihlerini "standardize etmez".
+                // Sadece datetime parse gerekiyorsa Carbon::parse yerine DatePresenter tek otorite kullanılır.
+                // Parse edilemezse ham değer korunur (UI kırılmaz).
+                $formatDateTimeFromParts = function (?string $date, ?string $time = null): ?string {
                     if (blank($date)) {
                         return null;
                     }
 
-                    $value = trim($date . ' ' . (string) $time);
-
-                    try {
-                        return Carbon::parse($value)->format('d.m.Y H:i');
-                    } catch (\Throwable) {
-                        return $value;
+                    $date = trim((string) $date);
+                    if ($date === '') {
+                        return null;
                     }
+
+                    // 🔒 KRİTİK KURAL
+                    // Saat YOKSA → sadece tarih göster (00:00 üretme)
+                    if (blank($time)) {
+                        $outDate = DatePresenter::human(
+                            ymd: (string) $date,
+                            pattern: 'd.m.Y'
+                        );
+                        return $outDate !== '' ? $outDate : $date;
+                    }
+
+                    $time  = trim((string) $time);
+                    $value = trim($date . ' ' . $time);
+
+                    if ($value === '') {
+                        return null;
+                    }
+
+                    $out = DatePresenter::humanDateTimeFromString($value, null, 'd.m.Y H:i');
+
+                    return $out !== '' ? $out : $value;
                 };
 
-                $formatDateOnly = function (?string $value): ?string {
+
+                $formatDateTimeFromString = function (?string $value): ?string {
                     if (blank($value)) {
                         return null;
                     }
 
-                    try {
-                        return Carbon::parse($value)->format('d.m.Y');
-                    } catch (\Throwable) {
-                        return $value;
+                    $value = trim((string) $value);
+                    if ($value === '') {
+                        return null;
                     }
+
+                    $out = DatePresenter::humanDateTimeFromString($value, null, 'd.m.Y H:i');
+
+                    return $out !== '' ? $out : $value;
                 };
 
                 $a = (int) ($s['adults']   ?? 0);
@@ -245,8 +273,11 @@ class Order extends Model
                             'hotel_name' => $s['hotel_name']      ?? $s['title'] ?? null,
                             'room_name'  => $s['room_name']       ?? null,
                             'board_type' => $s['board_type_name'] ?? null,
-                            'checkin'    => $formatDateOnly($s['checkin']  ?? null),
-                            'checkout'   => $formatDateOnly($s['checkout'] ?? null),
+
+                            // Sprint D: civil date alanları değiştirilmez (ham taşınır)
+                            'checkin'    => $s['checkin']  ?? null,
+                            'checkout'   => $s['checkout'] ?? null,
+
                             'paid'       => $formatMoney($item->total_price ?? $item->unit_price),
                         ];
                 }
@@ -269,8 +300,11 @@ class Order extends Model
 
                     return $base + [
                             'villa_name' => $s['villa_name'] ?? $s['title'] ?? null,
-                            'checkin'    => $formatDateOnly($s['checkin']  ?? null),
-                            'checkout'   => $formatDateOnly($s['checkout'] ?? null),
+
+                            // Sprint D: civil date alanları değiştirilmez (ham taşınır)
+                            'checkin'    => $s['checkin']  ?? null,
+                            'checkout'   => $s['checkout'] ?? null,
+
                             'paid'       => $pre       !== null ? $formatMoney($pre)       . $rateText : null,
                             'remaining'  => $remaining !== null ? $formatMoney($remaining) : null,
                             'total'      => $total     !== null ? $formatMoney($total)     : null,
@@ -278,23 +312,22 @@ class Order extends Model
                 }
 
                 if ($type === 'tour' || $type === 'excursion') {
-                    $tourDateTime = null;
+                    $tourDate = $s['date'] ?? null;
 
-                    if (! empty($s['date'])) {
-                        $tourDateTime = $s['date'];
+                    $dateOut = null;
 
-                        if (! empty($s['pickup_time'])) {
-                            $tourDateTime .= ' ' . $s['pickup_time'];
-                        } elseif (! empty($s['time'])) {
-                            $tourDateTime .= ' ' . $s['time'];
-                        }
+                    if (! blank($tourDate)) {
+                        $dateOut = DatePresenter::human(
+                            ymd: (string) $tourDate,
+                            pattern: 'd.m.Y'
+                        );
+
+                        $dateOut = $dateOut !== '' ? $dateOut : (string) $tourDate;
                     }
 
                     return $base + [
                             'tour_name' => $s['tour_name'] ?? $s['title'] ?? null,
-                            'date'      => $tourDateTime
-                                ? $formatDateTime($tourDateTime)
-                                : $formatDateOnly($s['date'] ?? null),
+                            'date'      => $dateOut,
                             'paid'      => $formatMoney($item->total_price ?? $item->unit_price),
                         ];
                 }
@@ -310,14 +343,14 @@ class Order extends Model
                         );
                     }
 
-                    $departureDate = $formatDateTime(
+                    $departureDate = $formatDateTimeFromParts(
                         $s['departure_date']       ?? null,
                         $s['pickup_time_outbound'] ?? null,
                     );
 
-                    $returnDate = $formatDateTime(
-                        $s['return_date']          ?? null,
-                        $s['pickup_time_return']   ?? null,
+                    $returnDate = $formatDateTimeFromParts(
+                        $s['return_date']        ?? null,
+                        $s['pickup_time_return'] ?? null,
                     );
 
                     return $base + [
@@ -362,24 +395,37 @@ class Order extends Model
 
     public function getDiscountsForInfolistAttribute(): array
     {
-        $rows     = (array) ($this->coupon_snapshot ?? []);
-        $currency = strtoupper($this->currency ?? '');
+        $rows = (array) ($this->coupon_snapshot ?? []);
 
         return collect($rows)
-            ->map(function ($row) use ($currency) {
+            ->map(function ($row) {
                 $amount = (float) ($row['discount'] ?? 0);
                 if ($amount <= 0) {
                     return null;
                 }
 
-                $amountFormatted = CurrencyPresenter::format(
+                $amountFormatted = \App\Support\Currency\CurrencyPresenter::format(
                     $row['discount'] ?? null,
                     $this->currency ?? null
                 );
 
-                $label = $row['title']
-                    ?? $row['code']
-                    ?? '-';
+                $title = trim((string) ($row['title'] ?? ''));
+                $code  = trim((string) ($row['code'] ?? ''));
+
+                // Alt başlık (snapshot’ta hangisi varsa)
+                $subtitle =
+                    trim((string) ($row['subtitle'] ?? '')) ?:
+                        trim((string) ($row['campaign_subtitle'] ?? '')) ?:
+                            trim((string) ($row['sub_title'] ?? '')) ?:
+                                trim((string) ($row['context'] ?? ''));
+
+                // Hiç başlık yoksa satırı tamamen düşür
+                $labelBase = $title !== '' ? $title : $code;
+                if ($labelBase === '') {
+                    return null;
+                }
+
+                $label = $subtitle !== '' ? trim($labelBase . ' ' . $subtitle) : $labelBase;
 
                 $type = $row['type'] ?? null;
 
@@ -397,7 +443,7 @@ class Order extends Model
                     'badge'  => $badge,
                 ];
             })
-            ->filter()
+            ->filter()   // null olanlar tamamen gider
             ->values()
             ->all();
     }
@@ -419,7 +465,12 @@ class Order extends Model
                     'name'   => $name !== '' ? $name : '-',
                     'badge'  => $role !== '' ? $role : '-',
                     'reason' => $r->reason ?: null,
-                    'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+
+                    // Sprint D: instant date tek otorite (->format yerine presenter)
+                    'time'   => $r->created_at
+                        ? DatePresenter::humanDateTimeShort($r->created_at)
+                        : null,
+
                     'amount' => CurrencyPresenter::formatAdmin($r->amount, $this->currency ?? null),
                 ];
             })

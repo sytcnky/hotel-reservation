@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Rooms\Tables;
 
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -45,7 +46,7 @@ class RoomsTable
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

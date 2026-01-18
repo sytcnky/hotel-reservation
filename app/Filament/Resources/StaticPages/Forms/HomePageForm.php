@@ -268,19 +268,13 @@ class HomePageForm
                                         ->default(6)
                                         ->columnSpan(['default' => 12, 'lg' => 3]),
 
-                                    TextInput::make('content.popular_hotels.carousel.total')
-                                        ->label(__('admin.static_pages.form.total'))
+                                    TextInput::make('content.popular_hotels.carousel.limit')
+                                        ->label(__('admin.static_pages.form.limit'))
                                         ->numeric()
                                         ->minValue(1)
-                                        ->default(12)
+                                        ->visible(fn (Get $get) => in_array($get('content.popular_hotels.carousel.mode'), ['latest', 'by_location'], true))
                                         ->columnSpan(['default' => 12, 'lg' => 3]),
                                 ]),
-
-                            TextInput::make('content.popular_hotels.carousel.limit')
-                                ->label(__('admin.static_pages.form.limit'))
-                                ->numeric()
-                                ->minValue(1)
-                                ->visible(fn (Get $get) => in_array($get('content.popular_hotels.carousel.mode'), ['latest', 'by_location'], true)),
 
                             Select::make('content.popular_hotels.carousel.location_id')
                                 ->label(__('admin.static_pages.form.location'))

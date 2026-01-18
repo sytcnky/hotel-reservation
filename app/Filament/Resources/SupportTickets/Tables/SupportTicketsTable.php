@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupportTickets\Tables;
 
 use App\Models\SupportTicket;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
@@ -56,24 +57,24 @@ class SupportTicketsTable
 
                 TextColumn::make('last_message_at')
                     ->label(__('admin.support_tickets.field.last_message_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable(),
 
                 TextColumn::make('created_at')
                     ->label(__('admin.field.created_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('updated_at')
                     ->label(__('admin.field.updated_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('deleted_at')
                     ->label(__('admin.field.deleted_at'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

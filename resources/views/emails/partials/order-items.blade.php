@@ -67,9 +67,17 @@
 
                                 {{-- Details (label top, value bottom) --}}
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    @php
+                                        $dateKeys = ['checkin','checkout','departure_date','return_date','date'];
+                                    @endphp
+
                                     @foreach($labels as $key => $label)
                                         @php
                                             $value = $it[$key] ?? null;
+
+                                            if ($value !== null && $value !== '' && in_array($key, $dateKeys, true)) {
+                                                $value = \App\Support\Date\DatePresenter::human((string) $value, locale: app()->getLocale(), pattern: 'd F Y');
+                                            }
                                         @endphp
 
                                         @continue($value === null || $value === '')

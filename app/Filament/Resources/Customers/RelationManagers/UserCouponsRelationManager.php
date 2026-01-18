@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Customers\RelationManagers;
 
 use App\Models\Coupon;
 use App\Models\UserCoupon;
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -100,7 +101,7 @@ class UserCouponsRelationManager extends RelationManager
 
                 TextColumn::make('expires_at')
                     ->label(__('admin.coupons.form.valid_until'))
-                    ->dateTime()
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('used_count')

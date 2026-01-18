@@ -1,6 +1,6 @@
 {{-- resources/views/pages/hotel/hotel-filter.blade.php --}}
 
-<form method="GET" action="{{ localized_route('hotels') }}" class="border rounded p-3 mb-4 bg-light">
+<form id="hotelFilterForm" method="GET" action="{{ localized_route('hotels') }}" class="border rounded p-3 mb-4 bg-light" autocomplete="off">
 
     @php
         $filters = $filters ?? [];
@@ -17,9 +17,9 @@
         $selectedGuests = max(1, min($max, $selectedGuests));
 
         // Konum select datasetleri
-        $cityOptions     = $cityOptions ?? collect();
-        $districtOptions = $districtOptions ?? collect();
-        $areaOptions     = $areaOptions ?? collect();
+        $cityOptions     = $cities ?? collect();
+        $districtOptions = $districts ?? collect();
+        $areaOptions     = $areas ?? collect();
 
         $cityId     = (int) ($filters['city_id'] ?? 0);
         $districtId = (int) ($filters['district_id'] ?? 0);
@@ -28,6 +28,8 @@
         $showCity     = $cityOptions->count() > 1;
         $showDistrict = $districtOptions->count() > 1;
         $showArea     = $areaOptions->count() > 1;
+
+        $sortBy = (string) ($filters['sort_by'] ?? '');
     @endphp
 
     {{-- Kategori --}}
@@ -52,11 +54,10 @@
             id="checkin"
             name="checkin"
             class="form-control"
-            placeholder="Tarih aralığı (gg.aa.yyyy - gg.aa.yyyy)"
+            placeholder="Tarih aralığı"
             value="{{ $checkinVal }}"
+            autocomplete="off"
         >
-
-        <div class="form-text">Fiyat değişmez, sadece liste daralır.</div>
     </div>
 
     {{-- Konum --}}
@@ -117,7 +118,7 @@
 
     {{-- Board Type --}}
     <div class="mb-3">
-        <label class="form-label small">Konsept (Board)</label>
+        <label class="form-label small">Konaklama Tipi</label>
         <select name="board_type_id" class="form-select">
             <option value="">Tümü</option>
             @foreach(($boardTypes ?? collect()) as $bt)
@@ -126,12 +127,11 @@
                 </option>
             @endforeach
         </select>
-        <div class="form-text">Sadece bu board’a aktif kuralı olan oteller listelenir.</div>
     </div>
 
     {{-- Misafir --}}
     <div class="mb-3">
-        <label class="form-label small">Misafir Sayısı</label>
+        <label class="form-label small">Oda Kapasitesi (kişi)</label>
 
         <select name="guests" class="form-select">
             @for($i = 1; $i <= $max; $i++)
@@ -140,8 +140,6 @@
                 </option>
             @endfor
         </select>
-
-        <div class="form-text">Toplam kapasiteye göre daraltılır.</div>
     </div>
 
     <hr>

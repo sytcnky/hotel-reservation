@@ -375,6 +375,42 @@ export function initPayment() {
     //     }
     // });
 
+    // --- SUBMIT: double-submit guard + loading state ---
+    const labelEl   = submitBtn.querySelector('.btn-label');
+    const loadingEl = submitBtn.querySelector('.btn-loading');
+
+    form.addEventListener('submit', function (e) {
+        // Önce: form valid mi? (touched'ları açıp bir kez daha kontrol et)
+        termsTouched  = true;
+        holderTouched = true;
+        numberTouched = true;
+        expiryTouched = true;
+        cvvTouched    = true;
+
+        validateForm();
+
+        if (submitBtn.disabled) {
+            e.preventDefault();
+            return;
+        }
+
+        // Double submit engeli
+        if (form.dataset.submitted === '1') {
+            e.preventDefault();
+            return;
+        }
+
+        form.dataset.submitted = '1';
+        submitBtn.disabled = true;
+
+        if (labelEl) {
+            labelEl.classList.add('d-none');
+        }
+        if (loadingEl) {
+            loadingEl.classList.remove('d-none');
+        }
+    });
+
     // İlk state
     updateExpiryVis();
     validateForm();

@@ -10,6 +10,28 @@ use Illuminate\Support\Collection;
 class VillaRateResolver
 {
     /**
+     * Strict civil date parser (Y-m-d). Parse edilemezse null.
+     * Controller/service katmanında legacy parse yok.
+     */
+    private function parseYmd(?string $value): ?Carbon
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d', $value)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Tek gün için fiyatı çözer.
      */
     public function resolveDay(
@@ -17,7 +39,20 @@ class VillaRateResolver
         string $date,
         int $currencyId,
     ): array {
-        $d = Carbon::parse($date)->startOfDay();
+        $d = $this->parseYmd($date);
+
+        if (! $d) {
+            return [
+                'ok'          => false,
+                'closed'      => false,
+                'reason'      => 'invalid_date',
+                'price_mode'  => null,
+                'unit_amount' => null,
+                'total'       => 0.0,
+                'currency_id' => $currencyId,
+                'meta'        => [],
+            ];
+        }
 
         // 1 = Mon .. 7 = Sun, bit mask
         $weekdayBit = 1 << ($d->dayOfWeekIso - 1);
@@ -40,10 +75,10 @@ class VillaRateResolver
 
         if (! $rule) {
             return [
-                'ok'        => false,
-                'closed'    => false,
-                'reason'    => 'rule_not_found',
-                'price_mode'=> null,
+                'ok'          => false,
+                'closed'      => false,
+                'reason'      => 'rule_not_found',
+                'price_mode'  => null,
                 'unit_amount' => null,
                 'total'       => 0.0,
                 'currency_id' => $currencyId,
@@ -53,14 +88,14 @@ class VillaRateResolver
 
         if ($rule->closed) {
             return [
-                'ok'         => false,
-                'closed'     => true,
-                'reason'     => 'closed',
-                'price_mode' => null,
-                'unit_amount'=> (float) $rule->amount,
-                'total'      => 0.0,
-                'currency_id'=> $rule->currency_id,
-                'meta'       => [],
+                'ok'          => false,
+                'closed'      => true,
+                'reason'      => 'closed',
+                'price_mode'  => null,
+                'unit_amount' => (float) $rule->amount,
+                'total'       => 0.0,
+                'currency_id' => $rule->currency_id,
+                'meta'        => [],
             ];
         }
 
@@ -92,10 +127,14 @@ class VillaRateResolver
         string $dateEnd,
         int $currencyId,
     ): Collection {
-        $out   = collect();
+        $out = collect();
 
-        $start = Carbon::parse($dateStart)->startOfDay();
-        $end   = Carbon::parse($dateEnd)->startOfDay();
+        $start = $this->parseYmd($dateStart);
+        $end   = $this->parseYmd($dateEnd);
+
+        if (! $start || ! $end) {
+            return $out;
+        }
 
         if ($end->lt($start)) {
             $end = $start->copy();

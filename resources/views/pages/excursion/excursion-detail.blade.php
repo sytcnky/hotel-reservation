@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'excursion-details'])
 @section('title', $tour['name'])
-
 @section('content')
     <div class="container py-5">
         {{-- Başlık ve kategori --}}
@@ -106,7 +104,7 @@
                                        id="excursion-date"
                                        name="date"
                                        class="form-control"
-                                       placeholder="gg.aa.yyyy"
+                                       placeholder="Tarih seçin"
                                        required>
                             </div>
 
@@ -318,43 +316,4 @@
             </div>
         </div>
     </div>
-
-    <script>
-        (function () {
-            const form      = document.getElementById('excursionForm');
-            const dateInput = document.getElementById('excursion-date');
-
-            if (!form || !dateInput) {
-                return;
-            }
-
-            // Submit anında tarih kontrolü
-            form.addEventListener('submit', function (event) {
-                const value = dateInput.value.trim();
-
-                if (!value) {
-                    // Tarih seçilmemiş → submit iptal
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    dateInput.classList.add('is-invalid');
-                    form.classList.add('was-validated');
-                    return;
-                }
-
-                // Tarih doluysa hata durumunu temizle
-                dateInput.classList.remove('is-invalid');
-                form.classList.add('was-validated');
-            });
-
-            // Flatpickr + manuel yazma için hem input hem change event'lerine bağlan
-            ['input', 'change'].forEach(function (evt) {
-                dateInput.addEventListener(evt, function () {
-                    if (dateInput.value.trim() !== '') {
-                        dateInput.classList.remove('is-invalid');
-                    }
-                });
-            });
-        })();
-    </script>
 @endsection

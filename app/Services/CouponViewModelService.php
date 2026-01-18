@@ -6,7 +6,6 @@ use App\Models\Coupon;
 use App\Models\User;
 use App\Models\UserCoupon;
 use App\Support\Currency\CurrencyPresenter;
-use Illuminate\Support\Carbon;
 
 class CouponViewModelService
 {
@@ -272,9 +271,9 @@ class CouponViewModelService
          | Geçerlilik tarihleri
          |--------------------------------------------------------------------------
          */
-        $validFrom        = $coupon->valid_from ? Carbon::parse($coupon->valid_from) : null;
-        $globalValidTo    = $coupon->valid_until ? Carbon::parse($coupon->valid_until) : null;
-        $userValidTo      = $pivot->expires_at ? Carbon::parse($pivot->expires_at) : null;
+        $validFrom        = $coupon->valid_from ?: null;
+        $globalValidTo    = $coupon->valid_until ?: null;
+        $userValidTo      = $pivot->expires_at ?: null;
         $effectiveValidTo = $userValidTo ?: $globalValidTo;
 
         $now = now();

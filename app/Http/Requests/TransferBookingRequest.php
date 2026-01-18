@@ -16,6 +16,12 @@ class TransferBookingRequest extends FormRequest
 
     public function rules(): array
     {
+        $direction = (string) ($this->input('direction') ?? '');
+
+        $returnDateRules = $direction === 'roundtrip'
+            ? ['required', 'date_format:Y-m-d']
+            : ['prohibited'];
+
         return [
             'route_id'         => ['required', 'integer', 'min:1'],
             'vehicle_id'       => ['required', 'integer', 'min:1'],
@@ -23,8 +29,9 @@ class TransferBookingRequest extends FormRequest
             'from_location_id' => ['required', 'integer', 'min:1', 'different:to_location_id'],
             'to_location_id'   => ['required', 'integer', 'min:1', 'different:from_location_id'],
 
-            'departure_date'   => ['required', 'date'],
-            'return_date'      => ['nullable', 'date', 'required_if:direction,roundtrip'],
+            // strict: Y-m-d
+            'departure_date'   => ['required', 'date_format:Y-m-d'],
+            'return_date'      => $returnDateRules,
 
             'pickup_time_outbound'   => ['nullable', 'date_format:H:i'],
             'flight_number_outbound' => ['nullable', 'string', 'max:20'],
@@ -45,7 +52,8 @@ class TransferBookingRequest extends FormRequest
     {
         return [
             'to_location_id.different' => 'Nereye alanı Nereden ile aynı olamaz.',
-            'return_date.required_if'  => 'Gidiş–Dönüş seçildiğinde dönüş tarihi zorunludur.',
+            'return_date.required'     => 'Gidiş–Dönüş seçildiğinde dönüş tarihi zorunludur.',
+            'return_date.prohibited'   => 'Tek yön seçildiğinde dönüş tarihi gönderilemez.',
         ];
     }
 

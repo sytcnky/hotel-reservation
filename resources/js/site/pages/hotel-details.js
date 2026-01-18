@@ -1,28 +1,25 @@
 // resources/js/pages/hotel-details.js
-
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.css';
-import { Turkish } from 'flatpickr/dist/l10n/tr.js';
+import { initDatePicker } from '../ui/date-picker';
 
 export function initHotelDetails() {
+    const hasRoomCards = document.querySelectorAll('.room-card').length > 0;
+    if (!hasRoomCards) return;
+
     initRoomToggles();
     initDateRangePicker();
+
+    initBookingFormSync();
+    initVideoModalReset();
 }
 
 function initDateRangePicker() {
     const input = document.getElementById('checkin');
     if (!input) return;
 
-    // Locale
-    flatpickr.localize(Turkish);
-
-    flatpickr(input, {
-        mode: 'range',
-        dateFormat: 'd.m.Y',
-        minDate: 'today',
-        // Otel controller'daki parseDateRange ile uyumlu:
-        // "18.11.2025 - 22.11.2025"
-        allowInput: true,
+    initDatePicker({
+        el: input,
+        contract: 'hotel_details_range_ymd_alt',
+        locale: document.documentElement.lang,
     });
 }
 
@@ -65,5 +62,69 @@ function initRoomToggles() {
                 });
             }
         });
+    });
+}
+
+function initBookingFormSync() {
+    const form = document.getElementById('booking-form');
+    if (!form) return;
+
+    const adultInput   = form.querySelector('input[data-type="adult"]');
+    const childInput   = form.querySelector('input[data-type="child"]');
+    const hiddenAdults = form.querySelector('#adultsInput');
+    const hiddenChilds = form.querySelector('#childrenInput');
+    const guestInput   = document.getElementById('guestInput');
+
+    if (!adultInput || !childInput || !hiddenAdults || !hiddenChilds) {
+        return;
+    }
+
+    const initialAdults   = parseInt(form.dataset.initialAdults || '0', 10);
+    const initialChildren = parseInt(form.dataset.initialChildren || '0', 10);
+
+    function updateGuestDisplay() {
+        if (!guestInput) return;
+
+        const a = parseInt(adultInput.value || '0', 10);
+        const c = parseInt(childInput.value || '0', 10);
+
+        const parts = [];
+        if (a > 0) parts.push(a + ' Yetişkin');
+        if (c > 0) parts.push(c + ' Çocuk');
+
+        guestInput.value = parts.join(', ');
+    }
+
+    function syncHidden() {
+        hiddenAdults.value = adultInput.value || '0';
+        hiddenChilds.value = childInput.value || '0';
+    }
+
+    // İlk yükleme
+    adultInput.value   = String(initialAdults);
+    childInput.value   = String(initialChildren);
+    hiddenAdults.value = String(initialAdults);
+    hiddenChilds.value = String(initialChildren);
+    updateGuestDisplay();
+
+    // Submit öncesi hidden sync
+    form.addEventListener('submit', function () {
+        syncHidden();
+    });
+}
+
+function initVideoModalReset() {
+    const modal = document.getElementById('hotelVideoModal');
+    const iframe = document.getElementById('hotelVideoFrame');
+
+    if (!modal || !iframe) return;
+
+    const originalSrc = iframe.getAttribute('src') || '';
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        iframe.setAttribute('src', '');
+        setTimeout(() => {
+            iframe.setAttribute('src', originalSrc);
+        }, 30);
     });
 }

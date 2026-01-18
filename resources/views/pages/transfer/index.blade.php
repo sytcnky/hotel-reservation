@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
+@extends('layouts.app', ['pageKey' => 'transfer'])
 @section('title', 'Transferler')
-
 @section('content')
 
     @php
@@ -98,7 +96,7 @@
                             <div class="input-group has-validation">
                                 <input type="text"
                                        class="form-control date-input"
-                                       placeholder="gg.aa.yyyy"
+                                       placeholder="Tarih seçin"
                                        id="departure_date"
                                        name="departure_date"
                                        value="{{ request('departure_date') }}"
@@ -115,7 +113,7 @@
                             <div class="input-group has-validation">
                                 <input type="text"
                                        class="form-control date-input"
-                                       placeholder="gg.aa.yyyy"
+                                       placeholder="Tarih seçin"
                                        id="return_date"
                                        name="return_date"
                                        value="{{ request('return_date') }}">
@@ -328,9 +326,7 @@
                                                 <i class="fi fi-rr-calendar me-1 align-middle"></i>Geliş Tarihi
                                             </div>
                                             <h6 class="mb-0">
-                                                {{ \Carbon\Carbon::parse($transferOffer['departure_date'])
-                                                ->locale(app()->getLocale())
-                                                ->translatedFormat('d F Y') }}
+                                                {{ \App\Support\Date\DatePresenter::human($transferOffer['departure_date']) }}
                                             </h6>
                                         </div>
                                     </div>
@@ -344,13 +340,12 @@
                                                 <i class="fi fi-rr-calendar me-1 align-middle"></i>Dönüş Tarihi
                                             </div>
                                             <h6 class="mb-0">
-                                                {{ \Carbon\Carbon::parse($transferOffer['return_date'])
-                                                ->locale(app()->getLocale())
-                                                ->translatedFormat('d F Y') }}
+                                                {{ \App\Support\Date\DatePresenter::human($transferOffer['return_date']) }}
                                             </h6>
                                         </div>
                                     </div>
                                 @endif
+
 
                                 {{-- Süre --}}
                                 @if(!empty($transferOffer['estimated_duration_min']))
@@ -393,70 +388,122 @@
 
                             <div class="bg-light p-3 mt-3 rounded">
                                 <div class="row">
-                                    {{-- Gidiş Saati --}}
+                                    {{-- Alınış --}}
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Alınış</label>
+                                    </div>
+
+                                    {{-- Radio (sol) --}}
                                     <div class="col-lg-6 mb-3">
-                                        <label for="pickup_time_outbound" class="form-label">Geliş Saati</label>
-                                        <div class="input-group">
-                                            <input type="time"
-                                                   id="pickup_time_outbound"
-                                                   name="pickup_time_outbound"
-                                                   class="form-control">
-                                            <span class="input-group-text bg-white">
-                                            <i class="fi fi-rr-clock"></i>
-                                        </span>
+                                        <div class="d-flex gap-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="outbound_input_type"
+                                                       id="outbound_time_radio"
+                                                       value="time"
+                                                       checked>
+                                                <label class="form-check-label" for="outbound_time_radio">Saati</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="outbound_input_type"
+                                                       id="outbound_flight_radio"
+                                                       value="flight">
+                                                <label class="form-check-label" for="outbound_flight_radio">Uçuş Numarası</label>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {{-- Alınış Uçuş No (opsiyonel) --}}
+                                    {{-- Input (sağ) --}}
                                     <div class="col-lg-6 mb-3">
-                                        <label for="flight_number_outbound" class="form-label">
-                                            Alınış Uçuş Numarası
-                                        </label>
-                                        <input type="text"
-                                               id="flight_number_outbound"
-                                               name="flight_number_outbound"
-                                               class="form-control"
-                                               placeholder="Örn: TK1234">
-                                    </div>
-
-                                    @if($transferOffer['direction'] === 'roundtrip')
-                                        {{-- Dönüş Saati --}}
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="pickup_time_return" class="form-label">Dönüş Saati</label>
+                                        <div id="outbound_time_wrapper">
                                             <div class="input-group">
                                                 <input type="time"
-                                                       id="pickup_time_return"
-                                                       name="pickup_time_return"
+                                                       id="pickup_time_outbound"
+                                                       name="pickup_time_outbound"
                                                        class="form-control">
                                                 <span class="input-group-text bg-white">
-                                                <i class="fi fi-rr-clock"></i>
-                                            </span>
+                    <i class="fi fi-rr-clock"></i>
+                </span>
                                             </div>
                                         </div>
 
-                                        {{-- Dönüş Uçuş No (opsiyonel) --}}
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="flight_number_return" class="form-label">
-                                                Dönüş Uçuş Numarası
-                                            </label>
+                                        <div id="outbound_flight_wrapper" class="d-none">
                                             <input type="text"
-                                                   id="flight_number_return"
-                                                   name="flight_number_return"
+                                                   id="flight_number_outbound"
+                                                   name="flight_number_outbound"
                                                    class="form-control"
-                                                   placeholder="Örn: TK1235">
+                                                   placeholder="Örn: TK1234"
+                                                   disabled>
+                                        </div>
+                                    </div>
+
+                                    @if($transferOffer['direction'] === 'roundtrip')
+                                        {{-- Dönüş --}}
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold">Dönüş</label>
+                                        </div>
+
+                                        {{-- Radio (sol) --}}
+                                        <div class="col-lg-6 mb-3">
+                                            <div class="d-flex gap-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="return_input_type"
+                                                           id="return_time_radio"
+                                                           value="time"
+                                                           checked>
+                                                    <label class="form-check-label" for="return_time_radio">Saati</label>
+                                                </div>
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="return_input_type"
+                                                           id="return_flight_radio"
+                                                           value="flight">
+                                                    <label class="form-check-label" for="return_flight_radio">Uçuş Numarası</label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Input (sağ) --}}
+                                        <div class="col-lg-6 mb-3">
+                                            <div id="return_time_wrapper">
+                                                <div class="input-group">
+                                                    <input type="time"
+                                                           id="pickup_time_return"
+                                                           name="pickup_time_return"
+                                                           class="form-control">
+                                                    <span class="input-group-text bg-white">
+                        <i class="fi fi-rr-clock"></i>
+                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div id="return_flight_wrapper" class="d-none">
+                                                <input type="text"
+                                                       id="flight_number_return"
+                                                       name="flight_number_return"
+                                                       class="form-control"
+                                                       placeholder="Örn: TK1235"
+                                                       disabled>
+                                            </div>
                                         </div>
                                     @endif
 
                                     <div class="col-12">
                                         <p class="text-muted small">
                                             <i class="fi fi-rr-info align-middle me-1"></i>
-                                            Uçuş numaranızı girerseniz, uçak iniş saatine göre karşılama yapılır.
+                                            Seçtiğiniz seçeneğe göre saat veya uçuş numarası girmeniz gerekir.
                                         </p>
+
                                         <div id="bookPairError" class="text-danger small d-none">
-                                            Saat veya Uçuş numarası alanlarından en az biri dolu olmalıdır.
+                                            Seçili alanda bilgi girmelisiniz. (Saat veya Uçuş Numarası)
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
 
                             <div class="row mt-3 align-items-center">
@@ -582,178 +629,4 @@
             </div>
         </div>
     </section>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const fromSelect = document.getElementById('from_location_id');
-            const toSelect = document.getElementById('to_location_id');
-            const oneWayRadio = document.getElementById('oneway');
-            const roundTripRadio = document.getElementById('roundtrip');
-            const returnDateInput = document.getElementById('return_date');
-            const departureDateInput = document.getElementById('departure_date');
-            const guestInputVisible = document.getElementById('guestInput');
-
-            // Nereden -> Nereye aynı lokasyonu engelle
-            if (fromSelect && toSelect) {
-                const originalToOptions = Array.from(toSelect.options).map(option => ({
-                    value: option.value,
-                    text: option.text
-                }));
-
-                function rebuildToOptions() {
-                    const fromVal = fromSelect.value;
-                    const prevToVal = toSelect.value;
-
-                    toSelect.innerHTML = '';
-                    originalToOptions.forEach(opt => {
-                        if (opt.value === '' || opt.value !== fromVal) {
-                            const o = document.createElement('option');
-                            o.value = opt.value;
-                            o.textContent = opt.text;
-                            if (opt.value === prevToVal && opt.value !== fromVal) o.selected = true;
-                            toSelect.appendChild(o);
-                        }
-                    });
-
-                    if (!toSelect.value) {
-                        const first = toSelect.querySelector('option[value=""]') || toSelect.options[0];
-                        if (first) first.selected = true;
-                    }
-                }
-
-                rebuildToOptions();
-                fromSelect.addEventListener('change', function () {
-                    rebuildToOptions();
-                    fromSelect.classList.remove('is-invalid');
-                });
-                toSelect.addEventListener('change', function () {
-                    toSelect.classList.remove('is-invalid');
-                });
-            }
-
-            // Roundtrip ise dönüş tarihi zorunlu
-            function syncReturnRequired() {
-                if (!returnDateInput || !oneWayRadio || !roundTripRadio) return;
-                returnDateInput.required = !!roundTripRadio.checked;
-                returnDateInput.classList.remove('is-invalid');
-            }
-            syncReturnRequired();
-            if (oneWayRadio && roundTripRadio) {
-                oneWayRadio.addEventListener('change', syncReturnRequired);
-                roundTripRadio.addEventListener('change', syncReturnRequired);
-            }
-
-            // Alan değişince invalid state'i anında kaldır
-            departureDateInput?.addEventListener('input', () => {
-                if (departureDateInput.value.trim()) departureDateInput.classList.remove('is-invalid');
-            });
-            returnDateInput?.addEventListener('input', () => {
-                if (returnDateInput.value.trim()) returnDateInput.classList.remove('is-invalid');
-            });
-
-            // GuestPicker değişimi (guestpicker.js tetikler)
-            if (guestInputVisible) {
-                document.addEventListener('guestCountChanged', function (e) {
-                    const total = e.detail && typeof e.detail.total === 'number' ? e.detail.total : 0;
-                    if (total > 0) guestInputVisible.classList.remove('is-invalid');
-                });
-            }
-
-            // --- SADECE ARAMA FORMU doğrulama ---
-            const searchForm = document.getElementById('transferSearchForm');
-            if (searchForm) {
-                searchForm.addEventListener('submit', function (event) {
-                    let valid = true;
-
-                    // Direction
-                    const dirInputs = searchForm.querySelectorAll('input[name="direction"]');
-                    const dirChecked = Array.from(dirInputs).some(i => i.checked);
-                    if (!dirChecked) valid = false;
-
-                    // From / To
-                    if (fromSelect && !fromSelect.value) { fromSelect.classList.add('is-invalid'); valid = false; }
-                    if (toSelect && !toSelect.value) { toSelect.classList.add('is-invalid'); valid = false; }
-
-                    // Tarihler
-                    if (!departureDateInput || !departureDateInput.value.trim()) {
-                        departureDateInput?.classList.add('is-invalid');
-                        valid = false;
-                    }
-                    if (roundTripRadio && roundTripRadio.checked) {
-                        if (!returnDateInput || !returnDateInput.value.trim()) {
-                            returnDateInput?.classList.add('is-invalid');
-                            valid = false;
-                        }
-                    }
-
-                    // Kişi (min 1 yetişkin)
-                    const adults   = parseInt(searchForm.querySelector('input[name="adults"]')?.value || '0', 10);
-                    const children = parseInt(searchForm.querySelector('input[name="children"]')?.value || '0', 10);
-                    const infants  = parseInt(searchForm.querySelector('input[name="infants"]')?.value || '0', 10);
-                    const total    = adults + children + infants;
-                    const guestValid = adults >= 1 && total > 0;
-                    if (!guestValid && guestInputVisible) {
-                        guestInputVisible.classList.add('is-invalid');
-                        valid = false;
-                    }
-
-                    if (!valid) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                });
-            }
-
-            // --- BOOKING FORMU: Saat veya Uçuş No çiftlerinden en az biri ---
-            const bookForm = document.getElementById('transferBookForm');
-            if (bookForm) {
-                const outTime   = document.getElementById('pickup_time_outbound');
-                const outFlight = document.getElementById('flight_number_outbound');
-                const retTime   = document.getElementById('pickup_time_return');   // tek yönse yok
-                const retFlight = document.getElementById('flight_number_return'); // tek yönse yok
-                const pairError = document.getElementById('bookPairError');
-
-                function pairValid(timeEl, flightEl) {
-                    const a = !!(timeEl && timeEl.value && timeEl.value.trim());
-                    const b = !!(flightEl && flightEl.value && flightEl.value.trim());
-                    return a || b;
-                }
-                function markPairInvalid(timeEl, flightEl) {
-                    timeEl?.classList.add('is-invalid');
-                    flightEl?.classList.add('is-invalid');
-                }
-                function clearPairInvalid(timeEl, flightEl) {
-                    timeEl?.classList.remove('is-invalid');
-                    flightEl?.classList.remove('is-invalid');
-                }
-
-                [outTime, outFlight, retTime, retFlight].forEach(el => {
-                    el?.addEventListener('input', () => {
-                        clearPairInvalid(outTime, outFlight);
-                        clearPairInvalid(retTime, retFlight);
-                        pairError?.classList.add('d-none');
-                    });
-                });
-
-                bookForm.addEventListener('submit', function (e) {
-                    let ok = true;
-
-                    // Alınış çifti zorunlu
-                    if (!pairValid(outTime, outFlight)) { markPairInvalid(outTime, outFlight); ok = false; }
-
-                    // Dönüş çifti, dönüş varsa zorunlu
-                    if (retTime || retFlight) {
-                        if (!pairValid(retTime, retFlight)) { markPairInvalid(retTime, retFlight); ok = false; }
-                    }
-
-                    if (!ok) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        pairError?.classList.remove('d-none');
-                    }
-                });
-            }
-        });
-    </script>
-
 @endsection

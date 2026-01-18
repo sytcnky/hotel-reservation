@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\VillaAmenities\Tables;
 
+use App\Support\Date\DatePresenter;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
@@ -41,11 +42,27 @@ class VillaAmenitiesTable
                     })
                     ->toggleable(),
 
-                TextColumn::make('created_at')->label(__('admin.field.created_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')->label(__('admin.field.updated_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')->label(__('admin.field.deleted_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('sort_order')->label(__('admin.field.sort_order'))->numeric()->sortable(),
-                IconColumn::make('is_active')->label(__('admin.field.is_active'))->boolean(),
+                TextColumn::make('created_at')
+                    ->label(__('admin.field.created_at'))
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
+                    ->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->label(__('admin.field.updated_at'))
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')
+                    ->label(__('admin.field.deleted_at'))
+                    ->formatStateUsing(fn ($state) => DatePresenter::humanDateTimeShort($state))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sort_order')
+                    ->label(__('admin.field.sort_order'))
+                    ->numeric()
+                    ->sortable(),
+                IconColumn::make('is_active')
+                    ->label(__('admin.field.is_active'))
+                    ->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),

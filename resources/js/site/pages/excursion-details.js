@@ -1,40 +1,64 @@
 // resources/js/pages/excursion-details.js
-
-import flatpickr from "flatpickr";
-import { Turkish } from "flatpickr/dist/l10n/tr.js";
+import { initDatePicker } from '../ui/date-picker';
 
 export function initExcursionDetails() {
-    const dateInput   = document.getElementById("excursion-date");
-    const guestInput  = document.getElementById("guestInput");
-    const priceOutput = document.getElementById("excursion-price-total");
-    const totalInput  = document.getElementById("inputTotal");
+    const form = document.getElementById('excursionForm');
+    const dateInput   = document.getElementById('excursion-date');
+    const guestInput  = document.getElementById('guestInput');
+    const priceOutput = document.getElementById('excursion-price-total');
+    const totalInput  = document.getElementById('inputTotal');
 
-    const hiddenAdults   = document.getElementById("inputAdults");
-    const hiddenChildren = document.getElementById("inputChildren");
-    const hiddenInfants  = document.getElementById("inputInfants");
+    const hiddenAdults   = document.getElementById('inputAdults');
+    const hiddenChildren = document.getElementById('inputChildren');
+    const hiddenInfants  = document.getElementById('inputInfants');
 
-    // Tarih seçici
     if (dateInput) {
-        flatpickr(dateInput, {
-            locale: Turkish,
-            dateFormat: "d.m.Y",
-            minDate: "today",
+        initDatePicker({
+            el: dateInput,
+            contract: 'excursion_single_dmy',
+            locale: document.documentElement.lang,
         });
     }
 
-    // Dropdown içindeki input'lardan sayıları oku ve hidden'ları senkronize et
+    // --- SUBMIT: tarih zorunluluğu (inline script taşındı) ---
+    if (form && dateInput) {
+        form.addEventListener('submit', function (event) {
+            const value = (dateInput.value || '').trim();
+
+            if (!value) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                dateInput.classList.add('is-invalid');
+                form.classList.add('was-validated');
+                return;
+            }
+
+            dateInput.classList.remove('is-invalid');
+            form.classList.add('was-validated');
+        });
+
+        ['input', 'change'].forEach(function (evt) {
+            dateInput.addEventListener(evt, function () {
+                if ((dateInput.value || '').trim() !== '') {
+                    dateInput.classList.remove('is-invalid');
+                }
+            });
+        });
+    }
+
     function readCounts() {
         const dropdown = guestInput
-            ? guestInput.closest(".guest-picker-wrapper")?.querySelector(".guest-dropdown")
+            ? guestInput.closest('.guest-picker-wrapper')?.querySelector('.guest-dropdown')
             : null;
 
         const aEl = dropdown?.querySelector('input[data-type="adult"]');
         const cEl = dropdown?.querySelector('input[data-type="child"]');
         const iEl = dropdown?.querySelector('input[data-type="infant"]');
 
-        const adults   = parseInt(aEl?.value ?? hiddenAdults?.value ?? "0", 10) || 0;
-        const children = parseInt(cEl?.value ?? hiddenChildren?.value ?? "0", 10) || 0;
-        const infants  = parseInt(iEl?.value ?? hiddenInfants?.value ?? "0", 10) || 0;
+        const adults   = parseInt(aEl?.value ?? hiddenAdults?.value ?? '0', 10) || 0;
+        const children = parseInt(cEl?.value ?? hiddenChildren?.value ?? '0', 10) || 0;
+        const infants  = parseInt(iEl?.value ?? hiddenInfants?.value ?? '0', 10) || 0;
 
         if (hiddenAdults)   hiddenAdults.value   = String(adults);
         if (hiddenChildren) hiddenChildren.value = String(children);
@@ -43,7 +67,6 @@ export function initExcursionDetails() {
         return { adults, children, infants };
     }
 
-    // Toplam fiyatı hesapla
     function calculateTotal() {
         if (!guestInput || !guestInput.dataset.prices) return;
 
@@ -54,7 +77,7 @@ export function initExcursionDetails() {
             return;
         }
 
-        const currency = (guestInput.dataset.currency || "TRY").toUpperCase();
+        const currency = (guestInput.dataset.currency || 'TRY').toUpperCase();
         const cfg = prices && prices[currency] ? prices[currency] : null;
         if (!cfg) return;
 
@@ -68,8 +91,8 @@ export function initExcursionDetails() {
         if (priceOutput) {
             priceOutput.textContent =
                 total > 0
-                    ? `${total.toLocaleString("tr-TR")} ${currency}`
-                    : "—";
+                    ? `${total.toLocaleString('tr-TR')} ${currency}`
+                    : '—';
         }
 
         if (totalInput) {
@@ -77,9 +100,6 @@ export function initExcursionDetails() {
         }
     }
 
-    // guestpicker.js, kişi sayısı değişince bu event'i dispatch ediyor
-    document.addEventListener("guestCountChanged", calculateTotal);
-
-    // Sayfa açılışında başlangıç değerini göster
+    document.addEventListener('guestCountChanged', calculateTotal);
     calculateTotal();
 }

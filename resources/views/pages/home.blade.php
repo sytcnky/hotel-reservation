@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['pageKey' => 'home'])
 
 @section('title', 'Anasayfa')
 
@@ -36,7 +36,7 @@
 
 
             <!-- Sekmeler -->
-            <div class="w-100 rounded p-4" style="max-width: 960px;">
+            <div class="w-100 rounded mb-4" style="max-width: 960px;">
                 <!-- Nav Tabs -->
                 <ul class="nav nav-tabs hero-tabs justify-content-center border-0 gap-1 position-relative"
                     id="searchTabs" role="tablist">
@@ -78,7 +78,7 @@
                                 <label for="checkin" class="form-label">Giriş - Çıkış Tarihi</label>
                                 <div class="input-group">
                                     <input type="text" id="checkin" name="checkin" class="form-control date-input"
-                                           placeholder="gg.aa.yyyy" autocomplete="off">
+                                           placeholder="Tarih seçin" autocomplete="off">
                                     <span class="input-group-text bg-white"><i class="fi fi-rr-calendar"></i></span>
                                 </div>
                             </div>
@@ -142,7 +142,10 @@
     </section>
 
     {{-- POPÜLER OTELLER --}}
-    <section class="container my-5">
+    <section id="popular-hotels"
+             class="container my-5"
+             data-per-view="{{ (int) ($c['popular_hotels']['carousel']['per_page'] ?? 1) }}">
+
         <div class="row align-items-end">
             <div class="col">
                 <div class="text-secondary">
@@ -150,16 +153,27 @@
                     <h1 class="fs-3 fw-bold">{{ $c['popular_hotels']['section_title'][$loc] ?? '' }}</h1>
                 </div>
             </div>
-            <div class="col fs-2 text-end">
-                <i class="fi fi-ss-arrow-circle-left text-secondary"></i>
-                <i class="fi fi-ss-arrow-circle-right"></i>
+
+            {{-- Desktop oklar --}}
+            <div class="col fs-2 text-end d-none d-lg-block">
+                <button type="button"
+                        class="btn btn-link p-0 fs-2 text-secondary popular-hotels-prev"
+                        aria-label="Önceki">
+                    <i class="fi fi-ss-arrow-circle-left"></i>
+                </button>
+
+                <button type="button"
+                        class="btn btn-link p-0 fs-2 popular-hotels-next"
+                        aria-label="Sonraki">
+                    <i class="fi fi-ss-arrow-circle-right"></i>
+                </button>
             </div>
         </div>
 
         <div class="row g-4 align-items-stretch">
 
             <!-- Sol: Bölge tanıtım alanı -->
-            <div class="col-md-6">
+            <div class="col-lg-5">
                 <div class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4">
 
                     {{-- Arka plan görsel --}}
@@ -191,59 +205,176 @@
                 </div>
             </div>
 
-
             <!-- Sağ: Otel kartları -->
-            <div class="col-md-6">
-                <div class="d-flex flex-column gap-3 column-gap-2">
-                    @foreach($popularHotels as $hotel)
-                        @php
-                            $hotelName = $pickLocale($hotel->name) ?? '';
-                        @endphp
+            @php
+                $perPage = (int) ($c['popular_hotels']['carousel']['per_page'] ?? 3);
+                $perPage = max(1, $perPage);
+                $pages = $popularHotels->chunk($perPage);
+            @endphp
 
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body">
-                                <div class="row align-items-end">
-                                    <!-- Otel görseli -->
-                                    <div class="col-lg-3 mb-3 mb-lg-0">
-                                        <a href="#">
-                                            <x-responsive-image
-                                                :image="$hotel->cover_image"
-                                                preset="listing-card"
-                                                class="img-fluid rounded object-fit-cover w-100"
-                                            />
-                                        </a>
-                                    </div>
+                <!-- Sağ: Otel kartları -->
+            <div class="col-lg-7">
 
-                                    <!-- Otel bilgileri -->
-                                    <div class="col-lg-6 mb-3 mb-lg-0">
-                                        <h5 class="card-title mb-1">{{ $hotelName }}</h5>
-                                        <div class="mb-1 d-flex align-items-center gap-1">
-                                            <i class="fi fi-ss-star text-warning"></i>
-                                            <i class="fi fi-ss-star text-warning"></i>
-                                            <i class="fi fi-ss-star text-warning"></i>
-                                            <i class="fi fi-ss-star text-warning"></i>
-                                            <i class="fi fi-rs-star text-warning"></i>
-                                            <span class="ms-2 text-secondary"></span>
+                {{-- Mobile oklar --}}
+                <div class="col fs-2 text-end d-lg-none mb-2">
+                    <button type="button" class="btn btn-link p-0 fs-2 text-secondary popular-hotels-prev" aria-label="Önceki">
+                        <i class="fi fi-ss-arrow-circle-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-link p-0 fs-2 popular-hotels-next" aria-label="Sonraki">
+                        <i class="fi fi-ss-arrow-circle-right"></i>
+                    </button>
+                </div>
+
+                <div class="popular-hotels-viewport">
+                    <div class="popular-hotels-track">
+                        @foreach($pages as $pageHotels)
+                            <div class="popular-hotels-page">
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach($pageHotels as $hotel)
+                                        @php $hotelName = $pickLocale($hotel->name) ?? ''; @endphp
+
+                                        @php
+                                            $hotelName = $pickLocale($hotel->name) ?? '';
+                                            $slug = $pickLocale($hotel->slug) ?? '';
+
+                                            $stars = (int) ($hotel->starRating?->value ?? 0);
+
+                                            $areaName  = $hotel->location ? ($pickLocale($hotel->location->name) ?? null) : null;
+                                            $district  = $hotel->location?->parent ? ($pickLocale($hotel->location->parent->name) ?? null) : null;
+
+                                            $locationLabel = collect([$areaName, $district])
+                                                ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                                                ->implode(', ');
+
+                                            // özellikler (listing ile aynı mantık)
+                                            $allFeatures = collect();
+
+                                            if ($hotel->relationLoaded('featureGroups')) {
+                                                $allFeatures = $hotel->featureGroups
+                                                    ->flatMap(fn ($g) => $g->facilities?->pluck('name') ?? collect())
+                                                    ->map(fn ($m) => $pickLocale($m) ?? null)
+                                                    ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                                                    ->values();
+                                            }
+
+                                            $visibleFeatures = 4;
+                                            $totalFeatures   = $allFeatures->count();
+                                        @endphp
+
+                                        <div class="card shadow-sm h-100">
+                                            <div class="card-body">
+                                                <div class="row align-items-center">
+
+                                                    {{-- Sol: Görsel --}}
+                                                    <div class="col-lg-3 mb-3 mb-lg-0">
+                                                        <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}">
+                                                            <x-responsive-image
+                                                                :image="$hotel->cover_image"
+                                                                preset="listing-card"
+                                                                class="rounded object-fit-cover w-100"
+                                                            />
+                                                        </a>
+                                                    </div>
+
+                                                    {{-- Orta: Başlık, yıldız, konum, özellikler --}}
+                                                    <div class="col-lg-6 mb-3 mb-lg-0">
+                                                        <h4 class="card-title mb-1">
+                                                            <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}"
+                                                               class="text-decoration-none text-dark">
+                                                                {{ $hotelName }}
+                                                            </a>
+                                                        </h4>
+
+                                                        @if($stars > 0)
+                                                            <div class="mb-1 d-flex align-items-center">
+                                                                @for ($i = 0; $i < $stars; $i++)
+                                                                    <i class="fi fi-ss-star text-warning"></i>
+                                                                @endfor
+                                                                @for ($i = $stars; $i < 5; $i++)
+                                                                    <i class="fi fi-rs-star text-warning"></i>
+                                                                @endfor
+                                                            </div>
+                                                        @endif
+
+                                                        @if ($locationLabel)
+                                                            <div class="text-muted small">
+                                                                <i class="fi fi-rr-marker"></i>
+                                                                {{ $locationLabel }}
+                                                            </div>
+                                                        @endif
+
+                                                        @if ($totalFeatures > 0)
+                                                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                                                @foreach ($allFeatures->take($visibleFeatures) as $feature)
+                                                                    <span class="badge bg-transparent text-secondary border">
+                                                                        {{ $feature }}
+                                                                    </span>
+                                                                @endforeach
+
+                                                                @if ($totalFeatures > $visibleFeatures)
+                                                                    <span class="badge bg-transparent text-secondary border">
+                                                                        +{{ $totalFeatures - $visibleFeatures }} daha
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    {{-- Sağ: Fiyat + buton --}}
+                                                    <div class="col-lg-3 text-lg-end">
+                                                        <div class="d-flex flex-column align-items-lg-end">
+                                                            <div class="mb-2">
+                                                                @php
+                                                                    $amount = $hotel->from_price_amount ?? null;
+                                                                    $type   = $hotel->from_price_type ?? null;
+
+                                                                    $suffix = match ($type) {
+                                                                        'room_per_night'   => '/ oda',
+                                                                        'person_per_night' => '/ kişi',
+                                                                        default            => '',
+                                                                    };
+                                                                @endphp
+
+                                                                @if(!is_null($amount))
+                                                                    <div class="mb-2">
+                                                                        <div class="fw-semibold fs-5">
+                                                                            {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currencyCode ?? null) }}
+                                                                            <span class="text-muted small">{{ $suffix }}</span>
+                                                                        </div>
+                                                                        <span class="text-muted small d-block">Gecelik başlayan fiyat</span>
+                                                                    </div>
+                                                                @else
+                                                                    <div class="mb-2">
+                                                                        <span class="text-muted small d-block">Fiyat bulunamadı</span>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+
+                                                            <div class="d-grid mt-1 w-100">
+                                                                <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}"
+                                                                   class="btn btn-outline-primary mt-2">
+                                                                    Oteli İncele
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="text-muted"></div>
-                                    </div>
-
-                                    <!-- Fiyat ve buton -->
-                                    <div class="col-lg-3 text-lg-end">
-                                        <p class="mb-1 fw-semibold text-dark"></p>
-                                        <div class="d-grid mt-2">
-                                            <a href="#" class="btn btn-outline-primary">Oteli İncele</a>
-                                        </div>
-                                    </div>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
-                    @endforeach
+                        @endforeach
+                    </div>
                 </div>
+
             </div>
+
 
         </div>
     </section>
+
 
     <!-- Kampanya Carousel -->
     @include('partials.campaigns.carousel', ['campaigns' => $campaigns ?? []])

@@ -1,15 +1,14 @@
 // resources/js/site.js
 
-import '../../css/site.scss'
-import '@flaticon/flaticon-uicons/css/all/all.css'
-import * as bootstrap from 'bootstrap'
+import '@flaticon/flaticon-uicons/css/all/all.css';
+import * as bootstrap from 'bootstrap';
 
 import initGallery from './ui/gallery.js';
+
+import { initHome } from './pages/home';
+import { initHotelListing } from './pages/hotel-listing';
 import { initHotelDetails } from './pages/hotel-details';
 import { initTransferForm } from './pages/transfer';
-import './pages/home.js';
-import './pages/hotel-listing';
-import './components/coupons.js'
 import { initExcursionDetails } from './pages/excursion-details';
 import { initVillaDetails } from './pages/villa-details.js';
 import { initHelpSearch } from './pages/help';
@@ -17,24 +16,12 @@ import { initPayment } from './pages/payment';
 import { initPhoneInputs } from './ui/phone-input';
 import { initGuestPicker } from './ui/guestpicker.js';
 import { initAccountTickets } from './pages/account-tickets';
+import './components/coupons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // === Guest Picker: tüm sayfa için tek yerden init ===
+    // === Ortak modüller (her sayfada) ===
     initGuestPicker(document);
-
-    // === Galeri ===
     initGallery();
-
-    // === Sayfa modülleri (DOM hazır olunca çağrılmalı) ===
-    initExcursionDetails();
-    initTransferForm();
-    initHotelDetails();
-    initVillaDetails();
-    initPayment();
-    initHelpSearch();
-    initAccountTickets(document);
-
-    // === Phone Inputs ===
     initPhoneInputs();
 
     // === Dil seçimi butonları ===
@@ -74,9 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // === Tooltipler ===
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltipTriggerList.forEach(el => {
-        new bootstrap.Tooltip(el)
+        new bootstrap.Tooltip(el);
     });
 
     // === Currency change confirm modal (cart doluyken) ===
@@ -97,5 +84,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+    }
+
+    // === Sayfa bazlı init dispatch (tek otorite: body[data-page]) ===
+    const page = document.body?.dataset?.page || '';
+
+    switch (page) {
+        case 'home':
+            initHome();
+            break;
+
+        case 'hotel-listing':
+            initHotelListing();
+            break;
+
+        case 'hotel-details':
+            initHotelDetails();
+            break;
+
+        case 'villa-details':
+            initVillaDetails();
+            break;
+
+        case 'transfer':
+            initTransferForm();
+            break;
+
+        case 'excursion-details':
+            initExcursionDetails();
+            break;
+
+        case 'help':
+            initHelpSearch();
+            break;
+
+        case 'payment':
+            initPayment();
+            break;
+
+        case 'account-tickets':
+            initAccountTickets(document);
+            break;
+
+        default:
+            // no-op
+            break;
     }
 });

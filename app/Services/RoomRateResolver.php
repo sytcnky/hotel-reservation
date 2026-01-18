@@ -10,6 +10,125 @@ use Illuminate\Support\Collection;
 class RoomRateResolver
 {
     /**
+     * UI'dan gelen "YYYY-MM-DD - YYYY-MM-DD" veya "YYYY-MM-DD" inputunu
+     * Y-m-d string'e normalize eder.
+     *
+     * Dönüş: [checkinYmd, checkoutYmd, nights] veya null
+     */
+    public function parseUiDateRangeToYmd(?string $raw): ?array
+    {
+        if (! is_string($raw)) {
+            return null;
+        }
+
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        // Tek tarih veya range: "Y-m-d" | "Y-m-d - Y-m-d" (toleranslı split)
+        $parts = preg_split('/\s+-\s+/', $raw, 2);
+        if (! is_array($parts) || empty($parts)) {
+            return null;
+        }
+
+        $startRaw = trim((string) ($parts[0] ?? ''));
+        $endRaw   = trim((string) ($parts[1] ?? ''));
+
+        if ($startRaw === '' || ! $this->isValidYmd($startRaw)) {
+            return null;
+        }
+
+        try {
+            $start = Carbon::createFromFormat('Y-m-d', $startRaw)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        // Tek tarih verilirse: checkout = start + 1 day
+        if ($endRaw === '') {
+            $end = $start->copy()->addDay();
+        } else {
+            if (! $this->isValidYmd($endRaw)) {
+                return null;
+            }
+
+            try {
+                $end = Carbon::createFromFormat('Y-m-d', $endRaw)->startOfDay();
+            } catch (\Throwable) {
+                return null;
+            }
+
+            if ($end->lte($start)) {
+                $end = $start->copy()->addDay();
+            }
+        }
+
+        $nights = $start->diffInDays($end);
+        if ($nights < 1) {
+            $nights = 1;
+            $end    = $start->copy()->addDay();
+        }
+
+        return [
+            $start->format('Y-m-d'),
+            $end->format('Y-m-d'),
+            $nights,
+        ];
+    }
+
+    /**
+     * checkin/checkout (Y-m-d) ile konaklama için fiyatlanan aralığı döndürür.
+     * checkout gününü fiyatlamaz (checkout-1'e kadar).
+     */
+    public function resolveRangeForStay(
+        Room $room,
+        string $checkinYmd,
+        string $checkoutYmd,
+        int $currencyId,
+        ?int $boardTypeId,
+        int $adults,
+        int $children = 0
+    ): Collection {
+        $checkinYmd  = trim($checkinYmd);
+        $checkoutYmd = trim($checkoutYmd);
+
+        if ($checkinYmd === '' || $checkoutYmd === '') {
+            return collect();
+        }
+
+        if (! $this->isValidYmd($checkinYmd) || ! $this->isValidYmd($checkoutYmd)) {
+            return collect();
+        }
+
+        try {
+            $checkin  = Carbon::createFromFormat('Y-m-d', $checkinYmd)->startOfDay();
+            $checkout = Carbon::createFromFormat('Y-m-d', $checkoutYmd)->startOfDay();
+        } catch (\Throwable) {
+            return collect();
+        }
+
+        if ($checkout->lte($checkin)) {
+            $checkout = $checkin->copy()->addDay();
+        }
+
+        $nights = max(1, $checkin->diffInDays($checkout));
+
+        // checkout fiyatlanmaz → inclusive resolver kullandığımız için checkout-1
+        $rangeEnd = $checkout->copy()->subDay();
+
+        return $this->resolveRange(
+            $room,
+            $checkin->format('Y-m-d'),
+            $rangeEnd->format('Y-m-d'),
+            $currencyId,
+            $boardTypeId,
+            $adults,
+            $children
+        );
+    }
+
+    /**
      * Tek gün için fiyatı çözer.
      * price_mode: 'room' | 'person'
      */
@@ -22,7 +141,18 @@ class RoomRateResolver
         int $children = 0,
         int $stayLength = 1
     ): array {
-        $d = Carbon::parse($date)->startOfDay();
+        $date = trim($date);
+
+        if ($date === '' || ! $this->isValidYmd($date)) {
+            return ['ok' => false, 'closed' => false, 'reason' => 'invalid_date'];
+        }
+
+        try {
+            $d = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+        } catch (\Throwable) {
+            return ['ok' => false, 'closed' => false, 'reason' => 'invalid_date'];
+        }
+
         $weekdayBit = 1 << ($d->dayOfWeekIso - 1); // 1=Mon..7=Sun
 
         // Kurala giriş için doluluk: yetişkin + çocuk
@@ -73,18 +203,18 @@ class RoomRateResolver
         [$childPct, $childSource] = $this->resolveChildDiscount($room);
 
         if ($mode === 'room') {
-            $adultTotal       = $amount;        // oda/gece
-            $childUnitsTotal  = 0.0;
-            $total            = $adultTotal;
+            $adultTotal      = $amount; // oda/gece
+            $childUnitsTotal = 0.0;
+            $total           = $adultTotal;
         } else {
             $adultTotal = max(0, (int) $adults) * $amount;
 
             $children = max(0, (int) $children);
             if ($children > 0 && $childPct !== null) {
-                $pct        = max(0, min(100, $childPct));
-                $childUnit  = $amount * (1 - $pct / 100);
+                $pct       = max(0, min(100, $childPct));
+                $childUnit = $amount * (1 - $pct / 100);
             } else {
-                $childUnit  = $amount; // indirim yoksa çocuk yetişkin gibi
+                $childUnit = $amount; // indirim yoksa çocuk yetişkin gibi
             }
             $childUnitsTotal = $children * $childUnit;
 
@@ -92,18 +222,18 @@ class RoomRateResolver
         }
 
         return [
-            'ok'          => true,
-            'label'       => $rule->label,
-            'closed'      => false,
-            'cta'         => (bool) $rule->cta,
-            'ctd'         => (bool) $rule->ctd,
-            'rule_id'     => $rule->id,
-            'price_mode'  => $mode,
-            'unit_amount' => $amount,
-            'total'       => $total,
-            'currency_id' => $rule->currency_id,
+            'ok'            => true,
+            'label'         => $rule->label,
+            'closed'        => false,
+            'cta'           => (bool) $rule->cta,
+            'ctd'           => (bool) $rule->ctd,
+            'rule_id'       => $rule->id,
+            'price_mode'    => $mode,
+            'unit_amount'   => $amount,
+            'total'         => $total,
+            'currency_id'   => $rule->currency_id,
             'board_type_id' => $rule->board_type_id,
-            'is_baseline' => is_null($rule->date_start) && is_null($rule->date_end),
+            'is_baseline'   => is_null($rule->date_start) && is_null($rule->date_end),
 
             'meta' => [
                 'adults'                 => (int) $adults,
@@ -127,11 +257,22 @@ class RoomRateResolver
         ?int $boardTypeId,
         int $adults,
         int $children = 0
-    ): \Illuminate\Support\Collection {
-        $out   = collect();
+    ): Collection {
+        $out = collect();
 
-        $start = \Carbon\Carbon::parse($dateStart)->startOfDay();
-        $end   = \Carbon\Carbon::parse($dateEnd)->startOfDay();
+        $dateStart = trim($dateStart);
+        $dateEnd   = trim($dateEnd);
+
+        if ($dateStart === '' || $dateEnd === '' || ! $this->isValidYmd($dateStart) || ! $this->isValidYmd($dateEnd)) {
+            return $out;
+        }
+
+        try {
+            $start = Carbon::createFromFormat('Y-m-d', $dateStart)->startOfDay();
+            $end   = Carbon::createFromFormat('Y-m-d', $dateEnd)->startOfDay();
+        } catch (\Throwable) {
+            return $out;
+        }
 
         // Ters verilirse düzelt
         if ($end->lt($start)) {
@@ -140,12 +281,14 @@ class RoomRateResolver
 
         // Başlangıç ve bitiş dahil
         $nights = $start->diffInDays($end) + 1;
-        $period = \Carbon\CarbonPeriod::create($start, $end); // [start .. end]
+        $period = CarbonPeriod::create($start, $end); // [start .. end]
 
         foreach ($period as $d) {
+            $ymd = $d->format('Y-m-d');
+
             $r = $this->resolveDay(
                 $room,
-                $d->format('Y-m-d'),
+                $ymd,
                 $currencyId,
                 $boardTypeId,
                 $adults,
@@ -153,12 +296,11 @@ class RoomRateResolver
                 $nights
             );
 
-            $out->push(['date' => $d->format('Y-m-d')] + $r);
+            $out->push(['date' => $ymd] + $r);
         }
 
         return $out;
     }
-
 
     /**
      * Oda > Otel sırası ile çocuk indirim yüzdesini getirir.
@@ -177,7 +319,6 @@ class RoomRateResolver
 
         return [null, null];
     }
-
 
     /**
      * Bir konaklamayı (check-in / check-out + kişi sayıları) özetler.
@@ -216,34 +357,34 @@ class RoomRateResolver
 
         if ($days->isEmpty()) {
             return [
-                'ok'            => false,
-                'state'         => 'no_rate',
-                'reason'        => 'empty_range',
-                'price_mode'    => null,
-                'nights'        => 0,
-                'total'         => 0.0,
+                'ok'              => false,
+                'state'           => 'no_rate',
+                'reason'          => 'empty_range',
+                'price_mode'      => null,
+                'nights'          => 0,
+                'total'           => 0.0,
                 'per_night_total' => 0.0,
-                'unit_amount'   => null,
-                'currency_id'   => null,
-                'board_type_id' => $boardTypeId,
-                'meta'          => [],
+                'unit_amount'     => null,
+                'currency_id'     => null,
+                'board_type_id'   => $boardTypeId,
+                'meta'            => [],
             ];
         }
 
         // Herhangi bir gün kapalı mı?
         if ($days->contains(fn (array $d) => ($d['closed'] ?? false) === true)) {
             return [
-                'ok'            => false,
-                'state'         => 'closed',
-                'reason'        => 'closed',
-                'price_mode'    => null,
-                'nights'        => $days->count(),
-                'total'         => 0.0,
+                'ok'              => false,
+                'state'           => 'closed',
+                'reason'          => 'closed',
+                'price_mode'      => null,
+                'nights'          => $days->count(),
+                'total'           => 0.0,
                 'per_night_total' => 0.0,
-                'unit_amount'   => null,
-                'currency_id'   => null,
-                'board_type_id' => $boardTypeId,
-                'meta'          => [],
+                'unit_amount'     => null,
+                'currency_id'     => null,
+                'board_type_id'   => $boardTypeId,
+                'meta'            => [],
             ];
         }
 
@@ -252,17 +393,17 @@ class RoomRateResolver
             $firstError = $days->first(fn (array $d) => ($d['ok'] ?? false) === false);
 
             return [
-                'ok'            => false,
-                'state'         => 'no_rate',
-                'reason'        => $firstError['reason'] ?? 'rule_not_found',
-                'price_mode'    => null,
-                'nights'        => $days->count(),
-                'total'         => 0.0,
+                'ok'              => false,
+                'state'           => 'no_rate',
+                'reason'          => $firstError['reason'] ?? 'rule_not_found',
+                'price_mode'      => null,
+                'nights'          => $days->count(),
+                'total'           => 0.0,
                 'per_night_total' => 0.0,
-                'unit_amount'   => null,
-                'currency_id'   => null,
-                'board_type_id' => $boardTypeId,
-                'meta'          => [],
+                'unit_amount'     => null,
+                'currency_id'     => null,
+                'board_type_id'   => $boardTypeId,
+                'meta'            => [],
             ];
         }
 
@@ -275,22 +416,30 @@ class RoomRateResolver
         $board    = $first['board_type_id'] ?? $boardTypeId;
 
         return [
-            'ok'             => true,
-            'state'          => $mode === 'room' ? 'ok_room' : 'ok_person',
-            'price_mode'     => $mode,
-            'nights'         => $nights,
-            'total'          => $total,
-            'per_night_total'=> $nights > 0 ? $total / $nights : 0.0,
-            'unit_amount'    => $first['unit_amount'] ?? null,
-            'currency_id'    => $currency,
-            'board_type_id'  => $board,
-            'meta'           => [
+            'ok'              => true,
+            'state'           => $mode === 'room' ? 'ok_room' : 'ok_person',
+            'price_mode'      => $mode,
+            'nights'          => $nights,
+            'total'           => $total,
+            'per_night_total' => $nights > 0 ? $total / $nights : 0.0,
+            'unit_amount'     => $first['unit_amount'] ?? null,
+            'currency_id'     => $currency,
+            'board_type_id'   => $board,
+            'meta'            => [
                 'adults'   => $adults,
                 'children' => $children,
-                // İstersen ileride günlük bazda detayları da ekleyebiliriz
-                // 'days'  => $days->all(),
             ],
         ];
     }
 
+    private function isValidYmd(string $ymd): bool
+    {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
+            return false;
+        }
+
+        [$y, $m, $d] = array_map('intval', explode('-', $ymd, 3));
+
+        return checkdate($m, $d, $y);
+    }
 }

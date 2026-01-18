@@ -305,6 +305,27 @@ return [
             'child_sale' => ' Çocuk İndirimi',
             'prices' => 'Fiyatlar'
         ],
+        'preview_rates' => [
+            'action_label' => 'Fiyat Önizleme',
+            'modal_heading' => 'Fiyat Önizleme',
+
+            'field' => [
+                'currency' => 'Para Birimi',
+                'date_start' => 'Önizleme Başlangıç',
+                'date_end' => 'Önizleme Bitiş',
+                'board_type' => 'Konaklama Planı',
+                'adults' => 'Yetişkin',
+                'children' => 'Çocuk',
+            ],
+
+            'placeholder' => [
+                'any' => 'Farketmez',
+            ],
+
+            'button' => [
+                'show' => 'Göster',
+            ],
+        ],
     ],
     'tours' => [
         'singular' => 'Tur',
@@ -1199,7 +1220,7 @@ return [
             'collection_mode_help'     => 'İçeriklerin nasıl seçileceğini belirler',
             'ui_layout'                => 'Görünüm Tipi',
             'ui_per_view'              => 'Görünür Kart Sayısı',
-            'limit'                    => 'Gösterilecek Kayıt Sayısı',
+            'limit'                    => 'Maks Kayıt',
             'per_page'                 => 'Sayfa Başına',
             'total'                    => 'Toplam',
             'location'                 => 'Lokasyon',

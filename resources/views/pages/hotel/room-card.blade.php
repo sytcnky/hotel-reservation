@@ -227,15 +227,15 @@
                     $checkout = $ctx['checkout'] ?? null;
                 @endphp
 
-                <input type="hidden" name="hotel_id"   value="{{ $hotel['id'] }}">
+                <input type="hidden" name="hotel_id" value="{{ $hotel['id'] }}">
                 <input type="hidden" name="hotel_name" value="{{ $hotel['name'] }}">
-                <input type="hidden" name="room_id"    value="{{ $room['id'] }}">
-                <input type="hidden" name="room_name"  value="{{ $room['name'] }}">
+                <input type="hidden" name="room_id" value="{{ $room['id'] }}">
+                <input type="hidden" name="room_name" value="{{ $room['name'] }}">
 
                 @if($checkin && $checkout)
-                    <input type="hidden" name="checkin"  value="{{ $checkin->format('Y-m-d') }}">
-                    <input type="hidden" name="checkout" value="{{ $checkout->format('Y-m-d') }}">
-                    <input type="hidden" name="nights"   value="{{ $ctx['nights'] ?? 1 }}">
+                    <input type="hidden" name="checkin" value="{{ is_string($checkin) ? $checkin : '' }}">
+                    <input type="hidden" name="checkout" value="{{ $checkout }}">
+                    <input type="hidden" name="nights" value="{{ $ctx['nights'] ?? 1 }}">
                 @endif
 
                 <input type="hidden" name="adults"   value="{{ $ctx['adults']   ?? 2 }}">

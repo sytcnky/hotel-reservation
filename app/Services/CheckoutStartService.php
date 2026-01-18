@@ -106,6 +106,7 @@ class CheckoutStartService
                     'campaign_id' => $cvm['id'],
                     'discount'    => $discount,
                     'title'       => $cvm['title'] ?? null,
+                    'subtitle'    => $cvm['subtitle'] ?? null,
                     'type'        => 'campaign',
                 ];
             }

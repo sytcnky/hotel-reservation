@@ -305,6 +305,27 @@ return [
             'child_sale' => 'Child Discount',
             'prices' => 'Prices',
         ],
+        'preview_rates' => [
+            'action_label' => 'Rate Preview',
+            'modal_heading' => 'Rate Preview',
+
+            'field' => [
+                'currency' => 'Currency',
+                'date_start' => 'Preview Start',
+                'date_end' => 'Preview End',
+                'board_type' => 'Board Type',
+                'adults' => 'Adults',
+                'children' => 'Children',
+            ],
+
+            'placeholder' => [
+                'any' => 'Any',
+            ],
+
+            'button' => [
+                'show' => 'Show',
+            ],
+        ],
     ],
     'tours' => [
         'singular' => 'Tour',
@@ -1157,7 +1178,7 @@ return [
             'collection_mode_help'    => 'Defines how content items are selected',
             'ui_layout'               => 'Layout Type',
             'ui_per_view'             => 'Cards Per View',
-            'limit'                   => 'Items to Show',
+            'limit'                   => 'Maks Items',
             'per_page'                => 'Per Page',
             'total'                   => 'Total',
             'location'                => 'Location',

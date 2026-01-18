@@ -2,41 +2,25 @@
 
 namespace App\Http\Requests\Concerns;
 
-use Carbon\Carbon;
-
 trait NormalizesBookingSnapshot
 {
+    /**
+     * Kontrat: Booking (POST) tarih alanları strict Y-m-d gelir.
+     * Legacy parse yok. Serbest Carbon::parse yok.
+     * passedValidation() sonrası her zaman Y-m-d string veya null.
+     */
     protected function normalizeDateToYmd(?string $value): ?string
     {
         $value = is_string($value) ? trim($value) : null;
 
-        if ($value === '' || $value === null) {
+        if ($value === null || $value === '') {
             return null;
         }
 
-        foreach ([
-                     'Y-m-d',
-                     'd.m.Y',
-                     'd/m/Y',
-                     'd-m-Y',
-                     'Y/m/d',
-                     'Y-m-d H:i',
-                     'd.m.Y H:i',
-                     'd/m/Y H:i',
-                 ] as $format) {
-            try {
-                return Carbon::createFromFormat($format, $value)->format('Y-m-d');
-            } catch (\Throwable) {
-                // denemeye devam
-            }
-        }
-
-        // En sonda serbest parse (çok toleranslı); parse edemezse exception fırlatır
-        try {
-            return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Throwable) {
-            return $value; // validasyon zaten yakalayacak; burada bozmayalım
-        }
+        // Strict: Y-m-d. Değilse snapshot'a yazma.
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1
+            ? $value
+            : null;
     }
 
     protected function normalizeCurrency(?string $value): ?string

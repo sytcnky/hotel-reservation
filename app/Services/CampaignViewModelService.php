@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Campaign;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\Helpers\LocaleHelper;
 use Carbon\Carbon;
 
 class CampaignViewModelService
@@ -83,7 +84,7 @@ class CampaignViewModelService
      */
     protected function buildViewModel(Campaign $campaign, string $cartCurrency): array
     {
-        $baseLocale = config('app.locale', 'tr');
+        $baseLocale = LocaleHelper::defaultCode();
         $uiLocale   = app()->getLocale();
 
         // content: { "tr": { "title": "...", ... }, "en": { ... } }
@@ -95,14 +96,10 @@ class CampaignViewModelService
             $localeBlock = $content[$uiLocale];
         } elseif (isset($content[$baseLocale]) && is_array($content[$baseLocale])) {
             $localeBlock = $content[$baseLocale];
-        } elseif (! empty($content)) {
-            $first = reset($content);
-            if (is_array($first)) {
-                $localeBlock = $first;
-            }
         }
 
-        $title = $localeBlock['title'] ?? null;
+        $title    = $localeBlock['title'] ?? null;
+        $subtitle = $localeBlock['subtitle'] ?? null;
 
         $discount     = (array) ($campaign->discount ?? []);
         $discountType = $discount['type'] ?? 'percent';
@@ -150,6 +147,7 @@ class CampaignViewModelService
         return [
             'id'                 => $campaign->id,
             'title'              => $title ?: ($campaign->name ?? ('Campaign #' . $campaign->id)),
+            'subtitle'           => $subtitle,
 
             'discount_type'      => $discountType,
             'percent_value'      => $percentValue,

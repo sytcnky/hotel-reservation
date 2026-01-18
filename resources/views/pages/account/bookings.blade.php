@@ -91,8 +91,8 @@
                 $currency = $order->currency ?? null;
                 $totalText = \App\Support\Currency\CurrencyPresenter::format($order->total_amount ?? null, $currency);
 
-                $whenIso   = optional($order->created_at)->format('Y-m-d') ?? '';
-                $whenHuman = optional($order->created_at)->translatedFormat('d M Y') ?? '';
+                $whenTs = optional($order->created_at)?->getTimestampMs() ?? 0;
+                $whenHuman = \App\Support\Date\DatePresenter::humanDateTime($order->created_at, 'd F Y');
 
                 $collapseId = 'booking-' . $order->id;
 
@@ -105,7 +105,7 @@
                         return [
                             'reason' => $r->reason ?: null,
                             'amount' => $amountText,
-                            'time'   => $r->created_at?->format('d.m.Y H:i') ?? null,
+                            'time' => \App\Support\Date\DatePresenter::humanDateTime($r->created_at),
                         ];
                     });
                 } else {
@@ -120,7 +120,7 @@
             @endphp
 
             <div class="card booking-card mb-3"
-                 data-when="{{ $whenIso }}"
+                 data-when="{{ $whenTs }}"
                  data-price="{{ (int) round((float) ($order->total_amount ?? 0)) }}"
                  data-status="{{ $status }}">
 
@@ -210,7 +210,11 @@
                                             <dd class="col-lg-8">{{ $it['board_type'] ?? '-' }}</dd>
 
                                             <dt class="col-lg-4">Tarihler</dt>
-                                            <dd class="col-lg-8">{{ $it['checkin'] ?? '-' }} → {{ $it['checkout'] ?? '-' }}</dd>
+                                            <dd class="col-lg-8">
+                                                {{ \App\Support\Date\DatePresenter::human($it['checkin'] ?? null) }}
+                                                →
+                                                {{ \App\Support\Date\DatePresenter::human($it['checkout'] ?? null) }}
+                                            </dd>
 
                                             <dt class="col-lg-4">Misafirler</dt>
                                             <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
@@ -226,7 +230,7 @@
 
                                             <dt class="col-lg-4">Geliş</dt>
                                             <dd class="col-lg-8">
-                                                {{ $it['departure_date'] ?? '-' }}
+                                                {{ \App\Support\Date\DatePresenter::human($it['departure_date'] ?? null) }}
                                                 @if(!empty($it['departure_flight']))
                                                     — {{ $it['departure_flight'] }}
                                                 @endif
@@ -234,7 +238,7 @@
 
                                             <dt class="col-lg-4">Dönüş</dt>
                                             <dd class="col-lg-8">
-                                                {{ $it['return_date'] ?? '-' }}
+                                                {{ \App\Support\Date\DatePresenter::human($it['return_date'] ?? null) }}
                                                 @if(!empty($it['return_flight']))
                                                     — {{ $it['return_flight'] }}
                                                 @endif
@@ -250,7 +254,9 @@
                                             <dd class="col-lg-8">{{ $it['villa_name'] ?? '-' }}</dd>
 
                                             <dt class="col-lg-4">Tarihler</dt>
-                                            <dd class="col-lg-8">{{ $it['checkin'] ?? '-' }} → {{ $it['checkout'] ?? '-' }}</dd>
+                                            <dd class="col-lg-8">
+                                                {{ \App\Support\Date\DatePresenter::human($it['checkin'] ?? null) }} → {{ \App\Support\Date\DatePresenter::human($it['checkout'] ?? null) }}
+                                            </dd>
 
                                             <dt class="col-lg-4">Misafirler</dt>
                                             <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
@@ -270,7 +276,7 @@
                                             <dd class="col-lg-8">{{ $it['tour_name'] ?? '-' }}</dd>
 
                                             <dt class="col-lg-4">Tarih</dt>
-                                            <dd class="col-lg-8">{{ $it['date'] ?? '-' }}</dd>
+                                            <dd class="col-lg-8">{{ \App\Support\Date\DatePresenter::human($it['date'] ?? null) }}</dd>
 
                                             <dt class="col-lg-4">Misafirler</dt>
                                             <dd class="col-lg-8">{{ $pax ?? '-' }}</dd>
@@ -374,9 +380,8 @@
             }
 
             function parseWhen(card) {
-                const v = card.getAttribute('data-when') || '';
-                const t = Date.parse(v);
-                return isNaN(t) ? 0 : t;
+                const v = parseInt(card.getAttribute('data-when') || '0', 10);
+                return isNaN(v) ? 0 : v;
             }
 
             function parsePrice(card) {

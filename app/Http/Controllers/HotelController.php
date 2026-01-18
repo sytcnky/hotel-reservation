@@ -15,7 +15,6 @@ use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 
 class HotelController extends Controller
@@ -90,7 +89,7 @@ class HotelController extends Controller
                     return null;
                 }
 
-                $label = I18nHelper::scalar($item['label'] ?? null, $uiLocale, $baseLocale);
+                $label    = I18nHelper::scalar($item['label'] ?? null, $uiLocale, $baseLocale);
                 $distance = I18nHelper::scalar($item['distance'] ?? null, $uiLocale, $baseLocale);
 
                 if (! $label || ! $distance) {
@@ -140,47 +139,6 @@ class HotelController extends Controller
     }
 
     /**
-     * "18.11.2025 - 22.11.2025" veya "18.11.2025" formatını parse eder.
-     *
-     * Dönüş:
-     *   [Carbon $checkin, Carbon $checkout, int $nights] veya null
-     */
-    private function parseDateRange(?string $raw): ?array
-    {
-        if (! $raw) {
-            return null;
-        }
-
-        $raw = trim($raw);
-
-        $parts = preg_split('/\s*-\s*/', $raw);
-
-        try {
-            if (count($parts) === 1) {
-                $start = Carbon::createFromFormat('d.m.Y', $parts[0])->startOfDay();
-                $end   = (clone $start)->addDay();
-            } else {
-                $start = Carbon::createFromFormat('d.m.Y', $parts[0])->startOfDay();
-                $end   = Carbon::createFromFormat('d.m.Y', $parts[1])->startOfDay();
-
-                if ($end->lte($start)) {
-                    $end = (clone $start)->addDay();
-                }
-            }
-
-            $nights = $start->diffInDays($end);
-            if ($nights < 1) {
-                $nights = 1;
-                $end    = (clone $start)->addDay();
-            }
-
-            return [$start, $end, $nights];
-        } catch (\Throwable $e) {
-            return null;
-        }
-    }
-
-    /**
      * Verilen oda + form context için fiyatı çözer.
      *
      * Kararlar:
@@ -191,7 +149,7 @@ class HotelController extends Controller
      */
     private function resolveRoomPricing(Room $room, array $context): ?array
     {
-        // P2-3: Currency tek otorite (code + id burada çözülür)
+        // Currency tek otorite (code + id burada çözülür)
         $currency = CurrencyContext::model(request());
         if (! $currency) {
             return null;
@@ -211,16 +169,14 @@ class HotelController extends Controller
         $children    = max(0, (int) ($context['children'] ?? 0));
         $nights      = max(1, (int) ($context['nights'] ?? 1));
 
-        $checkin  = $context['checkin'];
-        $checkout = $context['checkout'];
+        // Sprint F: Controller'da Carbon yok. Y-m-d string taşınır.
+        $checkinYmd  = (string) ($context['checkin'] ?? '');
+        $checkoutYmd = (string) ($context['checkout'] ?? '');
 
-        // checkout (çıkış) fiyatlanmaz; range inclusive çalıştığı için checkout-1
-        $rangeEnd = (clone $checkout)->subDay();
-
-        $range = $resolver->resolveRange(
+        $range = $resolver->resolveRangeForStay(
             $room,
-            $checkin->format('Y-m-d'),
-            $rangeEnd->format('Y-m-d'),
+            $checkinYmd,
+            $checkoutYmd,
             $currencyId,
             $boardTypeId,
             $adults,
@@ -242,25 +198,25 @@ class HotelController extends Controller
         $first = $range->first();
         $total = (float) $range->sum('total');
 
-        $priceMode  = $first['price_mode'] ?? null; // 'room' | 'person'
-        $unitAmount = (float) ($first['unit_amount'] ?? 0); // baz nightly (adult baz / room baz)
+        $priceMode  = $first['price_mode'] ?? null;          // 'room' | 'person'
+        $unitAmount = (float) ($first['unit_amount'] ?? 0);  // baz nightly (adult baz / room baz)
 
         // Baz nightly her zaman unit_amount (çocuk indirimsiz baz)
         if ($priceMode === 'room') {
             return [
-                'mode'             => 'per_room',
-                'nights'           => $nights,
-                'total_amount'     => $total,
-                'currency'         => $currencyCode,
+                'mode'            => 'per_room',
+                'nights'          => $nights,
+                'total_amount'    => $total,
+                'currency'        => $currencyCode,
 
                 // UI küçük satır: gecelik baz oda fiyatı
-                'room_per_night'   => $unitAmount,
+                'room_per_night'  => $unitAmount,
 
                 // bilgi amaçlı
-                'adult_count'      => $adults,
-                'child_count'      => $children,
-                'adult_per_night'  => null,
-                'child_per_night'  => null,
+                'adult_count'     => $adults,
+                'child_count'     => $children,
+                'adult_per_night' => null,
+                'child_per_night' => null,
             ];
         }
 
@@ -434,14 +390,17 @@ class HotelController extends Controller
         $context = null;
 
         if ($checkinStr) {
-            $range = $this->parseDateRange($checkinStr);
+            /** @var RoomRateResolver $resolver */
+            $resolver = app(RoomRateResolver::class);
+
+            $range = $resolver->parseUiDateRangeToYmd($checkinStr);
 
             if ($range !== null) {
-                [$ci, $co, $nights] = $range;
+                [$ciYmd, $coYmd, $nights] = $range;
 
                 $context = [
-                    'checkin'       => $ci,
-                    'checkout'      => $co,
+                    'checkin'       => $ciYmd,   // Y-m-d string
+                    'checkout'      => $coYmd,   // Y-m-d string
                     'nights'        => $nights,
                     'adults'        => $adults,
                     'children'      => $children,
