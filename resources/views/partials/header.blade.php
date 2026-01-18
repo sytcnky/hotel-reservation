@@ -164,7 +164,7 @@
                                  style="width:28px;height:28px;font-size:0.8rem;">
                                 {{ $initials ?: mb_strtoupper(mb_substr($authUser->name, 0, 1)) }}
                             </div>
-                            <span>{{ $authUser->first_name ?? $authUser->name }}</span>
+                            <span class="d-none d-md-block">{{ $authUser->first_name ?? $authUser->name }}</span>
                         </a>
 
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdownTop">
