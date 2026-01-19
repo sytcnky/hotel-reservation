@@ -1,194 +1,304 @@
 // resources/js/pages/home.js
+import { initDatePicker } from '../ui/date-picker';
 
 export function initHome() {
-    console.log('[Home] initHome() start');
+    initPopularHotels();
+    initHomeHotelTab();
+    initHomeTransferTab();
+}
 
-    // --- helpers ---
-    const safeInt = (v, fallback) => {
-        const n = parseInt(String(v ?? ''), 10);
-        return Number.isFinite(n) ? n : fallback;
-    };
+/* =====================================================
+   Helpers (Flatpickr + is-invalid)
+   - Flatpickr altInput kullanıyorsa, is-invalid hem input'tan
+     hem altInput'tan temizlenir.
+===================================================== */
+function clearDateInvalid(input) {
+    if (!input) return;
 
-    const pxToNum = (v) => {
-        const n = parseFloat(String(v ?? ''));
-        return Number.isFinite(n) ? n : 0;
-    };
+    input.classList.remove('is-invalid');
 
-    const section = document.getElementById('popular-hotels');
-    console.log('[Home] section #popular-hotels', section);
-
-    if (!section) {
-        console.warn('[Home] ABORT: #popular-hotels not found');
-        return;
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.remove('is-invalid');
     }
+}
 
-    console.log('[Home] section dataset', { ...section.dataset });
+function markDateInvalid(input) {
+    if (!input) return;
 
-    // NOTE: .popular-hotels-carousel yok (kaldırdık). Sadece viewport/track üzerinden gidiyoruz.
+    input.classList.add('is-invalid');
+
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.add('is-invalid');
+    }
+}
+
+function bindDateInvalidClear(input) {
+    if (!input) return;
+
+    const fp = input._flatpickr;
+    const vis = fp && fp.altInput ? fp.altInput : input;
+
+    const handler = () => {
+        const val = (vis.value || '').trim();
+        if (val) {
+            clearDateInvalid(input);
+        }
+    };
+
+    vis.addEventListener('input', handler);
+    vis.addEventListener('change', handler);
+
+    if (fp) {
+        fp.config.onChange = (fp.config.onChange || []).concat(() => clearDateInvalid(input));
+    }
+}
+
+/* =====================================================
+   POPULAR HOTELS CAROUSEL
+===================================================== */
+function initPopularHotels() {
+    const section = document.getElementById('popular-hotels');
+    if (!section) return;
+
     const viewport = section.querySelector('.popular-hotels-viewport');
     const track = section.querySelector('.popular-hotels-track');
     const slides = Array.from(section.querySelectorAll('.popular-hotels-page'));
-
-    // Ok butonları iki yerde olabilir (desktop + mobile) => hepsine bağlan.
     const btnPrevAll = Array.from(section.querySelectorAll('.popular-hotels-prev'));
     const btnNextAll = Array.from(section.querySelectorAll('.popular-hotels-next'));
 
-    console.log('[Home] nodes', {
-        viewport,
-        track,
-        slidesCount: slides.length,
-        btnPrevCount: btnPrevAll.length,
-        btnNextCount: btnNextAll.length,
-    });
-
-    if (!viewport || !track) {
-        console.warn('[Home] ABORT: viewport/track missing', { viewport, track });
-        return;
-    }
-
-    if (slides.length === 0) {
-        console.warn('[Home] ABORT: slides.length === 0');
-        return;
-    }
-
-    if (btnPrevAll.length === 0 || btnNextAll.length === 0) {
-        console.warn('[Home] ABORT: prev/next buttons missing', {
-            btnPrevCount: btnPrevAll.length,
-            btnNextCount: btnNextAll.length,
-        });
-        return;
-    }
+    if (!viewport || !track || slides.length === 0) return;
 
     let index = 0;
 
-    const getPerView = () => {
-        const isMobile = window.matchMedia('(max-width: 991.98px)').matches;
-        const raw = section.dataset.perView;
-        const perView = isMobile ? 1 : safeInt(raw, 1);
-
-        console.log('[Home] getPerView()', { isMobile, raw, perView });
-        return Math.max(1, perView);
-    };
-
     const getGap = () => {
         const cs = window.getComputedStyle(track);
-        const gapStr = cs.gap || cs.columnGap || '0px';
-        const gap = pxToNum(gapStr);
-
-        console.log('[Home] getGap()', { gapStr, gap });
-        return gap;
+        return parseFloat(cs.gap || cs.columnGap || '0') || 0;
     };
 
-    const getSlideWidth = () => {
-        const rect = slides[0].getBoundingClientRect();
-        console.log('[Home] getSlideWidth()', { width: rect.width, rect });
-        return rect.width;
-    };
-
-    const getMaxIndex = () => Math.max(0, slides.length - 1);
+    const getSlideWidth = () => slides[0].getBoundingClientRect().width;
 
     const clampIndex = () => {
-        const before = index;
-        const maxIndex = getMaxIndex();
-
+        const max = Math.max(0, slides.length - 1);
         if (index < 0) index = 0;
-        if (index > maxIndex) index = maxIndex;
-
-        console.log('[Home] clampIndex()', { before, after: index, maxIndex });
+        if (index > max) index = max;
     };
 
-    const setButtonsState = () => {
-        const maxIndex = getMaxIndex();
-
-        const prevDisabled = index === 0;
-        const nextDisabled = index === maxIndex;
-
-        // iki set buton (desktop/mobile) birlikte güncellensin
-        btnPrevAll.forEach((btn) => {
-            btn.toggleAttribute('disabled', prevDisabled);
-            btn.classList.toggle('text-secondary', prevDisabled);
-        });
-
-        btnNextAll.forEach((btn) => {
-            btn.toggleAttribute('disabled', nextDisabled);
-            btn.classList.toggle('text-secondary', nextDisabled);
-        });
-
-        console.log('[Home] setButtonsState()', { index, maxIndex, prevDisabled, nextDisabled });
+    const updateButtons = () => {
+        const max = Math.max(0, slides.length - 1);
+        btnPrevAll.forEach(b => b && (b.disabled = index === 0));
+        btnNextAll.forEach(b => b && (b.disabled = index === max));
     };
 
     const applyTransform = () => {
-        const slideWidth = getSlideWidth();
-        const gap = getGap();
-        const x = (slideWidth + gap) * index;
-
+        const x = (getSlideWidth() + getGap()) * index;
         track.style.transform = `translateX(${-x}px)`;
-
-        console.log('[Home] applyTransform()', {
-            index,
-            slideWidth,
-            gap,
-            x,
-            transform: track.style.transform,
-        });
     };
 
-    const update = (reason = 'update') => {
-        console.groupCollapsed(`[Home] update() reason=${reason}`);
-        console.log('[Home] before', { index });
-
+    const update = () => {
         clampIndex();
         applyTransform();
-        setButtonsState();
-
-        console.log('[Home] after', { index });
-        console.groupEnd();
+        updateButtons();
     };
 
-    const prev = () => {
-        const before = index;
-        index -= 1;
-        console.log('[Home] prev()', { before, after: index });
-        update('prev_click');
-    };
+    btnPrevAll.forEach(btn => btn && btn.addEventListener('click', () => {
+        index--;
+        update();
+    }));
 
-    const next = () => {
-        const before = index;
-        index += 1;
-        console.log('[Home] next()', { before, after: index });
-        update('next_click');
-    };
+    btnNextAll.forEach(btn => btn && btn.addEventListener('click', () => {
+        index++;
+        update();
+    }));
 
-    // desktop/mobile tüm oklar
-    btnPrevAll.forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-            console.groupCollapsed('[Home] CLICK prev');
-            console.log('[Home] event', e);
-            prev();
-            console.groupEnd();
+    window.addEventListener('resize', update);
+    requestAnimationFrame(update);
+}
+
+/* =====================================================
+   HOTEL TAB
+===================================================== */
+function initHomeHotelTab() {
+    const form = document.getElementById('homeHotelSearchForm');
+    if (!form) return;
+
+    const dateInput = document.getElementById('home_hotel_checkin');
+    const guestsTotalInput = form.querySelector('[data-home-hotel-guests-total]');
+
+    if (dateInput) {
+        initDatePicker({
+            el: dateInput,
+            contract: 'hotel_listing_range',
+            locale: document.documentElement.lang,
         });
+
+        // flatpickr altInput için invalid temizleme bağla
+        bindDateInvalidClear(dateInput);
+    }
+
+    document.addEventListener('guestCountChanged', (e) => {
+        const total = e?.detail?.total ?? 0;
+        if (guestsTotalInput) {
+            guestsTotalInput.value = String(Math.max(1, total));
+        }
     });
 
-    btnNextAll.forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-            console.groupCollapsed('[Home] CLICK next');
-            console.log('[Home] event', e);
-            next();
-            console.groupEnd();
+    form.addEventListener('submit', (e) => {
+        let valid = true;
+
+        const visible = dateInput?._flatpickr?.altInput || dateInput;
+        const val = (visible?.value || '').trim();
+
+        if (!val) {
+            markDateInvalid(dateInput);
+            valid = false;
+        } else {
+            clearDateInvalid(dateInput);
+        }
+
+        if (!valid) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+}
+
+/* =====================================================
+   TRANSFER TAB
+===================================================== */
+function initHomeTransferTab() {
+    const form = document.getElementById('homeTransferSearchForm');
+    if (!form) return;
+
+    const dep = document.getElementById('home_departure_date');
+    const ret = document.getElementById('home_return_date');
+    const oneway = document.getElementById('home_oneway');
+    const roundtrip = document.getElementById('home_roundtrip');
+    const retWrap = document.getElementById('homeReturnDateWrapper');
+    const fromSelect = document.getElementById('home_from_location_id');
+    const toSelect = document.getElementById('home_to_location_id');
+
+    if (dep) {
+        initDatePicker({
+            el: dep,
+            contract: 'transfer_single_ymd_alt',
+            locale: document.documentElement.lang,
         });
+        bindDateInvalidClear(dep);
+    }
+
+    if (ret) {
+        initDatePicker({
+            el: ret,
+            contract: 'transfer_single_ymd_alt',
+            locale: document.documentElement.lang,
+        });
+        bindDateInvalidClear(ret);
+    }
+
+    if (oneway && roundtrip && retWrap && ret) {
+        const sync = () => {
+            const show = roundtrip.checked;
+            retWrap.classList.toggle('d-none', !show);
+
+            // roundtrip ise return_date zorunlu olsun
+            ret.required = show;
+
+            if (!show) {
+                ret.value = '';
+                clearDateInvalid(ret);
+            }
+        };
+
+        oneway.addEventListener('change', sync);
+        roundtrip.addEventListener('change', sync);
+        sync();
+    }
+
+    // From/To: aynı lokasyonu engelle
+    if (fromSelect && toSelect) {
+        const originalOptions = Array.from(toSelect.options).map(o => ({
+            value: o.value,
+            text: o.textContent,
+        }));
+
+        const rebuild = () => {
+            const fromVal = fromSelect.value;
+            const prev = toSelect.value;
+
+            toSelect.innerHTML = '';
+
+            originalOptions.forEach(opt => {
+                if (opt.value === '' || opt.value !== fromVal) {
+                    const o = document.createElement('option');
+                    o.value = opt.value;
+                    o.textContent = opt.text;
+
+                    if (opt.value === prev && opt.value !== fromVal) {
+                        o.selected = true;
+                    }
+
+                    toSelect.appendChild(o);
+                }
+            });
+
+            if (toSelect.value === fromVal) {
+                toSelect.value = '';
+            }
+        };
+
+        rebuild();
+        fromSelect.addEventListener('change', rebuild);
+    }
+
+    form.addEventListener('submit', (e) => {
+        let valid = true;
+
+        if (!fromSelect || !fromSelect.value) {
+            fromSelect?.classList.add('is-invalid');
+            valid = false;
+        } else {
+            fromSelect.classList.remove('is-invalid');
+        }
+
+        if (!toSelect || !toSelect.value) {
+            toSelect?.classList.add('is-invalid');
+            valid = false;
+        } else {
+            toSelect.classList.remove('is-invalid');
+        }
+
+        const depVisible = dep?._flatpickr?.altInput || dep;
+        const depVal = (depVisible?.value || '').trim();
+
+        if (!depVal) {
+            markDateInvalid(dep);
+            valid = false;
+        } else {
+            clearDateInvalid(dep);
+        }
+
+        if (roundtrip?.checked) {
+            const retVisible = ret?._flatpickr?.altInput || ret;
+            const retVal = (retVisible?.value || '').trim();
+
+            if (!retVal) {
+                markDateInvalid(ret);
+                valid = false;
+            } else {
+                clearDateInvalid(ret);
+            }
+        } else {
+            clearDateInvalid(ret);
+        }
+
+        if (!valid) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     });
 
-    // (iyileştirme) track width değişebilir: resize + font load durumlarında update
-    window.addEventListener('resize', () => {
-        console.log('[Home] window resize');
-        update('resize');
-    });
-
-    // (iyileştirme) ilk render sonrası layout otursun diye bir kez daha
-    requestAnimationFrame(() => update('raf'));
-
-    // --- initial ---
-    update('init');
-
-    console.log('[Home] initHome() done');
+    fromSelect?.addEventListener('change', () => fromSelect.classList.remove('is-invalid'));
+    toSelect?.addEventListener('change', () => toSelect.classList.remove('is-invalid'));
 }

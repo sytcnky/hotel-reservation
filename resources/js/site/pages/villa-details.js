@@ -39,23 +39,22 @@ function initGuestSync() {
 
     function syncHidden() {
         if (hiddenAdults && adultInput) {
-            hiddenAdults.value = adultInput.value || 0;
+            hiddenAdults.value = adultInput.value || '0';
         }
         if (hiddenChilds && childInput) {
-            hiddenChilds.value = childInput.value || 0;
+            hiddenChilds.value = childInput.value || '0';
         }
     }
 
-    // İlk state (blade zaten value basıyor; yine de garanti altına al)
+    // İlk state
     syncHidden();
     updateGuestDisplay();
 
-    // +/- tıklanınca guestpicker input değerlerini değiştiriyor → display + hidden sync
+    // +/- click sonrası sync
     form.addEventListener('click', (e) => {
         const btn = e.target?.closest?.('button.plus, button.minus');
         if (!btn) return;
 
-        // guestpicker click sonrası input değerleri değişmiş olacağından bir tick sonra oku
         setTimeout(() => {
             syncHidden();
             updateGuestDisplay();
@@ -69,6 +68,8 @@ function initGuestSync() {
 }
 
 function initPricing(box, dateInput) {
+    const form = document.getElementById('villa-booking-form');
+
     const basePrice  = parseFloat(box.dataset.price || '0');      // gecelik
     const currency   = box.dataset.currency || 'TRY';
     const prepayRate = parseFloat(box.dataset.prepayment || '0'); // yüzde
@@ -125,12 +126,30 @@ function initPricing(box, dateInput) {
         clearHidden();
     }
 
+    function setInvalid(on) {
+        if (!dateInput) return;
+        dateInput.classList.toggle('is-invalid', !!on);
+    }
+
+    function hasSelection() {
+        // Bizim için kriter: hiddenCheckin doluysa seçim yapılmış say.
+        return !!(hiddenCheckin && hiddenCheckin.value && hiddenCheckin.value.trim());
+    }
+
+    // -----------------------------
+    // Date picker
+    // -----------------------------
     initDatePicker({
         el: dateInput,
-        contract: 'excursion_single_ymd_alt',
+        // NOT: burada contract muhtemelen yanlış (excursion). Senin gerçek villa contract adın neyse onu kullanmalısın.
+        contract: 'villa_range_ui_dmy',
         locale: document.documentElement.lang,
         hooks: {
-            onClear: () => resetState(),
+            onClear: () => {
+                resetState();
+                // user submit edip invalid olduysa, temizleyince invalid kalsın
+                // (submit'te tekrar basılacak). burada zorla kaldırmıyoruz.
+            },
             onValidChange: (p) => {
                 const nights = Number(p?.nights || 0);
 
@@ -154,6 +173,8 @@ function initPricing(box, dateInput) {
                     if (elBefore) elBefore.classList.remove('d-none');
                     if (elAfter) elAfter.classList.add('d-none');
                     clearHidden();
+                    // range geçersizse tarih alanını invalid yap (kırmızı kalsın)
+                    setInvalid(true);
                     return;
                 }
 
@@ -168,17 +189,52 @@ function initPricing(box, dateInput) {
                 if (elBefore) elBefore.classList.add('d-none');
                 if (elAfter) elAfter.classList.remove('d-none');
 
-                if (hiddenCheckin) hiddenCheckin.value = p.ymdStart || '';
-                if (hiddenCheckout) hiddenCheckout.value = p.ymdEnd || '';
+                if (hiddenCheckin) hiddenCheckin.value = p?.ymdStart || '';
+                if (hiddenCheckout) hiddenCheckout.value = p?.ymdEnd || '';
                 if (hiddenNights) hiddenNights.value = String(nights);
 
                 if (hiddenPriceNightly) hiddenPriceNightly.value = basePrice.toFixed(2);
                 if (hiddenPricePrepay) hiddenPricePrepay.value = prepayment.toFixed(2);
                 if (hiddenPriceTotal) hiddenPriceTotal.value = total.toFixed(2);
+
+                // valid seçim yapıldı → kırmızıyı kaldır
+                setInvalid(false);
             },
         },
     });
 
     // İlk yüklemede temiz state garanti
     resetState();
+
+    // -----------------------------
+    // Client-side validate (villa-booking-form)
+    // -----------------------------
+    if (form) {
+        form.setAttribute('novalidate', 'novalidate');
+
+        form.addEventListener('submit', (e) => {
+            let ok = true;
+
+            // Tarih zorunlu: selection yoksa invalid
+            if (!hasSelection()) {
+                setInvalid(true);
+                ok = false;
+            }
+
+            if (!ok) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+
+    // kullanıcı input'u değiştirdiğinde (flatpickr manuel yazdırıyorsa) invalid temizliği
+    dateInput.addEventListener('input', () => {
+        if (dateInput.value && dateInput.value.trim()) {
+            // sadece görüntü var ama hidden yoksa yine de hemen temizlemeyelim,
+            // asıl temizliği onValidChange yapıyor.
+            // burada sadece boş değilse "kullanıcı bir şey yaptı" diye kırmızıyı kaldırmak istersen:
+            // setInvalid(false);
+        }
+    });
 }

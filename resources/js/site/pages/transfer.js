@@ -20,12 +20,57 @@ export function initTransferForm() {
     const guestInputVisible = document.getElementById('guestInput');
 
     // -------------------------------------------------
+    // Helpers (Flatpickr + is-invalid)
+    // -------------------------------------------------
+    function clearDateInvalid(input) {
+        if (!input) return;
+
+        input.classList.remove('is-invalid');
+
+        const fp = input._flatpickr;
+        if (fp && fp.altInput) {
+            fp.altInput.classList.remove('is-invalid');
+        }
+    }
+
+    function markDateInvalid(input) {
+        if (!input) return;
+
+        input.classList.add('is-invalid');
+
+        const fp = input._flatpickr;
+        if (fp && fp.altInput) {
+            fp.altInput.classList.add('is-invalid');
+        }
+    }
+
+    function bindDateInvalidClear(input) {
+        if (!input) return;
+
+        const fp = input._flatpickr;
+        const vis = fp && fp.altInput ? fp.altInput : input;
+
+        const handler = () => {
+            const val = (vis.value || '').trim();
+            if (val) clearDateInvalid(input);
+        };
+
+        vis.addEventListener('input', handler);
+        vis.addEventListener('change', handler);
+
+        // flatpickr change event (en güvenlisi)
+        if (fp) {
+            fp.config.onChange = (fp.config.onChange || []).concat(() => clearDateInvalid(input));
+        }
+    }
+
+    // -------------------------------------------------
     // 1) Nereden -> Nereye aynı lokasyonu engelle
     // -------------------------------------------------
     if (fromSelect && toSelect) {
-        const originalToOptions = Array.from(toSelect.options).map(option => ({
+        const originalToOptions = Array.from(toSelect.options).map((option) => ({
             value: option.value,
-            text: option.text
+            text: option.textContent,
         }));
 
         function rebuildToOptions() {
@@ -33,18 +78,24 @@ export function initTransferForm() {
             const prevToVal = toSelect.value;
 
             toSelect.innerHTML = '';
-            originalToOptions.forEach(opt => {
+
+            originalToOptions.forEach((opt) => {
                 if (opt.value === '' || opt.value !== fromVal) {
                     const o = document.createElement('option');
                     o.value = opt.value;
                     o.textContent = opt.text;
-                    if (opt.value === prevToVal && opt.value !== fromVal) o.selected = true;
+
+                    if (opt.value === prevToVal && opt.value !== fromVal) {
+                        o.selected = true;
+                    }
+
                     toSelect.appendChild(o);
                 }
             });
 
             if (!toSelect.value) {
-                const first = toSelect.querySelector('option[value=""]') || toSelect.options[0];
+                const first =
+                    toSelect.querySelector('option[value=""]') || toSelect.options[0];
                 if (first) first.selected = true;
             }
         }
@@ -54,6 +105,8 @@ export function initTransferForm() {
         fromSelect.addEventListener('change', function () {
             rebuildToOptions();
             fromSelect.classList.remove('is-invalid');
+            // toSelect aynı kalmış olabilir; güvenli temizlik
+            toSelect.classList.remove('is-invalid');
         });
 
         toSelect.addEventListener('change', function () {
@@ -65,41 +118,35 @@ export function initTransferForm() {
     // 2) Roundtrip toggle + return required senkronu
     // -------------------------------------------------
     if (oneway && roundtrip && returnDateWrapper && returnInput) {
-        const toggleReturnDate = () => {
-            if (roundtrip.checked) {
-                returnDateWrapper.classList.remove('d-none');
-            } else {
-                returnDateWrapper.classList.add('d-none');
-                returnInput.value = ''; // dönüş tarihi sıfırlanır
+        const sync = () => {
+            const show = !!roundtrip.checked;
+
+            returnDateWrapper.classList.toggle('d-none', !show);
+
+            // roundtrip ise return_date zorunlu
+            returnInput.required = show;
+
+            if (!show) {
+                returnInput.value = '';
+                clearDateInvalid(returnInput);
             }
         };
 
-        oneway.addEventListener('change', toggleReturnDate);
-        roundtrip.addEventListener('change', toggleReturnDate);
-        requestAnimationFrame(toggleReturnDate);
-
-        const syncReturnRequired = () => {
-            returnInput.required = !!roundtrip.checked;
-            returnInput.classList.remove('is-invalid');
-        };
-        syncReturnRequired();
-        oneway.addEventListener('change', syncReturnRequired);
-        roundtrip.addEventListener('change', syncReturnRequired);
+        oneway.addEventListener('change', sync);
+        roundtrip.addEventListener('change', sync);
+        requestAnimationFrame(sync);
     }
 
     // -------------------------------------------------
-    // 3) Date pickers (UI d.m.Y, submit Y-m-d)
+    // 3) Date pickers (submit Y-m-d)
     // -------------------------------------------------
     if (departureInput) {
-        const locale = document.documentElement.lang;
-
         initDatePicker({
             el: departureInput,
             contract: 'transfer_single_ymd_alt',
-            locale,
+            locale: document.documentElement.lang,
             hooks: {
                 onValidChange: (p) => {
-                    // Departure değişince return minDate'i native min ile zorla (flatpickr'e dokunmadan)
                     if (returnInput && p?.ymd) {
                         returnInput.setAttribute('min', p.ymd);
                     }
@@ -107,9 +154,8 @@ export function initTransferForm() {
             },
         });
 
-        departureInput.addEventListener('input', () => {
-            if (departureInput.value.trim()) departureInput.classList.remove('is-invalid');
-        });
+        // flatpickr altInput dahil invalid temizliği
+        bindDateInvalidClear(departureInput);
     }
 
     if (returnInput) {
@@ -119,9 +165,7 @@ export function initTransferForm() {
             locale: document.documentElement.lang,
         });
 
-        returnInput.addEventListener('input', () => {
-            if (returnInput.value.trim()) returnInput.classList.remove('is-invalid');
-        });
+        bindDateInvalidClear(returnInput);
     }
 
     // -------------------------------------------------
@@ -129,8 +173,12 @@ export function initTransferForm() {
     // -------------------------------------------------
     if (guestInputVisible) {
         document.addEventListener('guestCountChanged', function (e) {
-            const total = e.detail && typeof e.detail.total === 'number' ? e.detail.total : 0;
-            if (total > 0) guestInputVisible.classList.remove('is-invalid');
+            const total =
+                e?.detail && typeof e.detail.total === 'number' ? e.detail.total : 0;
+
+            if (total > 0) {
+                guestInputVisible.classList.remove('is-invalid');
+            }
         });
     }
 
@@ -143,33 +191,64 @@ export function initTransferForm() {
 
             // Direction
             const dirInputs = searchForm.querySelectorAll('input[name="direction"]');
-            const dirChecked = Array.from(dirInputs).some(i => i.checked);
+            const dirChecked = Array.from(dirInputs).some((i) => i.checked);
             if (!dirChecked) valid = false;
 
             // From / To
-            if (fromSelect && !fromSelect.value) { fromSelect.classList.add('is-invalid'); valid = false; }
-            if (toSelect && !toSelect.value) { toSelect.classList.add('is-invalid'); valid = false; }
-
-            // Dates
-            const dep = departureInput;
-            const ret = returnInput;
-
-            if (!dep || !dep.value.trim()) {
-                dep?.classList.add('is-invalid');
+            if (fromSelect && !fromSelect.value) {
+                fromSelect.classList.add('is-invalid');
                 valid = false;
+            } else {
+                fromSelect?.classList.remove('is-invalid');
             }
 
-            if (roundtrip && roundtrip.checked) {
-                if (!ret || !ret.value.trim()) {
-                    ret?.classList.add('is-invalid');
+            if (toSelect && !toSelect.value) {
+                toSelect.classList.add('is-invalid');
+                valid = false;
+            } else {
+                toSelect?.classList.remove('is-invalid');
+            }
+
+            // Dates (flatpickr altInput olabilir)
+            const depVisible = departureInput?._flatpickr?.altInput || departureInput;
+            const depVal = (depVisible?.value || '').trim();
+
+            if (!depVal) {
+                markDateInvalid(departureInput);
+                valid = false;
+            } else {
+                clearDateInvalid(departureInput);
+            }
+
+            if (roundtrip?.checked) {
+                const retVisible = returnInput?._flatpickr?.altInput || returnInput;
+                const retVal = (retVisible?.value || '').trim();
+
+                if (!retVal) {
+                    markDateInvalid(returnInput);
                     valid = false;
+                } else {
+                    clearDateInvalid(returnInput);
                 }
+            } else {
+                // roundtrip değilse return invalid kalmasın
+                clearDateInvalid(returnInput);
             }
 
             // Guests (min 1 adult, total > 0)
-            const adults = parseInt(searchForm.querySelector('input[name="adults"]')?.value || '0', 10);
-            const children = parseInt(searchForm.querySelector('input[name="children"]')?.value || '0', 10);
-            const infants = parseInt(searchForm.querySelector('input[name="infants"]')?.value || '0', 10);
+            const adults = parseInt(
+                searchForm.querySelector('input[name="adults"]')?.value || '0',
+                10
+            );
+            const children = parseInt(
+                searchForm.querySelector('input[name="children"]')?.value || '0',
+                10
+            );
+            const infants = parseInt(
+                searchForm.querySelector('input[name="infants"]')?.value || '0',
+                10
+            );
+
             const total = adults + children + infants;
             const guestValid = adults >= 1 && total > 0;
 
@@ -186,7 +265,7 @@ export function initTransferForm() {
     }
 
     // -------------------------------------------------
-    // 6) Booking form: Radio'ya göre (Saat / Uçuş No) tek alan aktif
+    // 6) Booking form: Radio'ya göre (Saat / Uçuş No) tek alan aktif + submit validate
     // -------------------------------------------------
     const bookForm = document.getElementById('transferBookForm');
     if (bookForm) {
@@ -222,7 +301,7 @@ export function initTransferForm() {
 
         function pickedValue(nodeList) {
             const arr = Array.from(nodeList || []);
-            const checked = arr.find(r => r.checked);
+            const checked = arr.find((r) => r.checked);
             return checked ? checked.value : null;
         }
 
@@ -235,20 +314,14 @@ export function initTransferForm() {
             const mode = pickedValue(outRadios) || 'time';
             const isTime = mode === 'time';
 
-            // görünürlük
             show(outTimeWrap, isTime);
             show(outFlightWrap, !isTime);
 
-            // disabled (request'e gitmesin)
             setDisabled(outTime, !isTime);
             setDisabled(outFlight, isTime);
 
-            // görünmeyeni temizle (snapshot kirlenmesin)
-            if (isTime) {
-                resetValue(outFlight);
-            } else {
-                resetValue(outTime);
-            }
+            if (isTime) resetValue(outFlight);
+            else resetValue(outTime);
 
             clearInvalid(outTime);
             clearInvalid(outFlight);
@@ -267,11 +340,8 @@ export function initTransferForm() {
             setDisabled(retTime, !isTime);
             setDisabled(retFlight, isTime);
 
-            if (isTime) {
-                resetValue(retFlight);
-            } else {
-                resetValue(retTime);
-            }
+            if (isTime) resetValue(retFlight);
+            else resetValue(retTime);
 
             clearInvalid(retTime);
             clearInvalid(retFlight);
@@ -283,11 +353,11 @@ export function initTransferForm() {
         applyReturnToggle();
 
         // bind change
-        Array.from(outRadios).forEach(r => r.addEventListener('change', applyOutboundToggle));
-        Array.from(retRadios).forEach(r => r.addEventListener('change', applyReturnToggle));
+        Array.from(outRadios).forEach((r) => r.addEventListener('change', applyOutboundToggle));
+        Array.from(retRadios).forEach((r) => r.addEventListener('change', applyReturnToggle));
 
         // input değişince invalid temizliği
-        [outTime, outFlight, retTime, retFlight].forEach(el => {
+        [outTime, outFlight, retTime, retFlight].forEach((el) => {
             el?.addEventListener('input', () => {
                 clearInvalid(outTime);
                 clearInvalid(outFlight);
@@ -297,41 +367,29 @@ export function initTransferForm() {
             });
         });
 
-        // submit validation: seçili moda göre ilgili alan dolu olmalı
         function requiredByRadio(radios, timeEl, flightEl) {
             const mode = pickedValue(radios);
-            if (!mode) return true; // güvenli: radio yoksa burada fail ettirmeyelim
+            if (!mode) return true;
 
-            if (mode === 'time') {
-                return !!(timeEl && timeEl.value && timeEl.value.trim());
-            }
-
-            if (mode === 'flight') {
-                return !!(flightEl && flightEl.value && flightEl.value.trim());
-            }
-
+            if (mode === 'time') return !!(timeEl && timeEl.value && timeEl.value.trim());
+            if (mode === 'flight') return !!(flightEl && flightEl.value && flightEl.value.trim());
             return true;
         }
 
         function markInvalidByRadio(radios, timeEl, flightEl) {
             const mode = pickedValue(radios) || 'time';
-            if (mode === 'time') {
-                timeEl?.classList.add('is-invalid');
-            } else {
-                flightEl?.classList.add('is-invalid');
-            }
+            if (mode === 'time') timeEl?.classList.add('is-invalid');
+            else flightEl?.classList.add('is-invalid');
         }
 
         bookForm.addEventListener('submit', function (e) {
             let ok = true;
 
-            // Outbound şart
             if (!requiredByRadio(outRadios, outTime, outFlight)) {
                 markInvalidByRadio(outRadios, outTime, outFlight);
                 ok = false;
             }
 
-            // Return şart (varsa)
             if (retRadios && retRadios.length) {
                 if (!requiredByRadio(retRadios, retTime, retFlight)) {
                     markInvalidByRadio(retRadios, retTime, retFlight);

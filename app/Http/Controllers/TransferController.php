@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Location;
 use App\Models\StaticPage;
 use App\Models\TransferRoute;
 use App\Models\TransferVehicle;
+use App\Services\TransferLocationSelectService;
 use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class TransferController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, TransferLocationSelectService $locationSelect)
     {
         // -------------------------------------------------
         // Static Page (Transfer)
@@ -124,7 +123,7 @@ class TransferController extends Controller
             }
         }
 
-        $locations = $this->getLocationsForSelect();
+        $locations = $locationSelect->getOptions();
 
         return view('pages.transfer.index', [
             'page'          => $page,
@@ -251,44 +250,6 @@ class TransferController extends Controller
             'currency' => $preferredCurrency,
             'total'    => $total,
         ];
-    }
-
-    private function getLocationsForSelect(): array
-    {
-        return Cache::remember('transfer_locations_for_select', 600, function () {
-            $routes = TransferRoute::query()
-                ->where('is_active', true)
-                ->get(['from_location_id', 'to_location_id']);
-
-            $locationIds = $routes
-                ->flatMap(fn ($r) => [$r->from_location_id, $r->to_location_id])
-                ->unique()
-                ->values();
-
-            if ($locationIds->isEmpty()) {
-                return [];
-            }
-
-            $locations = Location::query()
-                ->whereIn('id', $locationIds)
-                ->orderBy('id')
-                ->get(['id', 'name']);
-
-            return $locations
-                ->map(function (Location $location) {
-                    $uiLocale   = app()->getLocale();
-                    $baseLocale = LocaleHelper::defaultCode();
-
-                    $label = I18nHelper::scalar($location->name ?? [], $uiLocale, $baseLocale);
-
-                    return [
-                        'id'    => $location->id,
-                        'label' => $label !== '' ? $label : ('#' . $location->id),
-                    ];
-                })
-                ->values()
-                ->all();
-        });
     }
 
     private function localizeJson($value): string

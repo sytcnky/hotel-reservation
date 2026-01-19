@@ -99,13 +99,17 @@
                             {{-- Tarih --}}
                             <div class="col-md-4">
                                 <label for="excursion-date" class="form-label">Tarih Seçimi</label>
-
-                                <input type="text"
-                                       id="excursion-date"
-                                       name="date"
-                                       class="form-control"
-                                       placeholder="Tarih seçin"
-                                       required>
+                                <div class="input-group">
+                                    <input type="text"
+                                           id="excursion-date"
+                                           name="date"
+                                           class="form-control"
+                                           placeholder="Tarih seçin"
+                                           required>
+                                        <div class="input-group-text bg-white">
+                                            <i class="fi fi-rr-calendar"></i>
+                                        </div>
+                                    </div>
                             </div>
 
                             {{-- Kişi Sayısı --}}

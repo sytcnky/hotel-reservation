@@ -29,18 +29,21 @@ html{
     font-synthesis-style: none;    /* sahte italic yok */
 }
 
+
 .breadcrumb a {
     color: $secondary;
     text-decoration: none;
 }
 
-body {
-    font-family: var(--font-body), serif;
-    letter-spacing: 0;             /* gövde metninde ek aralık verme */
-    text-rendering: optimizeLegibility; /* ligatür/kerning ipucu */
-    font-kerning: normal;
-    font-optical-sizing: auto;      /* variable fontsa optik boyutlandırma */
-    color: #212529;
+/* input-group + has-validation durumunda radius düzeltmesi */
+.input-group.has-validation > .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.input-group.has-validation > .input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 button:focus,
@@ -183,6 +186,7 @@ a:focus,
 
 .hero-tabs .nav-link {
     color: white;
+    min-width: 72px;
 }
 
 .hero-tabs .nav-item {
@@ -254,6 +258,12 @@ a:focus,
 
 .hero-tabs {
     position: relative;
+}
+
+@media (max-width: 769px) {
+    .hero-tabs {
+        font-size: 9px;
+    }
 }
 
 .hero-tabs-girl {
@@ -512,3 +522,67 @@ $bottom-nav-height: 64px;
 }
 
 .popular-hotels-page { flex: 0 0 100%; }
+
+
+/* ICR — Input group unified behavior (no custom class)
+   Applies to ALL .input-group instances site-wide. */
+
+/* Unify focus border color across the whole group */
+.input-group:focus-within > .form-control,
+.input-group:focus-within > .form-select,
+.input-group:focus-within > .input-group-text,
+.input-group:focus-within > .btn {
+    border-color: var(--bs-primary);
+}
+
+/* Optional: keep consistent z-index so borders overlay nicely */
+.input-group > .form-control:focus,
+.input-group > .form-select:focus {
+    z-index: 3;
+}
+
+/* If Bootstrap adds .is-invalid / .is-valid to the field,
+   extend the same border color to addons/buttons in the same group. */
+.input-group > .form-control.is-invalid,
+.input-group > .form-select.is-invalid,
+.input-group > .form-control.is-valid,
+.input-group > .form-select.is-valid {
+    position: relative;
+    z-index: 2;
+}
+
+.input-group:has(> .form-control.is-invalid) > .input-group-text,
+.input-group:has(> .form-select.is-invalid) > .input-group-text,
+.input-group:has(> .form-control.is-invalid) > .btn,
+.input-group:has(> .form-select.is-invalid) > .btn {
+    border-color: var(--bs-danger);
+}
+
+.input-group:has(> .form-control.is-valid) > .input-group-text,
+.input-group:has(> .form-select.is-valid) > .input-group-text,
+.input-group:has(> .form-control.is-valid) > .btn,
+.input-group:has(> .form-select.is-valid) > .btn {
+    border-color: var(--bs-success);
+}
+
+/* If you use native HTML5 validation with .was-validated on a parent form,
+   also reflect invalid/valid state to the addon. */
+.was-validated .input-group:has(> .form-control:invalid) > .input-group-text,
+.was-validated .input-group:has(> .form-select:invalid) > .input-group-text,
+.was-validated .input-group:has(> .form-control:invalid) > .btn,
+.was-validated .input-group:has(> .form-select:invalid) > .btn {
+    border-color: var(--bs-danger);
+}
+
+.was-validated .input-group:has(> .form-control:valid) > .input-group-text,
+.was-validated .input-group:has(> .form-select:valid) > .input-group-text,
+.was-validated .input-group:has(> .form-control:valid) > .btn,
+.was-validated .input-group:has(> .form-select:valid) > .btn {
+    border-color: var(--bs-success);
+}
+
+/* Range: ensure radius joins are preserved even if a hidden input appears
+   (defensive; does not rely on has-validation). */
+.input-group > input[type="hidden"] {
+    display: none !important;
+}

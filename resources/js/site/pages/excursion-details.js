@@ -15,7 +15,7 @@ export function initExcursionDetails() {
     if (dateInput) {
         initDatePicker({
             el: dateInput,
-            contract: 'excursion_single_dmy',
+            contract: 'excursion_single_ymd_alt',
             locale: document.documentElement.lang,
         });
     }

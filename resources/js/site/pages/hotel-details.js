@@ -7,9 +7,58 @@ export function initHotelDetails() {
 
     initRoomToggles();
     initDateRangePicker();
-
     initBookingFormSync();
+    initBookingFormValidation();
     initVideoModalReset();
+}
+
+// -------------------------------------------------
+// Date invalid helpers (flatpickr altInput aware)
+// -------------------------------------------------
+function getDateVisibleInput(input) {
+    if (!input) return null;
+    const fp = input._flatpickr;
+    return fp && fp.altInput ? fp.altInput : input;
+}
+
+function addDateInvalid(input) {
+    if (!input) return;
+    input.classList.add('is-invalid');
+
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.add('is-invalid');
+    }
+}
+
+function clearDateInvalid(input) {
+    if (!input) return;
+    input.classList.remove('is-invalid');
+
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.remove('is-invalid');
+    }
+}
+
+function bindDateInvalidClear(input) {
+    if (!input) return;
+
+    const vis = getDateVisibleInput(input);
+    if (!vis) return;
+
+    const handler = () => {
+        const v = (vis.value || '').trim();
+        if (v) clearDateInvalid(input);
+    };
+
+    vis.addEventListener('input', handler);
+    vis.addEventListener('change', handler);
+
+    const fp = input._flatpickr;
+    if (fp) {
+        fp.config.onChange = (fp.config.onChange || []).concat(() => clearDateInvalid(input));
+    }
 }
 
 function initDateRangePicker() {
@@ -21,6 +70,35 @@ function initDateRangePicker() {
         contract: 'hotel_details_range_ymd_alt',
         locale: document.documentElement.lang,
     });
+
+    // tarih seçince kırmızı kalksın (altInput dahil)
+    bindDateInvalidClear(input);
+}
+
+// -------------------------------------------------
+// Booking form validation (GET form; bootstrap-like red border only)
+// -------------------------------------------------
+function initBookingFormValidation() {
+    const form = document.getElementById('booking-form');
+    if (!form) return;
+
+    const checkin = document.getElementById('checkin');
+    if (!checkin) return;
+
+    // submit'te checkin zorunlu
+    form.addEventListener('submit', (e) => {
+        const vis = getDateVisibleInput(checkin);
+        const val = (vis?.value || checkin.value || '').trim();
+
+        if (!val) {
+            e.preventDefault();
+            e.stopPropagation();
+            addDateInvalid(checkin);
+        }
+    });
+
+    // kullanıcı sonradan seçerse temizle
+    bindDateInvalidClear(checkin);
 }
 
 function initRoomToggles() {
@@ -29,9 +107,9 @@ function initRoomToggles() {
 
     roomCards.forEach((card) => {
         const toggleBtn = card.querySelector('.room-toggle-details');
-        const wrapper   = card.querySelector('.room-details-wrapper');
-        const content   = card.querySelector('.room-details');
-        const gallery   = card.querySelector('.gallery');
+        const wrapper = card.querySelector('.room-details-wrapper');
+        const content = card.querySelector('.room-details');
+        const gallery = card.querySelector('.gallery');
 
         if (!toggleBtn || !wrapper || !content) return;
 
@@ -49,12 +127,15 @@ function initRoomToggles() {
 
                 wrapper.style.height = content.scrollHeight + 'px';
 
-                wrapper.addEventListener('transitionend', () => {
-                    if (card.classList.contains('expanded')) {
-                        wrapper.style.height = 'auto';
-                    }
-                }, { once: true });
-
+                wrapper.addEventListener(
+                    'transitionend',
+                    () => {
+                        if (card.classList.contains('expanded')) {
+                            wrapper.style.height = 'auto';
+                        }
+                    },
+                    { once: true }
+                );
             } else {
                 wrapper.style.height = content.scrollHeight + 'px';
                 requestAnimationFrame(() => {
@@ -69,17 +150,17 @@ function initBookingFormSync() {
     const form = document.getElementById('booking-form');
     if (!form) return;
 
-    const adultInput   = form.querySelector('input[data-type="adult"]');
-    const childInput   = form.querySelector('input[data-type="child"]');
+    const adultInput = form.querySelector('input[data-type="adult"]');
+    const childInput = form.querySelector('input[data-type="child"]');
     const hiddenAdults = form.querySelector('#adultsInput');
     const hiddenChilds = form.querySelector('#childrenInput');
-    const guestInput   = document.getElementById('guestInput');
+    const guestInput = document.getElementById('guestInput');
 
     if (!adultInput || !childInput || !hiddenAdults || !hiddenChilds) {
         return;
     }
 
-    const initialAdults   = parseInt(form.dataset.initialAdults || '0', 10);
+    const initialAdults = parseInt(form.dataset.initialAdults || '0', 10);
     const initialChildren = parseInt(form.dataset.initialChildren || '0', 10);
 
     function updateGuestDisplay() {
@@ -100,14 +181,12 @@ function initBookingFormSync() {
         hiddenChilds.value = childInput.value || '0';
     }
 
-    // İlk yükleme
-    adultInput.value   = String(initialAdults);
-    childInput.value   = String(initialChildren);
+    adultInput.value = String(initialAdults);
+    childInput.value = String(initialChildren);
     hiddenAdults.value = String(initialAdults);
     hiddenChilds.value = String(initialChildren);
     updateGuestDisplay();
 
-    // Submit öncesi hidden sync
     form.addEventListener('submit', function () {
         syncHidden();
     });

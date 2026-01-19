@@ -95,7 +95,8 @@
                       data-initial-children="{{ $initialChildren }}"
                       class="row g-3"
                       method="GET"
-                      action="{{ localized_route('hotel.detail', ['slug' => $hotel['slug']]) }}">
+                      action="{{ localized_route('hotel.detail', ['slug' => $hotel['slug']]) }}"
+                      novalidate>
 
                     <!-- Giriş-Çıkış Tarihi -->
                     <div class="col-xl-4">
@@ -107,7 +108,8 @@
                                    class="form-control date-input"
                                    placeholder="Tarih seçin"
                                    value="{{ request('checkin') }}"
-                                   autocomplete="off">
+                                   autocomplete="off"
+                                   required>
                             <span class="input-group-text bg-white">
                                 <i class="fi fi-rr-calendar"></i>
                             </span>

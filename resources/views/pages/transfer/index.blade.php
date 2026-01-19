@@ -25,6 +25,7 @@
                   class="row g-3 needs-validation"
                   action="{{ localized_route('transfers') }}"
                   method="GET"
+                  autocomplete="off"
                   novalidate>
                 {{-- Yön Seçimi --}}
                 <div class="col-12 text-center mb-2" style="margin-top: -25px">
@@ -52,7 +53,7 @@
                 {{-- Nereden --}}
                 <div class="col-lg-2">
                     <label for="from_location_id" class="form-label">Nereden</label>
-                    <div class="input-group has-validation">
+                    <div class="input-group">
                         <select class="form-select" id="from_location_id" name="from_location_id" required>
                             <option value="">Seçiniz</option>
                             @foreach($locations as $location)
@@ -63,15 +64,15 @@
                             @endforeach
                         </select>
                         <span class="input-group-text bg-white">
-                        <i class="fi fi-rr-marker"></i>
-                    </span>
+                            <i class="fi fi-rr-marker"></i>
+                        </span>
                     </div>
                 </div>
 
                 {{-- Nereye --}}
                 <div class="col-lg-2">
                     <label for="to_location_id" class="form-label">Nereye</label>
-                    <div class="input-group has-validation">
+                    <div class="input-group">
                         <select class="form-select" id="to_location_id" name="to_location_id" required>
                             <option value="">Seçiniz</option>
                             @foreach($locations as $location)
@@ -82,8 +83,8 @@
                             @endforeach
                         </select>
                         <span class="input-group-text bg-white">
-                        <i class="fi fi-rr-marker"></i>
-                    </span>
+                            <i class="fi fi-rr-marker"></i>
+                        </span>
                     </div>
                 </div>
 

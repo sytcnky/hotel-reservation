@@ -24,7 +24,7 @@
     <div class="mb-4 col-12 col-md-6 px-0 mx-auto">
         <form method="GET" action="{{ localized_route('excursions') }}">
             <select class="form-select" name="category" onchange="this.form.submit()">
-                <option value="">Tümü</option>
+                <option value="">Tüm Turlar</option>
 
                 @foreach ($categories as $cat)
                 <option value="{{ $cat['slug'] }}"

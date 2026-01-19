@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Hotel;
 use App\Models\StaticPage;
 use App\Models\TravelGuide;
+use App\Models\Tour;
+use App\Models\TourCategory;
 use App\Services\CampaignPlacementViewService;
+use App\Services\TransferLocationSelectService;
 use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
@@ -14,8 +17,11 @@ use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
-    public function index(Request $request, CampaignPlacementViewService $campaignService)
-    {
+    public function index(
+        Request $request,
+        CampaignPlacementViewService $campaignService,
+        TransferLocationSelectService $locationSelect
+    ) {
         $page = StaticPage::query()
             ->where('key', 'home_page')
             ->where('is_active', true)
@@ -189,13 +195,46 @@ class HomeController extends Controller
             return I18nHelper::scalar($map, $uiLocale, $baseLocale);
         };
 
+        $transferLocations = $locationSelect->getOptions();
+
+        // Home tab sadece kategori istiyor ama "boş olmayanlar" filtresi için turlar lazım.
+        $toursForCat = Tour::query()
+            ->with(['category'])
+            ->where('is_active', true)
+            ->get()
+            ->map(fn (Tour $t) => [
+                'category'      => $t->category?->name_l,
+                'category_slug' => $t->category?->slug_l,
+            ]);
+
+// Kategoriler (boş olmayanlar)
+        $tourCategories = TourCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->filter(function ($cat) use ($toursForCat) {
+                return $toursForCat->contains(fn ($t) => $t['category'] === $cat->name_l);
+            })
+            ->map(fn ($cat) => [
+                'id'   => $cat->id,
+                'name' => $cat->name_l,
+                'slug' => $cat->slug_l,
+            ])
+            ->values();
+
         return view('pages.home', [
-            'page'          => $page,
-            'popularHotels' => $popularHotels,
-            'travelGuides'  => $travelGuides,
-            'pickLocale'    => $pickLocale,
-            'campaigns'     => $campaignService->buildForPlacement('homepage_banner'),
-            'currencyCode'  => $currencyCode,
+            'page'              => $page,
+            'popularHotels'     => $popularHotels,
+            'travelGuides'      => $travelGuides,
+            'pickLocale'        => $pickLocale,
+            'campaigns'         => $campaignService->buildForPlacement('homepage_banner'),
+            'currencyCode'      => $currencyCode,
+
+            // Home transfer tab için
+            'transferLocations' => $transferLocations,
+
+            'categories' => $tourCategories,
         ]);
     }
+
 }

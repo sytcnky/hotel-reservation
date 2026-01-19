@@ -10,7 +10,7 @@
     @endphp
 
     {{-- HERO --}}
-    <section class="position-relative overflow-hidden" style="min-height: 500px;">
+    <section class="position-relative" style="min-height: 600px;">
         {{-- Arka plan görsel --}}
         <x-responsive-image
             :image="$page->home_hero_background_image"
@@ -31,113 +31,16 @@
                     <small class="fs-3 fw-light">{{ $c['hero']['eyebrow'][$loc] ?? '' }}</small><br/>
                     {{ $c['hero']['title'][$loc] ?? '' }}
                 </h1>
-                <p class="lead text-light mb-4">{{ $c['hero']['subtitle'][$loc] ?? '' }}</p>
+                <p class="lead text-light mb-5">{{ $c['hero']['subtitle'][$loc] ?? '' }}</p>
             </div>
 
 
             <!-- Sekmeler -->
-            <div class="w-100 rounded mb-4" style="max-width: 960px;">
-                <!-- Nav Tabs -->
-                <ul class="nav nav-tabs hero-tabs justify-content-center border-0 gap-1 position-relative"
-                    id="searchTabs" role="tablist">
-
-                    {{-- HERO Transparent --}}
-                    <x-responsive-image
-                        :image="$page->home_hero_transparent_image"
-                        preset="listing-card"
-                        class="hero-tabs-girl position-absolute bottom-0 end-0"
-                    />
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-otel" data-bs-toggle="tab" data-bs-target="#content-otel"
-                                type="button" role="tab">Konaklama
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-transfer" data-bs-toggle="tab" data-bs-target="#content-transfer"
-                                type="button" role="tab">Transfer
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-villa" data-bs-toggle="tab" data-bs-target="#content-villa"
-                                type="button" role="tab">Villa
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-tur" data-bs-toggle="tab" data-bs-target="#content-tur"
-                                type="button" role="tab">Günlük Tur
-                        </button>
-                    </li>
-                </ul>
-
-                <!-- Tab İçerikleri -->
-                <div class="tab-content bg-white rounded-3 p-3" id="searchTabsContent">
-                    <div class="tab-pane fade show active" id="content-otel" role="tabpanel">
-                        <form id="booking-form" class="row g-3">
-                            <!-- Giriş-Çıkış Tarihi -->
-                            <div class="col-md-6">
-                                <label for="checkin" class="form-label">Giriş - Çıkış Tarihi</label>
-                                <div class="input-group">
-                                    <input type="text" id="checkin" name="checkin" class="form-control date-input"
-                                           placeholder="Tarih seçin" autocomplete="off">
-                                    <span class="input-group-text bg-white"><i class="fi fi-rr-calendar"></i></span>
-                                </div>
-                            </div>
-
-                            <!-- Kişi Seçimi -->
-                            <div class="col-md-4 position-relative">
-                                <label for="guestInput" class="form-label">Kişi Sayısı</label>
-
-                                <div class="guest-picker-wrapper position-relative">
-                                    <div class="input-group">
-                                        <input type="text" id="guestInput" class="form-control guest-wrapper" placeholder="Kişi sayısı seçin"
-                                               readonly>
-                                        <span class="input-group-text bg-white"><i class="fi fi-rr-user"></i></span>
-                                    </div>
-
-                                    <!-- Dropdown -->
-                                    <div class="guest-dropdown border rounded shadow-sm bg-white p-3 position-absolute w-100"
-                                         style="z-index: 10; top: 100%; display: none;">
-                                        <!-- Yetişkin -->
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>Yetişkin</span>
-                                            <div class="input-group input-group-sm" style="width: 120px;">
-                                                <button type="button" class="btn btn-outline-secondary minus" data-type="adult">−
-                                                </button>
-                                                <input type="text" class="form-control text-center" data-type="adult" value="2"
-                                                       readonly>
-                                                <button type="button" class="btn btn-outline-secondary plus" data-type="adult">+
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <!-- Çocuk -->
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span>Çocuk</span>
-                                            <div class="input-group input-group-sm" style="width: 120px;">
-                                                <button type="button" class="btn btn-outline-secondary minus" data-type="child">−
-                                                </button>
-                                                <input type="text" class="form-control text-center" data-type="child" value="0"
-                                                       readonly>
-                                                <button type="button" class="btn btn-outline-secondary plus" data-type="child">+
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-2 d-grid align-self-end">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fi fi-rr-search me-2"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="tab-pane fade" id="content-transfer" role="tabpanel">...</div>
-                    <div class="tab-pane fade" id="content-villa" role="tabpanel">...</div>
-                    <div class="tab-pane fade" id="content-tur" role="tabpanel">...</div>
-                </div>
-            </div>
+            @include('partials.home.home-tabs', [
+              'page' => $page,
+              'c'    => $c,
+              'loc'  => $loc,
+            ])
         </div>
     </section>
 

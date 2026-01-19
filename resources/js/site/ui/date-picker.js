@@ -58,7 +58,7 @@ const CONTRACTS = Object.freeze({
     },
 
     // Excursion: submit d.m.Y, UI same
-    excursion_single_dmy: {
+    excursion_single_ymd_alt: {
         mode: 'single',
         submitFormat: 'Y-m-d',
         uiFormat: UI_FORMAT,
@@ -69,7 +69,7 @@ const CONTRACTS = Object.freeze({
     },
 
     // Villa: UI range d.m.Y - d.m.Y; submit is page-specific (hidden fields), so we do not force input value.
-    excursion_single_ymd_alt: {
+    villa_range_ui_dmy: {
         mode: 'range',
         submitFormat: UI_FORMAT,
         uiFormat: UI_FORMAT,
@@ -78,7 +78,6 @@ const CONTRACTS = Object.freeze({
         minDate: 'today',
         writeInputValue: false,
     },
-
 });
 
 function resolveElement(el) {
@@ -141,6 +140,56 @@ function buildPayload({ contract, instance, selectedDates }) {
 }
 
 /**
+ * Fix for Bootstrap input-group + flatpickr altInput:
+ * - flatpickr turns original input into type="hidden" and inserts altInput.
+ * - If hidden input stays inside .input-group, Bootstrap first/last-child radius logic breaks.
+ * - Solution: move hidden input outside input-group; keep altInput inside group before addon.
+ * - Accessibility: move original id to altInput so <label for="..."> focuses the visible field.
+ */
+function fixAltInputInsideBootstrapInputGroup(originalEl, instance) {
+    if (!originalEl || !instance) return;
+
+    const hiddenInput = instance.input;   // original, now type="hidden"
+    const altInput = instance.altInput;   // visible input
+    if (!hiddenInput || !altInput) return;
+
+    const group = originalEl.closest('.input-group');
+    if (!group) return;
+
+    // If the group does not contain the hidden input, do nothing (already fixed/relocated)
+    if (!group.contains(hiddenInput)) return;
+
+    // Ensure altInput looks/behaves like original input in Bootstrap
+    // (flatpickr may not keep all classes)
+    const originalClasses = (originalEl.className || '').split(' ').filter(Boolean);
+    for (const cls of originalClasses) {
+        altInput.classList.add(cls);
+    }
+    altInput.classList.add('form-control');
+
+    // Keep submit "name" on hidden input only
+    altInput.removeAttribute('name');
+
+    // Move id from hidden to altInput so label points to visible element
+    const originalId = hiddenInput.getAttribute('id');
+    if (originalId && !altInput.getAttribute('id')) {
+        altInput.setAttribute('id', originalId);
+        hiddenInput.removeAttribute('id');
+    }
+
+    // Place altInput before addon (input-group-text) if present
+    const addon = group.querySelector('.input-group-text');
+    if (addon && addon.parentElement === group) {
+        addon.insertAdjacentElement('beforebegin', altInput);
+    } else {
+        group.appendChild(altInput);
+    }
+
+    // Move hidden input out of the input-group to restore Bootstrap border/radius logic
+    group.insertAdjacentElement('afterend', hiddenInput);
+}
+
+/**
  * @param {{
  *   el: string|HTMLElement,
  *   contract: keyof typeof CONTRACTS,
@@ -179,7 +228,9 @@ export function initDatePicker(config) {
     const fpOptions = {
         mode: contract.mode,
         minDate: contract.minDate ?? null,
-        locale: localeObj, // en -> undefined (default). tr -> Turkish object.
+        locale: contract.mode === 'range'
+            ? { ...(localeObj || {}), rangeSeparator: contract.rangeSeparator || RANGE_SEP }
+            : (localeObj || undefined),
 
         // Submit value format (or UI format when useAltInput=false)
         dateFormat: contract.submitFormat,
@@ -197,6 +248,17 @@ export function initDatePicker(config) {
                 altFormat: contract.uiFormat,
             }
             : {}),
+
+        onReady: (selectedDates, _dateStr, instance) => {
+            // Bootstrap input-group + altInput fix
+            if (contract.useAltInput) {
+                fixAltInputInsideBootstrapInputGroup(el, instance);
+            }
+
+            // If there is an initial selected date already, make sure hooks can react deterministically
+            // (no change to existing behavior; onChange handles later interactions)
+            // Intentionally no extra emissions here.
+        },
 
         onChange: (selectedDates, _dateStr, instance) => {
             // Clear

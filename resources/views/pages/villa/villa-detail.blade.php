@@ -102,8 +102,8 @@
 
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <form id="villa-booking-form"method="POST"
-                          action="{{ localized_route('villa.book') }}">
+                    <form id="villa-booking-form" method="POST"
+                          action="{{ localized_route('villa.book') }}" novalidate>
                         @csrf
 
                         <input type="hidden" name="villa_id" value="{{ $villa['id'] }}">
@@ -143,6 +143,7 @@
                                         data-price="{{ $hasPrice ? $price : 0 }}"
                                         data-prepayment-rate="{{ $prepaymentRate }}"
                                         data-unavailable="[]"
+                                        required
                                     >
                                     <div class="input-group-text bg-white">
                                         <i class="fi fi-rr-calendar"></i>
