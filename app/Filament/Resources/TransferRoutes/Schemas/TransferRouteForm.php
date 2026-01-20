@@ -4,6 +4,8 @@ namespace App\Filament\Resources\TransferRoutes\Schemas;
 
 use App\Models\Currency;
 use App\Models\Location;
+use App\Models\TransferVehicle;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -29,6 +31,8 @@ class TransferRouteForm
         if (empty($currencyCodes)) {
             $currencyCodes = config('app.supported_currencies');
         }
+
+        $currencyCodes = array_values(array_unique(array_map(fn ($c) => strtoupper((string) $c), (array) $currencyCodes)));
 
         return $schema->components([
             Group::make()
@@ -132,36 +136,76 @@ class TransferRouteForm
                                                 ->minValue(0),
                                         ]),
 
+                                    // YENI: Araç başı fiyatlar (pivot)
                                     Section::make(__('admin.routes.sections.prices'))
                                         ->schema([
-                                            Tabs::make('currencies')
-                                                ->tabs(
-                                                    collect($currencyCodes)->map(function (string $code) {
-                                                        $code = strtoupper($code);
+                                            Repeater::make('vehicle_prices')
+                                                ->label(__('admin.routes.sections.prices'))
+                                                ->hiddenLabel()
+                                                ->relationship('vehiclePrices')
+                                                ->defaultItems(0)
+                                                ->reorderable('sort_order')
+                                                ->collapsed()
+                                                ->itemLabel(function (array $state): ?string {
+                                                    $vid = $state['transfer_vehicle_id'] ?? null;
+                                                    if (! $vid) {
+                                                        return null;
+                                                    }
 
-                                                        return Tab::make($code)->schema([
-                                                            Grid::make()
-                                                                ->columns(3)
-                                                                ->schema([
-                                                                    TextInput::make("prices.$code.adult")
-                                                                        ->label(__('admin.routes.form.adult'))
+                                                    $v = TransferVehicle::query()->find($vid);
+                                                    return $v?->name_l ?? ('#' . $vid);
+                                                })
+                                                ->schema([
+                                                    Grid::make()
+                                                        ->columns(12)
+                                                        ->schema([
+                                                            Select::make('transfer_vehicle_id')
+                                                                ->label(__('admin.routes.form.vehicle') ?? 'Araç')
+                                                                ->native(false)
+                                                                ->searchable()
+                                                                ->options(function (): array {
+                                                                    return TransferVehicle::query()
+                                                                        ->where('is_active', true)
+                                                                        ->orderBy('capacity_total')
+                                                                        ->orderBy('sort_order')
+                                                                        ->orderBy('id')
+                                                                        ->get()
+                                                                        ->mapWithKeys(fn (TransferVehicle $v) => [$v->id => ($v->name_l ?? ('#' . $v->id))])
+                                                                        ->all();
+                                                                })
+                                                                ->required()
+                                                                ->columnSpan(6),
+
+                                                            Toggle::make('is_active')
+                                                                ->label(__('admin.routes.form.active'))
+                                                                ->hidden()
+                                                                ->default(true)
+                                                                ->required()
+                                                                ->columnSpan(3),
+
+                                                            TextInput::make('sort_order')
+                                                                ->label(__('admin.routes.form.sort_order'))
+                                                                ->hidden()
+                                                                ->numeric()
+                                                                ->default(0)
+                                                                ->columnSpan(3),
+                                                        ]),
+
+                                                    Tabs::make('currencies')
+                                                        ->tabs(
+                                                            collect($currencyCodes)->map(function (string $code) {
+                                                                $code = strtoupper($code);
+
+                                                                return Tab::make($code)->schema([
+                                                                    TextInput::make("prices.$code")
+                                                                        ->label(__('admin.routes.form.price') ?? 'Fiyat')
                                                                         ->numeric()
                                                                         ->minValue(0),
-
-                                                                    TextInput::make("prices.$code.child")
-                                                                        ->label(__('admin.routes.form.child'))
-                                                                        ->numeric()
-                                                                        ->minValue(0),
-
-                                                                    TextInput::make("prices.$code.infant")
-                                                                        ->label(__('admin.routes.form.infant'))
-                                                                        ->numeric()
-                                                                        ->minValue(0),
-                                                                ]),
-                                                        ]);
-                                                    })->all()
-                                                )
-                                                ->persistTabInQueryString(),
+                                                                ]);
+                                                            })->all()
+                                                        )
+                                                        ->persistTabInQueryString(),
+                                                ]),
                                         ]),
                                 ]),
 

@@ -437,7 +437,7 @@ return [
         'sections' => [
             'general'           => 'General',
             'duration_distance' => 'Duration & Distance',
-            'prices'            => 'Prices (per person)',
+            'prices'            => 'Prices (per Vehicle)',
             'status'            => 'Status',
         ],
         'form' => [
@@ -450,6 +450,8 @@ return [
             'infant'           => 'Infant',
             'active'           => 'Active',
             'sort_order'       => 'Sort Order',
+            'vehicle'          => 'Vehicle',
+            'price'            => 'Price'
         ],
     ],
     'vehicles' => [

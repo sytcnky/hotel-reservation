@@ -7,9 +7,11 @@ use App\Http\Requests\TourBookingRequest;
 use App\Http\Requests\TransferBookingRequest;
 use App\Http\Requests\VillaBookingRequest;
 use App\Models\Hotel;
+use App\Models\TransferRouteVehiclePrice;
 use App\Models\TransferVehicle;
 use App\Models\Villa;
 use App\Services\CartInvariant;
+use App\Support\Currency\CurrencyContext;
 
 class CheckoutController extends Controller
 {
@@ -85,10 +87,59 @@ class CheckoutController extends Controller
             }
         }
 
+        // -----------------------------
+        // PRICE INTEGRITY (server-side)
+        // -----------------------------
+        $routeId   = (int) ($data['route_id'] ?? 0);
+        $vehicleId = (int) ($data['vehicle_id'] ?? 0);
+
+        $currency = CurrencyContext::code($request);
+        $currency = strtoupper(trim((string) $currency));
+        if ($currency === '') {
+            return redirect()
+                ->to(localized_route('transfers'))
+                ->with('err', 'err_transfer_currency_missing');
+        }
+
+        $row = TransferRouteVehiclePrice::query()
+            ->where('transfer_route_id', $routeId)
+            ->where('transfer_vehicle_id', $vehicleId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $row) {
+            return redirect()
+                ->to(localized_route('transfers'))
+                ->with('err', 'err_transfer_price_not_found');
+        }
+
+        $prices = $row->prices;
+        if (! is_array($prices) || empty($prices) || ! array_key_exists($currency, $prices)) {
+            return redirect()
+                ->to(localized_route('transfers'))
+                ->with('err', 'err_transfer_price_not_found');
+        }
+
+        $oneWay = (float) ($prices[$currency] ?? 0);
+        if ($oneWay <= 0) {
+            return redirect()
+                ->to(localized_route('transfers'))
+                ->with('err', 'err_transfer_price_not_found');
+        }
+
+        $direction = (string) ($data['direction'] ?? 'oneway');
+        $total = $direction === 'roundtrip'
+            ? $oneWay * 2
+            : $oneWay;
+
+        // Snapshot içine server authoritative fiyatı yaz
+        $data['price_total'] = $total;
+        $data['currency']    = $currency;
+
         // Controller image policy üretmez: model accessor’dan normalize edilmiş image taşınır
         $vehicle = TransferVehicle::query()
             ->with('media')
-            ->findOrFail((int) $data['vehicle_id']);
+            ->findOrFail($vehicleId);
 
         $img = $vehicle->cover_image ?? null;
         if (is_array($img) && ($img['exists'] ?? false)) {
@@ -98,9 +149,7 @@ class CheckoutController extends Controller
 
         $snapshot = $data;
 
-        $amount   = (float) ($snapshot['price_total'] ?? 0);
-        $currency = $snapshot['currency'];
-        $routeId  = (int) ($snapshot['route_id'] ?? 0);
+        $amount = (float) ($snapshot['price_total'] ?? 0);
 
         $ok = $this->addToCart(
             'transfer',

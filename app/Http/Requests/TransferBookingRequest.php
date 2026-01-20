@@ -43,8 +43,9 @@ class TransferBookingRequest extends FormRequest
             'children' => ['nullable', 'integer', 'min:0'],
             'infants'  => ['nullable', 'integer', 'min:0'],
 
-            'price_total' => ['required', 'numeric', 'min:0'],
-            'currency'    => ['required', 'string', 'size:3'],
+            // Client price/currency göndermez; server-side hesaplanır (CurrencyContext + pivot)
+            'currency'    => ['prohibited'],
+            'price_total' => ['prohibited'],
         ];
     }
 
@@ -91,7 +92,6 @@ class TransferBookingRequest extends FormRequest
         $this->merge([
             'departure_date' => $this->normalizeDateToYmd($this->input('departure_date')),
             'return_date'    => $this->normalizeDateToYmd($this->input('return_date')),
-            'currency'       => $this->normalizeCurrency($this->input('currency')),
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TransferRoute extends Model
@@ -36,5 +37,24 @@ class TransferRoute extends Model
     public function to(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'to_location_id');
+    }
+
+    /**
+     * Araç bazlı fiyat kayıtları (yeni sistem).
+     */
+    public function vehiclePrices(): HasMany
+    {
+        return $this->hasMany(TransferRouteVehiclePrice::class, 'transfer_route_id');
+    }
+
+    /**
+     * Aktif araç fiyat kayıtları (admin + offer tarafında sık kullanılacak).
+     */
+    public function activeVehiclePrices(): HasMany
+    {
+        return $this->vehiclePrices()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 }

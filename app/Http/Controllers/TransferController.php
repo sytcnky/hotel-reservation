@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\StaticPage;
 use App\Models\TransferRoute;
+use App\Models\TransferRouteVehiclePrice;
 use App\Models\TransferVehicle;
 use App\Services\TransferLocationSelectService;
 use App\Support\Currency\CurrencyContext;
@@ -84,10 +85,8 @@ class TransferController extends Controller
 
                     $pricing = $this->calculatePrice(
                         $route,
+                        $vehicle,
                         $direction,
-                        $adults,
-                        $children,
-                        $infants,
                         $currentCurrency
                     );
 
@@ -202,22 +201,37 @@ class TransferController extends Controller
             ->first();
     }
 
+    /**
+     * Araç başı fiyat hesaplama (yeni sistem).
+     *
+     * - Fallback yok.
+     * - preferredCurrency null/boş ise null.
+     * - Pivot kaydı yoksa veya currency fiyatı yoksa null.
+     */
     private function calculatePrice(
         TransferRoute $route,
+        TransferVehicle $vehicle,
         string $direction,
-        int $adults,
-        int $children,
-        int $infants,
         ?string $preferredCurrency
     ): ?array {
-        $prices = $route->prices;
-
-        if (! is_array($prices) || empty($prices)) {
+        $preferredCurrency = strtoupper(trim((string) $preferredCurrency));
+        if ($preferredCurrency === '') {
             return null;
         }
 
-        $preferredCurrency = strtoupper(trim((string) $preferredCurrency));
-        if ($preferredCurrency === '') {
+        $row = TransferRouteVehiclePrice::query()
+            ->whereNull('deleted_at')
+            ->where('transfer_route_id', $route->id)
+            ->where('transfer_vehicle_id', $vehicle->id)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $row) {
+            return null;
+        }
+
+        $prices = $row->prices;
+        if (! is_array($prices) || empty($prices)) {
             return null;
         }
 
@@ -225,19 +239,7 @@ class TransferController extends Controller
             return null;
         }
 
-        $cfg = $prices[$preferredCurrency] ?? null;
-        if (! is_array($cfg)) {
-            return null;
-        }
-
-        $adultPrice  = (float) ($cfg['adult'] ?? 0);
-        $childPrice  = (float) ($cfg['child'] ?? 0);
-        $infantPrice = (float) ($cfg['infant'] ?? 0);
-
-        $oneWay = ($adults * $adultPrice)
-            + ($children * $childPrice)
-            + ($infants * $infantPrice);
-
+        $oneWay = (float) ($prices[$preferredCurrency] ?? 0);
         if ($oneWay <= 0) {
             return null;
         }

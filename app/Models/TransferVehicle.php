@@ -6,6 +6,7 @@ use App\Models\Concerns\HasLocalizedColumns;
 use App\Support\Helpers\ImageHelper;
 use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -52,6 +53,16 @@ class TransferVehicle extends Model implements HasMedia
     public function getNameLAttribute(): ?string
     {
         return $this->getLocalized('name');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Route bazlı fiyat kayıtları (yeni sistem)
+    |--------------------------------------------------------------------------
+    */
+    public function routePrices(): HasMany
+    {
+        return $this->hasMany(TransferRouteVehiclePrice::class, 'transfer_vehicle_id');
     }
 
     /*

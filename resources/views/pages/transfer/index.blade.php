@@ -381,8 +381,6 @@
                             <input type="hidden" name="adults" value="{{ $transferOffer['adults'] }}">
                             <input type="hidden" name="children" value="{{ $transferOffer['children'] }}">
                             <input type="hidden" name="infants" value="{{ $transferOffer['infants'] }}">
-                            <input type="hidden" name="price_total" value="{{ $transferOffer['price_total'] }}">
-                            <input type="hidden" name="currency" value="{{ $transferOffer['currency'] }}">
                             <input type="hidden" name="from_label" value="{{ $fromLabel }}">
                             <input type="hidden" name="to_label" value="{{ $toLabel }}">
                             <input type="hidden" name="vehicle_name" value="{{ $transferOffer['vehicle_name'] ?? '' }}">
@@ -425,8 +423,8 @@
                                                        name="pickup_time_outbound"
                                                        class="form-control">
                                                 <span class="input-group-text bg-white">
-                    <i class="fi fi-rr-clock"></i>
-                </span>
+                                                    <i class="fi fi-rr-clock"></i>
+                                                </span>
                                             </div>
                                         </div>
 
@@ -477,8 +475,8 @@
                                                            name="pickup_time_return"
                                                            class="form-control">
                                                     <span class="input-group-text bg-white">
-                        <i class="fi fi-rr-clock"></i>
-                    </span>
+                                                        <i class="fi fi-rr-clock"></i>
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -504,7 +502,6 @@
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
 
                             <div class="row mt-3 align-items-center">

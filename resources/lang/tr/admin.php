@@ -437,7 +437,7 @@ return [
         'sections' => [
             'general'           => 'Genel',
             'duration_distance' => 'Süre & Mesafe',
-            'prices'            => 'Fiyatlar (kişi başı)',
+            'prices'            => 'Fiyatlar (Araç başı)',
             'status'            => 'Durum',
         ],
         'form' => [
@@ -450,6 +450,8 @@ return [
             'infant'           => 'Bebek',
             'active'           => 'Aktif',
             'sort_order'       => 'Sıra',
+            'vehicle'          => 'Araç',
+            'price'            => 'Ücret'
         ],
     ],
     'vehicles' => [
