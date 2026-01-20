@@ -2,6 +2,7 @@
 @php
     use App\Support\Helpers\LocaleHelper;
     use App\Support\Helpers\CurrencyHelper;
+    use App\Models\Setting;
     use Illuminate\Support\Str;
 
     $currentRoute = Str::after(request()->route()->getName(), app()->getLocale() . '.');
@@ -14,6 +15,20 @@
     $locale      = app()->getLocale();
     $languages   = LocaleHelper::options();
     $currentLang = $languages[$locale] ?? reset($languages);
+
+    $baseLocale = LocaleHelper::defaultCode();
+
+    $pick = function (string $key) use ($locale, $baseLocale): ?string {
+        $map = Setting::get($key, []);
+        if (! is_array($map)) {
+            return null;
+        }
+
+        // kontrat: ui → base
+        $val = $map[$locale] ?? $map[$baseLocale] ?? null;
+
+        return is_string($val) && trim($val) !== '' ? trim($val) : null;
+    };
 
     $initials = '';
     if ($authUser) {
@@ -31,6 +46,12 @@
 
     $cartItems = (array) session('cart.items', []);
     $cartCount = count($cartItems);
+
+    $waLabel = $pick('contact_whatsapp_label');
+    $waPhone = $pick('contact_whatsapp_phone');
+
+    $waNumber = $waPhone ? preg_replace('/[^0-9]/', '', $waPhone) : null;
+    $waUrl    = $waNumber ? ('https://wa.me/' . $waNumber) : null;
 @endphp
 
 <!-- Main Header (Desktop) -->
@@ -52,12 +73,15 @@
             <div class="d-flex justify-content-end align-items-center gap-3 small">
 
                 {{-- WhatsApp Destek --}}
-                <a href="https://wa.me/905551112233"
-                   target="_blank"
-                   class="btn btn-outline-success btn-sm text-decoration-none d-none d-xl-block">
-                    <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
-                    <span>Whatsapp Destek</span>
-                </a>
+                @if ($waUrl && $waLabel)
+                    <a href="{{ $waUrl }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn btn-outline-success btn-sm text-decoration-none">
+                        <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
+                        <span>{{ $waLabel }}</span>
+                    </a>
+                @endif
 
                 <div class="vr d-none d-xl-block"></div>
 

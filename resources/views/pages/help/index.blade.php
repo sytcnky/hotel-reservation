@@ -1,12 +1,38 @@
 @extends('layouts.app', ['pageKey' => 'help'])
 @section('title', 'Yardım & SSS')
 @section('content')
-    <section>
-        <div class="text-center my-5 px-lg-5">
-            @php
-                $page = \App\Models\StaticPage::where('key','help_page')->where('is_active',true)->first();
-                $c    = $page->content ?? [];
-                $loc  = app()->getLocale();
+    @php
+        use App\Support\Helpers\LocaleHelper;
+        use App\Models\Setting;
+
+        $locale      = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+
+        $pick = function (string $key) use ($locale, $baseLocale): ?string {
+            $map = Setting::get($key, []);
+            if (! is_array($map)) {
+                return null;
+            }
+
+            // kontrat: ui → base
+            $val = $map[$locale] ?? $map[$baseLocale] ?? null;
+
+            return is_string($val) && trim($val) !== '' ? trim($val) : null;
+        };
+
+        $waLabel = $pick('contact_whatsapp_label');
+        $waPhone = $pick('contact_whatsapp_phone');
+
+        $waNumber = $waPhone ? preg_replace('/[^0-9]/', '', $waPhone) : null;
+        $waUrl    = $waNumber ? ('https://wa.me/' . $waNumber) : null;
+    @endphp
+
+        <section>
+            <div class="text-center my-5 px-lg-5">
+                @php
+                    $page = \App\Models\StaticPage::where('key','help_page')->where('is_active',true)->first();
+                    $c    = $page->content ?? [];
+                    $loc  = app()->getLocale();
             @endphp
 
             <h1 class="display-5 fw-bold text-secondary">
@@ -25,13 +51,13 @@
                     <!-- Arama -->
                     <div class="input-group mb-4">
                         <span class="input-group-text"><i class="fi fi-rr-search"></i></span>
-                        <input type="search" class="form-control" id="faqSearch" placeholder="Ara: ödeme, iptal, fatura..." aria-label="SSS içinde ara">
-                        <button class="btn btn-outline-secondary d-none" type="button" id="faqClear">Temizle</button>
+                        <input type="search" class="form-control" id="faqSearch" placeholder="{{ t('help.search_placeholder') }}" aria-label="{{ t('help.search_placeholder') }}">
+                        <button class="btn btn-outline-secondary d-none" type="button" id="faqClear">Clear</button>
                     </div>
 
                     <!-- Sonuç yok mesajı -->
                     <div id="faqEmpty" class="alert alert-light border d-none" role="status">
-                        Aramanızla eşleşen sonuç bulunamadı.
+                        {{ t('help.no_result') }}
                     </div>
 
 
@@ -75,17 +101,20 @@
                     <div class="card bg-light border-0 mt-4">
                         <div class="card-body d-flex flex-column flex-md-row align-items-center justify-content-between">
                             <div class="text-muted mb-2 mb-md-0">
-                                Hâlâ yardıma mı ihtiyacın var?
+                                {{ t('help.need_more_help') }}
                             </div>
                             <div class="d-flex gap-2">
-
-                                <a href="https://wa.me/905551112233" target="_blank"
-                                   class="btn btn-outline-success btn-sm text-decoration-none">
-                                    <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
-                                    <span>Whatsapp Destek</span>
-                                </a>
-                                <a href="{{ localized_route('contact') }}" class="btn btn-outline-primary">
-                                    Bize Ulaşın
+                                @if ($waUrl && $waLabel)
+                                    <a href="{{ $waUrl }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="btn btn-outline-success btn-sm text-decoration-none">
+                                        <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
+                                        <span>{{ $waLabel }}</span>
+                                    </a>
+                                @endif
+                                <a href="{{ localized_route('contact') }}" class="btn btn-sm btn-outline-primary">
+                                    {{ t('nav.contact') }}
                                 </a>
                             </div>
                         </div>

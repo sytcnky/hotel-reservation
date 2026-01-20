@@ -51,7 +51,6 @@ class GeneralSettings extends Page
             'youtube'               => Setting::get('youtube', ''),
 
             // i18n maps (code => text)
-            'header_info'              => Setting::get('header_info', []),
             'footer_copyright'         => Setting::get('footer_copyright', []),
             'footer_short_description' => Setting::get('footer_short_description', []),
 
@@ -66,10 +65,6 @@ class GeneralSettings extends Page
             'contact_office2_phone'  => Setting::get('contact_office2_phone', []),
 
             'contact_support_email'  => Setting::get('contact_support_email', []),
-
-            // logo
-            'logo_text'              => Setting::get('logo_text', ''),
-            'logo_subtitle'          => Setting::get('logo_subtitle', []),
         ]);
     }
 
@@ -203,22 +198,6 @@ class GeneralSettings extends Page
                                         ->required(),
                                 ]),
 
-                            Tab::make('Logo')
-                                ->schema([
-                                    TextInput::make('logo_text')
-                                        ->label('Logo (şimdilik text)')
-                                        ->maxLength(255),
-
-                                    Tabs::make('logo_subtitle_i18n')
-                                        ->tabs($logoLocaleTabs),
-                                ]),
-
-                            Tab::make('Üst Bilgi')
-                                ->schema([
-                                    Tabs::make('header_i18n')
-                                        ->tabs($headerInfoLocaleTabs),
-                                ]),
-
                             Tab::make('Alt Bilgi')
                                 ->schema([
                                     Tabs::make('footer_i18n')
@@ -233,9 +212,9 @@ class GeneralSettings extends Page
 
                             Tab::make('Sosyal Medya')
                                 ->schema([
-                                    TextInput::make('instagram')->label('Instagram')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
-                                    TextInput::make('facebook')->label('Facebook')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
-                                    TextInput::make('youtube')->label('YouTube')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt)->prefix('https://'),
+                                    TextInput::make('instagram')->label('Instagram')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt),
+                                    TextInput::make('facebook')->label('Facebook')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt),
+                                    TextInput::make('youtube')->label('YouTube')->url()->maxLength(255)->suffixIcon(Heroicon::GlobeAlt),
                                 ]),
 
                             Tab::make('Google Analytics')
