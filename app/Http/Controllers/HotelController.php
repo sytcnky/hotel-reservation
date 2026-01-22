@@ -315,7 +315,10 @@ class HotelController extends Controller
 
                 if ($maxGuests > 0 && $totalGuests > $maxGuests) {
                     $data['state']            = 'over_capacity';
-                    $data['capacity_message'] = "Bu odanın maksimum kapasitesi {$maxGuests} kişidir.";
+                    $data['capacity_message'] = t(
+                        'ui.capacity_message',
+                        ['count' => $maxGuests]
+                    );
                     return $data;
                 }
 
@@ -342,17 +345,14 @@ class HotelController extends Controller
     {
         if (! $location) {
             return [
-                'region' => null,
-                'city'   => null,
+                'area'     => null,
+                'district' => null,
             ];
         }
 
-        $city   = $location->parent?->name;
-        $region = $location->parent?->parent?->name;
-
         return [
-            'region' => $region ?: $city,
-            'city'   => $city,
+            'area'     => $location->name,              // İçmeler
+            'district' => $location->parent?->name,     // Marmaris
         ];
     }
 

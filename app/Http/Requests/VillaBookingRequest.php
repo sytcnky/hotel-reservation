@@ -17,20 +17,28 @@ class VillaBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'villa_id'         => ['required', 'integer'],
-            'villa_name'       => ['required', 'string'],
+            'villa_id'   => ['required', 'integer'],
+            'villa_name' => ['required', 'string'],
 
-            // strict: Y-m-d
-            'checkin'          => ['required', 'date_format:Y-m-d'],
-            'checkout'         => ['required', 'date_format:Y-m-d', 'after:checkin'],
+            // strict: Y-m-d (civil date)
+            'checkin'    => ['required', 'date_format:Y-m-d'],
+            'checkout'   => ['required', 'date_format:Y-m-d', 'after:checkin'],
 
-            'nights'           => ['required', 'integer', 'min:1'],
-            'adults'           => ['required', 'integer', 'min:1'],
-            'children'         => ['nullable', 'integer', 'min:0'],
-            'currency'         => ['required', 'string', 'size:3'],
-            'price_nightly'    => ['required', 'numeric', 'min:0'],
-            'price_prepayment' => ['required', 'numeric', 'min:0'],
-            'price_total'      => ['required', 'numeric', 'min:0'],
+            // nights yine taşınabilir ama server authoritative hesaplayacak (tamperable)
+            'nights'     => ['required', 'integer', 'min:1'],
+
+            'adults'     => ['required', 'integer', 'min:1'],
+            'children'   => ['nullable', 'integer', 'min:0'],
+
+            // Currency + price alanları client’tan gelsin/gelişmesin: authoritative DEĞİL.
+            // Server, CurrencyContext + Villa rateRules ile hesaplayıp override edecek.
+            'currency'         => ['nullable', 'string', 'size:3'],
+            'price_nightly'    => ['nullable', 'numeric', 'min:0'],
+            'price_prepayment' => ['nullable', 'numeric', 'min:0'],
+            'price_total'      => ['nullable', 'numeric', 'min:0'],
+
+            // opsiyoneller
+            'location_label'   => ['nullable', 'string'],
         ];
     }
 
@@ -39,6 +47,8 @@ class VillaBookingRequest extends FormRequest
         $this->merge([
             'checkin'  => $this->normalizeDateToYmd($this->input('checkin')),
             'checkout' => $this->normalizeDateToYmd($this->input('checkout')),
+
+            // currency normalize sadece taşınıyorsa; authoritative değil
             'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }

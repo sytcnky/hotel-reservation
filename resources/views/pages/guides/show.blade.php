@@ -112,29 +112,19 @@
                                         @endphp
 
                                         <section class="mb-5">
-                                            <h2 class="h5 mb-3">Önerilen Otel</h2>
+                                            <h2 class="h5 mb-3">{{ t('ui.recommended_accommodation') }}</h2>
 
-                                            <div class="card h-100 shadow-sm">
+                                            @if($hSlug)
+                                                <a href="{{ localized_route('hotel.detail', ['slug' => $hSlug]) }}" class="card h-100 shadow-sm text-decoration-none">
                                                 <div class="card-body p-2">
                                                     <div class="row align-items-center">
                                                         <div class="col-xl-3 mb-3 mb-lg-0">
-                                                            @if($hSlug)
-                                                                <a href="{{ localized_route('hotel.detail', ['slug' => $hSlug]) }}">
-                                                                    <x-responsive-image
-                                                                        :image="$hCoverImage"
-                                                                        preset="listing-card"
-                                                                        class="img-fluid rounded"
-                                                                        sizes="160px"
-                                                                    />
-                                                                </a>
-                                                            @else
-                                                                <x-responsive-image
-                                                                    :image="$hCoverImage"
-                                                                    preset="listing-card"
-                                                                    class="img-fluid rounded"
-                                                                    sizes="160px"
-                                                                />
-                                                            @endif
+                                                            <x-responsive-image
+                                                                :image="$hCoverImage"
+                                                                preset="listing-card"
+                                                                class="img-fluid rounded"
+                                                                sizes="160px"
+                                                            />
                                                         </div>
 
                                                         <div class="col-xl-5 mb-3 mb-lg-0">
@@ -169,14 +159,12 @@
 
                                                         <div class="col-xl-4 text-lg-end">
                                                             <div class="d-grid mt-1">
-                                                                @if($hSlug)
-                                                                    <a href="{{ localized_route('hotel.detail', ['slug' => $hSlug]) }}" class="btn btn-outline-primary mt-2">Oteli İncele</a>
-                                                                @endif
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
+                                            @endif
                                         </section>
                                     @endif
                                 @endif
@@ -192,32 +180,22 @@
                                         @endphp
 
                                         <section class="mb-4">
-                                            <h2 class="h5 mb-3">Önerilen Villa</h2>
+                                            <h2 class="h5 mb-3">{{ t('ui.recommended_villa') }}</h2>
 
-                                            <div class="card shadow-sm">
+                                            @if($vSlug)
+                                                <a href="{{ localized_route('villa.villa-detail', ['slug' => $vSlug]) }}" class="card shadow-sm text-decoration-none">
                                                 <div class="card-body p-2">
                                                     <div class="row align-items-center">
                                                         <div class="col-xl-3 mb-3 mb-lg-0">
-                                                            @if($vSlug)
-                                                                <a href="{{ localized_route('villa.villa-detail', ['slug' => $vSlug]) }}">
-                                                                    <x-responsive-image
-                                                                        :image="$vCoverImage"
-                                                                        preset="listing-card"
-                                                                        class="img-fluid rounded"
-                                                                        sizes="160px"
-                                                                    />
-                                                                </a>
-                                                            @else
-                                                                <x-responsive-image
-                                                                    :image="$vCoverImage"
-                                                                    preset="listing-card"
-                                                                    class="img-fluid rounded"
-                                                                    sizes="160px"
-                                                                />
-                                                            @endif
+                                                            <x-responsive-image
+                                                                :image="$vCoverImage"
+                                                                preset="listing-card"
+                                                                class="img-fluid rounded"
+                                                                sizes="160px"
+                                                            />
                                                         </div>
 
-                                                        <div class="col-xl-5 mb-3 mb-lg-0">
+                                                        <div class="col-xl-6 mb-3 mb-lg-0">
                                                             <h4 class="card-title mb-0">{{ $vName }}</h4>
 
                                                             {{-- Basic specs --}}
@@ -226,21 +204,21 @@
                                                                     @if($villa->max_guests)
                                                                         <div>
                                                                             <i class="fi fi-rs-user align-middle"></i>
-                                                                            <span class="small">{{ $villa->max_guests }} Kişi</span>
+                                                                            <span class="small">{{ $villa->max_guests }} {{ t('ui.guests') }}</span>
                                                                         </div>
                                                                     @endif
 
                                                                     @if($villa->bedroom_count)
                                                                         <div>
                                                                             <i class="fi fi-rs-bed-alt align-middle"></i>
-                                                                            <span class="small">{{ $villa->bedroom_count }} Yatak Odası</span>
+                                                                            <span class="small">{{ $villa->bedroom_count }} {{ t('ui.bedroom') }}</span>
                                                                         </div>
                                                                     @endif
 
                                                                     @if($villa->bathroom_count)
                                                                         <div>
                                                                             <i class="fi fi-rs-shower align-middle"></i>
-                                                                            <span class="small">{{ $villa->bathroom_count }} Banyo</span>
+                                                                            <span class="small">{{ $villa->bathroom_count }} {{ t('ui.bathroom') }}</span>
                                                                         </div>
                                                                     @endif
                                                                 </div>
@@ -255,18 +233,14 @@
                                                             @endif
                                                         </div>
 
-                                                        <div class="col-xl-4 text-xl-end">
+                                                        <div class="col-xl-3 text-xl-end">
                                                             <div class="d-grid mt-1">
-                                                                @if($vSlug)
-                                                                    <a href="{{ localized_route('villa.villa-detail', ['slug' => $vSlug]) }}" class="btn btn-outline-primary mt-auto w-100">
-                                                                        Villayı İncele
-                                                                    </a>
-                                                                @endif
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
+                                            @endif
                                         </section>
                                     @endif
                                 @endif
@@ -294,7 +268,7 @@
 
                     {{-- Sidebar: Popüler Turlar --}}
                     @if($sidebarTours->isNotEmpty())
-                        <h4 class="text-secondary mt-5 mb-3">Bölgenin Popüler Turları</h4>
+                        <h4 class="text-secondary mt-5 mb-3">{{ t('popular_excursions') }}</h4>
 
                         @foreach ($sidebarTours as $tour)
                             @php
@@ -309,26 +283,19 @@
                                 $tShort = $tour->short_description[$locale] ?? ($tour->short_description[$base] ?? null);
                             @endphp
 
-                            <div class="card shadow-sm position-relative overflow-hidden mb-4">
+                            @if($tSlug)
+                                <a href="{{ localized_route('excursions.detail', ['slug' => $tSlug]) }}"
+                                   class="card shadow-sm position-relative overflow-hidden mb-4 text-decoration-none">
+
                                 {{-- Görsel --}}
                                 <div class="position-relative">
-                                    @if($tSlug)
-                                        <a href="{{ localized_route('excursions.detail', ['slug' => $tSlug]) }}">
-                                            <x-responsive-image
-                                                :image="$tCoverImage"
-                                                preset="listing-card"
-                                                class="card-img-top object-fit-cover"
-                                                sizes="(max-width: 1200px) 100vw, 360px"
-                                            />
-                                        </a>
-                                    @else
-                                        <x-responsive-image
-                                            :image="$tCoverImage"
-                                            preset="listing-card"
-                                            class="card-img-top object-fit-cover"
-                                            sizes="(max-width: 1200px) 100vw, 360px"
-                                        />
-                                    @endif
+                                    <x-responsive-image
+                                        :image="$tCoverImage"
+                                        preset="listing-card"
+                                        class="card-img-top object-fit-cover"
+                                        sizes="(max-width: 1200px) 100vw, 360px"
+                                        style="max-height: 180px"
+                                    />
 
                                     {{-- Kategori --}}
                                     @if($tour->category?->name_l)
@@ -343,56 +310,53 @@
                                     <h5 class="card-title mb-1">{{ $tName }}</h5>
 
                                     @if(!empty($tShort))
-                                        <p class="card-text small text-muted">
+                                        <p class="card-text small text-muted text-truncate-2">
                                             {{ $tShort }}
                                         </p>
                                     @endif
 
                                     {{-- Fiyatlar --}}
-                                    <div class="d-flex mb-3">
+                                    <div class="d-flex">
                                         @if($priceAdult !== null)
                                             <div class="mt-auto me-3">
-                                                <div class="text-muted small">Yetişkin</div>
+                                                <div class="text-muted small">{{ t('ui.adult') }}</div>
                                                 <div class="fw-bold fs-5">
-                                                    {{ ((float) $priceAdult) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceAdult, $currencyCode) }}
+                                                    {{ ((float) $priceAdult) == 0.0
+                                                        ? t('pricing.free')
+                                                        : \App\Support\Currency\CurrencyPresenter::format($priceAdult, $currencyCode)
+                                                    }}
                                                 </div>
                                             </div>
                                         @endif
 
                                         @if($priceChild !== null)
                                             <div class="mt-auto me-3">
-                                                <div class="text-muted small">Çocuk</div>
+                                                <div class="text-muted small">{{ t('ui.child') }}</div>
                                                 <div class="fw-bold fs-5">
-                                                    {{ ((float) $priceChild) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceChild, $currencyCode) }}
+
+                                                    {{ ((float) $priceChild) == 0.0
+                                                        ? t('pricing.free')
+                                                        : \App\Support\Currency\CurrencyPresenter::format($priceChild, $currencyCode)
+                                                    }}
                                                 </div>
                                             </div>
                                         @endif
 
                                         @if($priceInfant !== null)
                                             <div class="mt-auto me-3">
-                                                <div class="text-muted small">Bebek</div>
+                                                <div class="text-muted small">{{ t('ui.infant') }}</div>
                                                 <div class="fw-bold fs-5">
-                                                    {{ ((float) $priceInfant) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($priceInfant, $currencyCode) }}
+                                                    {{ ((float) $priceInfant) == 0.0
+                                                        ? t('pricing.free')
+                                                        : \App\Support\Currency\CurrencyPresenter::format($priceInfant, $currencyCode)
+                                                    }}
                                                 </div>
                                             </div>
                                         @endif
                                     </div>
-
-                                    {{-- CTA --}}
-                                    @if($tSlug)
-                                        <a
-                                            href="{{ localized_route('excursions.detail', ['slug' => $tSlug]) }}"
-                                            class="btn btn-outline-secondary btn-sm mt-auto"
-                                        >
-                                            Gezi Detayları ve Rezervasyon
-                                        </a>
-                                    @else
-                                        <a href="#" class="btn btn-outline-secondary btn-sm disabled" aria-disabled="true">
-                                            Gezi Detayları
-                                        </a>
-                                    @endif
                                 </div>
-                            </div>
+                            </a>
+                            @endif
                         @endforeach
                     @endif
 

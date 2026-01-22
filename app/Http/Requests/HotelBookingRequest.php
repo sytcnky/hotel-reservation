@@ -17,23 +17,27 @@ class HotelBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'hotel_id'        => ['required', 'integer'],
-            'hotel_name'      => ['required', 'string'],
-            'room_id'         => ['required', 'integer'],
-            'room_name'       => ['required', 'string'],
+            'hotel_id'   => ['required', 'integer'],
+            'hotel_name' => ['required', 'string'],
+            'room_id'    => ['required', 'integer'],
+            'room_name'  => ['required', 'string'],
 
-            // strict: Y-m-d
-            'checkin'         => ['required', 'date_format:Y-m-d'],
-            'checkout'        => ['required', 'date_format:Y-m-d', 'after:checkin'],
+            // strict: Y-m-d (civil date)
+            'checkin'    => ['required', 'date_format:Y-m-d'],
+            'checkout'   => ['required', 'date_format:Y-m-d', 'after:checkin'],
 
-            'nights'          => ['required', 'integer', 'min:1'],
-            'adults'          => ['required', 'integer', 'min:1'],
-            'children'        => ['nullable', 'integer', 'min:0'],
-            'currency'        => ['required', 'string', 'size:3'],
-            'price_total'     => ['required', 'numeric', 'min:0'],
+            'nights'     => ['required', 'integer', 'min:1'],
+            'adults'     => ['required', 'integer', 'min:1'],
+            'children'   => ['nullable', 'integer', 'min:0'],
 
-            // Board type bazı otellerde var, bazılarında yok → nullable
+            // Currency + price alanları client’tan gelebilir ama authoritative DEĞİL
+            'currency'    => ['nullable', 'string', 'size:3'],
+            'price_total' => ['nullable', 'numeric', 'min:0'],
+
+            // Opsiyonel
+            'board_type_id' => ['nullable', 'integer', 'min:1'],
             'board_type_name' => ['nullable', 'string'],
+            'location_label' => ['nullable', 'string'],
         ];
     }
 
@@ -42,6 +46,8 @@ class HotelBookingRequest extends FormRequest
         $this->merge([
             'checkin'  => $this->normalizeDateToYmd($this->input('checkin')),
             'checkout' => $this->normalizeDateToYmd($this->input('checkout')),
+
+            // normalize edilir ama authoritative değildir
             'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }

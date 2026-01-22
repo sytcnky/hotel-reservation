@@ -109,6 +109,7 @@ class TransferController extends Controller
 
                             'vehicle_id'             => $vehicle->id,
                             'vehicle_name'           => I18nHelper::scalar($vehicle->name, $uiLocale, $baseLocale),
+                            'vehicle_description'    => I18nHelper::scalar($vehicle->description, $uiLocale, $baseLocale),
                             'capacity_total'         => $vehicle->capacity_total,
 
                             'price_total'            => $pricing['total'],

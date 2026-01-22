@@ -4,7 +4,7 @@
 
 @section('content')
     <section>
-        <div class="text-center my-5 px-lg-5">
+        <div class="text-center mt-5 px-lg-5">
             @php
                 $loc = $loc ?? app()->getLocale();
                 $c   = $c ?? ($page->content ?? []);
@@ -34,7 +34,9 @@
                     @endphp
 
                     <div class="col-md-6">
-                        <div class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4">
+                        <a href="{{ localized_route('guides.show', ['slug' => $slug]) }}"
+                           class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4 text-decoration-none"
+                        style="min-height: 260px">
                             {{-- Arka plan görsel --}}
                             <x-responsive-image
                                 :image="$bgImage"
@@ -46,19 +48,12 @@
                                 <h3 class="fw-bold display-6 mt-5">{{ $title }}</h3>
 
                                 @if($excerpt)
-                                    <p class="mb-4">{{ $excerpt }}</p>
-                                @else
-                                    <p class="mb-4">&nbsp;</p>
+                                    <p class="m-0">{{ $excerpt }}</p>
                                 @endif
-
-                                <a href="{{ localized_route('guides.show', ['slug' => $slug]) }}"
-                                   class="btn btn-outline-light">
-                                    Gezi Rehberini İncele
-                                </a>
                             </div>
 
                             <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50 z-1"></div>
-                        </div>
+                        </a>
                     </div>
                 @endforeach
             </div>

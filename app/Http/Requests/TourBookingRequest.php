@@ -17,17 +17,19 @@ class TourBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tour_id'     => ['required'],
-            'tour_name'   => ['required', 'string'],
+            'tour_id'   => ['required', 'integer'],
+            'tour_name' => ['required', 'string'],
 
-            // strict: Y-m-d
-            'date'        => ['required', 'date_format:Y-m-d'],
+            // strict: Y-m-d (civil date)
+            'date'      => ['required', 'date_format:Y-m-d'],
 
-            'adults'      => ['required', 'integer', 'min:1'],
-            'children'    => ['nullable', 'integer', 'min:0'],
-            'infants'     => ['nullable', 'integer', 'min:0'],
-            'currency'    => ['required', 'string', 'size:3'],
-            'price_total' => ['required', 'numeric', 'min:0'],
+            'adults'    => ['required', 'integer', 'min:1'],
+            'children'  => ['nullable', 'integer', 'min:0'],
+            'infants'   => ['nullable', 'integer', 'min:0'],
+
+            // Currency + price alanları client’tan gelebilir ama authoritative DEĞİL
+            'currency'    => ['nullable', 'string', 'size:3'],
+            'price_total' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -35,6 +37,8 @@ class TourBookingRequest extends FormRequest
     {
         $this->merge([
             'date'     => $this->normalizeDateToYmd($this->input('date')),
+
+            // normalize edilir ama authoritative değildir
             'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }

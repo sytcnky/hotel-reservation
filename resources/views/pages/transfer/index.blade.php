@@ -1,14 +1,13 @@
 @extends('layouts.app', ['pageKey' => 'transfer'])
 @section('title', 'Transferler')
 @section('content')
-
-    @php
-        $loc = app()->getLocale();
-        $c = $c ?? []; // controller'dan geliyor
-    @endphp
-
     <section>
         <div class="text-center my-5 px-3 px-lg-5">
+            @php
+                $loc = app()->getLocale();
+                $c = $c ?? [];
+            @endphp
+
             <h1 class="display-5 fw-bold text-secondary">
                 {{ $c['page_header']['title'][$loc] ?? '' }}
             </h1>
@@ -37,7 +36,7 @@
                                value="oneway"
                                @checked(request('direction', 'oneway') === 'oneway')
                                required>
-                        <label class="btn btn-outline-primary" for="oneway">Tek Yön</label>
+                        <label class="btn btn-outline-primary" for="oneway">{{ t('ui.one_way') }}</label>
 
                         <input type="radio"
                                class="btn-check"
@@ -46,16 +45,15 @@
                                value="roundtrip"
                                @checked(request('direction') === 'roundtrip')
                                required>
-                        <label class="btn btn-outline-primary" for="roundtrip">Gidiş - Dönüş</label>
+                        <label class="btn btn-outline-primary" for="roundtrip">{{ t('ui.round_trip') }}</label>
                     </div>
                 </div>
 
                 {{-- Nereden --}}
                 <div class="col-lg-2">
-                    <label for="from_location_id" class="form-label">Nereden</label>
+                    <label for="from_location_id" class="form-label">{{ t('ui.transfer_from') }}</label>
                     <div class="input-group">
                         <select class="form-select" id="from_location_id" name="from_location_id" required>
-                            <option value="">Seçiniz</option>
                             @foreach($locations as $location)
                                 <option value="{{ $location['id'] }}"
                                     @selected((int) request('from_location_id') === $location['id'])>
@@ -71,10 +69,9 @@
 
                 {{-- Nereye --}}
                 <div class="col-lg-2">
-                    <label for="to_location_id" class="form-label">Nereye</label>
+                    <label for="to_location_id" class="form-label">{{ t('ui.transfer_to') }}</label>
                     <div class="input-group">
                         <select class="form-select" id="to_location_id" name="to_location_id" required>
-                            <option value="">Seçiniz</option>
                             @foreach($locations as $location)
                                 <option value="{{ $location['id'] }}"
                                     @selected((int) request('to_location_id') === $location['id'])>
@@ -93,11 +90,11 @@
                     <div class="row g-3">
                         {{-- Gidiş --}}
                         <div class="col">
-                            <label for="departure_date" class="form-label">Geliş Tarihi</label>
+                            <label for="departure_date" class="form-label">{{ t('ui.departure_date') }}</label>
                             <div class="input-group has-validation">
                                 <input type="text"
                                        class="form-control date-input"
-                                       placeholder="Tarih seçin"
+                                       placeholder="{{ t('ui.choose_dates') }}"
                                        id="departure_date"
                                        name="departure_date"
                                        value="{{ request('departure_date') }}"
@@ -110,7 +107,7 @@
 
                         {{-- Dönüş --}}
                         <div class="col" id="returnDateWrapper">
-                            <label for="return_date" class="form-label">Dönüş Tarihi</label>
+                            <label for="return_date" class="form-label">{{ t('ui.return_date') }}</label>
                             <div class="input-group has-validation">
                                 <input type="text"
                                        class="form-control date-input"
@@ -128,19 +125,29 @@
 
                 {{-- Kişi Sayısı --}}
                 <div class="col-lg-3">
-                    <label for="guestInput" class="form-label">Kişi Sayısı</label>
+                    <label for="guestInput" class="form-label">{{ t('ui.passengers') }}</label>
 
                     @php
                         $giAdults   = max(0, (int) request('adults', 2));
                         $giChildren = max(0, (int) request('children', 0));
                         $giInfants  = max(0, (int) request('infants', 0));
                         $giTotal    = $giAdults + $giChildren + $giInfants;
-                        $giText     = $giTotal > 0
-                        ? ($giAdults . ' Yetişkin'
-                        . ($giChildren ? ', ' . $giChildren . ' Çocuk' : '')
-                        . ($giInfants  ? ', ' . $giInfants  . ' Bebek'  : '')
-                        )
-                        : '';
+
+                        $parts = [];
+
+                        if ($giAdults > 0) {
+                            $parts[] = $giAdults . ' ' . t('ui.adult');
+                        }
+
+                        if ($giChildren > 0) {
+                            $parts[] = $giChildren . ' ' . t('ui.child');
+                        }
+
+                        if ($giInfants > 0) {
+                            $parts[] = $giInfants . ' ' . t('ui.infant');
+                        }
+
+                        $giText = $giTotal > 0 ? implode(', ', $parts) : '';
                     @endphp
 
                     <div class="guest-picker-wrapper position-relative">
@@ -148,9 +155,12 @@
                             <input type="text"
                                    id="guestInput"
                                    class="form-control guest-wrapper"
-                                   placeholder="Kişi sayısı seçin"
+                                   placeholder="Yolcu sayısı seçin"
                                    value="{{ $giText }}"
-                                   readonly>
+                                   readonly
+                                   data-label-adult="{{ t('ui.adult') }}"
+                                   data-label-child="{{ t('ui.child') }}"
+                                   data-label-infant="{{ t('ui.infant') }}">
                             <span class="input-group-text bg-white">
                             <i class="fi fi-rr-user"></i>
                         </span>
@@ -160,7 +170,7 @@
                              style="z-index: 10; top: 100%; display: none;">
                             {{-- Yetişkin --}}
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>Yetişkin</span>
+                                <span>{{ t('ui.adult') }}</span>
                                 <div class="input-group input-group-sm" style="width: 120px;">
                                     <button type="button"
                                             class="btn btn-outline-secondary minus"
@@ -179,7 +189,7 @@
 
                             {{-- Çocuk --}}
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>Çocuk</span>
+                                <span>{{ t('ui.child') }}</span>
                                 <div class="input-group input-group-sm" style="width: 120px;">
                                     <button type="button"
                                             class="btn btn-outline-secondary minus"
@@ -198,7 +208,7 @@
 
                             {{-- Bebek --}}
                             <div class="d-flex justify-content-between align-items-center">
-                                <span>Bebek</span>
+                                <span>{{ t('ui.infant') }}</span>
                                 <div class="input-group input-group-sm" style="width: 120px;">
                                     <button type="button"
                                             class="btn btn-outline-secondary minus"
@@ -255,9 +265,11 @@
                                 }
                             @endphp
                             <h4 class="fw-bold">{{ $transferOffer['vehicle_name'] }}</h4>
-                            <p class="small text-muted">
-                                Konforlu ve geniş araçlarımızla havalimanından konaklama noktanıza güvenli transfer.
-                            </p>
+                            @if (!empty($transferOffer['vehicle_description']))
+                                <p class="small text-muted">
+                                    {!! nl2br(e($transferOffer['vehicle_description'])) !!}
+                                </p>
+                            @endif
 
                             <div
                                 class="main-gallery position-relative bg-black d-flex align-items-center justify-content-center rounded mb-3"
@@ -290,14 +302,14 @@
                     </div>
 
                     {{-- Sağ: Özet + Rezervasyon --}}
-                    <div class="col-lg-7 d-flex flex-column justify-content-between">
+                    <div class="col-lg-7 d-flex flex-column">
                         <div>
                             <div class="row g-3">
                                 {{-- Rota --}}
                                 <div class="col">
                                     <div class="border rounded p-3">
                                         <div class="d-block text-muted small mb-1">
-                                            <i class="fi fi-rr-marker me-1 align-middle"></i>Rota
+                                            <i class="fi fi-rr-marker me-1 align-middle"></i>{{ t('ui.route') }}
                                         </div>
                                         <h6 class="mb-0">
                                             {{ $fromLabel }} → {{ $toLabel }}
@@ -309,12 +321,12 @@
                                 <div class="col-lg-6">
                                     <div class="border rounded p-3">
                                         <div class="d-block text-muted small mb-1">
-                                            <i class="fi fi-rr-user me-1 align-middle"></i>Yolcular
+                                            <i class="fi fi-rr-user me-1 align-middle"></i>{{ t('ui.passengers') }}
                                         </div>
                                         <h6 class="mb-0">
-                                            {{ $transferOffer['adults'] }} Yetişkin
-                                            @if($transferOffer['children']) , {{ $transferOffer['children'] }} Çocuk @endif
-                                            @if($transferOffer['infants']) , {{ $transferOffer['infants'] }} Bebek @endif
+                                            {{ $transferOffer['adults'] }} {{ t('ui.adult') }}
+                                            @if($transferOffer['children']) , {{ $transferOffer['children'] }} {{ t('ui.child') }} @endif
+                                            @if($transferOffer['infants']) , {{ $transferOffer['infants'] }} {{ t('ui.infant') }} @endif
                                         </h6>
                                     </div>
                                 </div>
@@ -324,7 +336,7 @@
                                     <div class="col-lg-6">
                                         <div class="border rounded p-3">
                                             <div class="d-block text-muted small mb-1">
-                                                <i class="fi fi-rr-calendar me-1 align-middle"></i>Geliş Tarihi
+                                                <i class="fi fi-rr-calendar me-1 align-middle"></i>{{ t('ui.departure_date') }}
                                             </div>
                                             <h6 class="mb-0">
                                                 {{ \App\Support\Date\DatePresenter::human($transferOffer['departure_date']) }}
@@ -338,7 +350,7 @@
                                     <div class="col-lg-6">
                                         <div class="border rounded p-3">
                                             <div class="d-block text-muted small mb-1">
-                                                <i class="fi fi-rr-calendar me-1 align-middle"></i>Dönüş Tarihi
+                                                <i class="fi fi-rr-calendar me-1 align-middle"></i>{{ t('ui.return_date') }}
                                             </div>
                                             <h6 class="mb-0">
                                                 {{ \App\Support\Date\DatePresenter::human($transferOffer['return_date']) }}
@@ -353,10 +365,10 @@
                                     <div class="col-lg-6">
                                         <div class="border rounded p-3">
                                             <div class="d-block text-muted small mb-1">
-                                                <i class="fi fi-rr-clock me-1 align-middle"></i>Süre
+                                                <i class="fi fi-rr-clock me-1 align-middle"></i>{{ t('ui.estimated_duration') }}
                                             </div>
                                             <h6 class="mb-0">
-                                                ~ {{ $transferOffer['estimated_duration_min'] }} dk
+                                                ~ {{ $transferOffer['estimated_duration_min'] }} {{ t('ui.estimated_duration_min') }}
                                             </h6>
                                         </div>
                                     </div>
@@ -389,7 +401,7 @@
                                 <div class="row">
                                     {{-- Alınış --}}
                                     <div class="col-12">
-                                        <label class="form-label fw-semibold">Alınış</label>
+                                        <label class="form-label fw-semibold">{{ t('ui.pickup') }}</label>
                                     </div>
 
                                     {{-- Radio (sol) --}}
@@ -401,7 +413,7 @@
                                                        id="outbound_time_radio"
                                                        value="time"
                                                        checked>
-                                                <label class="form-check-label" for="outbound_time_radio">Saati</label>
+                                                <label class="form-check-label" for="outbound_time_radio">{{ t('ui.pickup.time') }}</label>
                                             </div>
 
                                             <div class="form-check">
@@ -409,7 +421,7 @@
                                                        name="outbound_input_type"
                                                        id="outbound_flight_radio"
                                                        value="flight">
-                                                <label class="form-check-label" for="outbound_flight_radio">Uçuş Numarası</label>
+                                                <label class="form-check-label" for="outbound_flight_radio">{{ t('ui.pickup.flight_number') }}</label>
                                             </div>
                                         </div>
                                     </div>
@@ -433,7 +445,7 @@
                                                    id="flight_number_outbound"
                                                    name="flight_number_outbound"
                                                    class="form-control"
-                                                   placeholder="Örn: TK1234"
+                                                   placeholder="TK1234"
                                                    disabled>
                                         </div>
                                     </div>
@@ -441,7 +453,7 @@
                                     @if($transferOffer['direction'] === 'roundtrip')
                                         {{-- Dönüş --}}
                                         <div class="col-12">
-                                            <label class="form-label fw-semibold">Dönüş</label>
+                                            <label class="form-label fw-semibold">{{ t('ui.return') }}</label>
                                         </div>
 
                                         {{-- Radio (sol) --}}
@@ -453,7 +465,7 @@
                                                            id="return_time_radio"
                                                            value="time"
                                                            checked>
-                                                    <label class="form-check-label" for="return_time_radio">Saati</label>
+                                                    <label class="form-check-label" for="return_time_radio">{{ t('ui.return.time') }}</label>
                                                 </div>
 
                                                 <div class="form-check">
@@ -461,7 +473,7 @@
                                                            name="return_input_type"
                                                            id="return_flight_radio"
                                                            value="flight">
-                                                    <label class="form-check-label" for="return_flight_radio">Uçuş Numarası</label>
+                                                    <label class="form-check-label" for="return_flight_radio">{{ t('ui.return.flight_number') }}</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -492,13 +504,8 @@
                                     @endif
 
                                     <div class="col-12">
-                                        <p class="text-muted small">
-                                            <i class="fi fi-rr-info align-middle me-1"></i>
-                                            Seçtiğiniz seçeneğe göre saat veya uçuş numarası girmeniz gerekir.
-                                        </p>
-
                                         <div id="bookPairError" class="text-danger small d-none">
-                                            Seçili alanda bilgi girmelisiniz. (Saat veya Uçuş Numarası)
+                                            {{ t('ui.return.flight_number') }}Seçili alanda bilgi girmelisiniz. (Saat veya Uçuş Numarası)
                                         </div>
                                     </div>
                                 </div>

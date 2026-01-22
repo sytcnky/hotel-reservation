@@ -34,9 +34,9 @@
 
     {{-- Kategori --}}
     <div class="mb-3">
-        <label class="form-label small">Otel Kategorisi</label>
+        <label class="form-label small">{{ t('hotel_filter.label.category') }}</label>
         <select name="category_id" class="form-select">
-            <option value="">Tümü</option>
+            <option value="">{{ t('hotel_filter.option.select') }}</option>
             @foreach(($categories ?? collect()) as $cat)
                 <option value="{{ $cat->id }}" {{ $categoryId === (int) $cat->id ? 'selected' : '' }}>
                     {{ $cat->name_l }}
@@ -47,14 +47,14 @@
 
     {{-- Tarih (range) --}}
     <div class="mb-3">
-        <label class="form-label small">Tarih</label>
+        <label class="form-label small">{{ t('hotel_filter.label.date_range') }}</label>
 
         <input
             type="text"
             id="checkin"
             name="checkin"
             class="form-control"
-            placeholder="Tarih aralığı"
+            placeholder="{{ t('hotel_filter.placeholder.date') }}"
             value="{{ $checkinVal }}"
             autocomplete="off"
         >
@@ -64,9 +64,9 @@
     {{-- City / District / Area --}}
     @if($showCity)
         <div class="mb-3">
-            <label class="form-label small">Şehir</label>
+            <label class="form-label small">{{ t('hotel_filter.label.city') }}</label>
             <select name="city_id" class="form-select">
-                <option value="">Tümü</option>
+                <option value="">{{ t('hotel_filter.option.select') }}</option>
                 @foreach($cityOptions as $opt)
                     <option value="{{ $opt->id }}" {{ $cityId === (int) $opt->id ? 'selected' : '' }}>
                         {{ $opt->name }}
@@ -82,9 +82,9 @@
 
     @if($showDistrict)
         <div class="mb-3">
-            <label class="form-label small">İlçe</label>
+            <label class="form-label small">{{ t('hotel_filter.label.district') }}</label>
             <select name="district_id" class="form-select">
-                <option value="">Tümü</option>
+                <option value="">{{ t('hotel_filter.option.select') }}</option>
                 @foreach($districtOptions as $opt)
                     <option value="{{ $opt->id }}" {{ $districtId === (int) $opt->id ? 'selected' : '' }}>
                         {{ $opt->name }}
@@ -100,9 +100,9 @@
 
     @if($showArea)
         <div class="mb-3">
-            <label class="form-label small">Bölge</label>
+            <label class="form-label small">{{ t('hotel_filter.label.area') }}</label>
             <select name="area_id" class="form-select">
-                <option value="">Tümü</option>
+                <option value="">{{ t('hotel_filter.option.select') }}</option>
                 @foreach($areaOptions as $opt)
                     <option value="{{ $opt->id }}" {{ $areaId === (int) $opt->id ? 'selected' : '' }}>
                         {{ $opt->name }}
@@ -118,9 +118,9 @@
 
     {{-- Board Type --}}
     <div class="mb-3">
-        <label class="form-label small">Konaklama Tipi</label>
+        <label class="form-label small">{{ t('hotel_filter.label.board_type') }}</label>
         <select name="board_type_id" class="form-select">
-            <option value="">Tümü</option>
+            <option value="">{{ t('hotel_filter.option.select') }}</option>
             @foreach(($boardTypes ?? collect()) as $bt)
                 <option value="{{ $bt->id }}" {{ $boardTypeId === (int) $bt->id ? 'selected' : '' }}>
                     {{ $bt->name_l }}
@@ -131,7 +131,7 @@
 
     {{-- Misafir --}}
     <div class="mb-3">
-        <label class="form-label small">Oda Kapasitesi (kişi)</label>
+        <label class="form-label small">{{ t('hotel_filter.label.guests') }}</label>
 
         <select name="guests" class="form-select">
             @for($i = 1; $i <= $max; $i++)
@@ -144,11 +144,14 @@
 
     <hr>
 
-    <div class="d-grid gap-2">
-        <button type="submit" class="btn btn-primary">Uygula</button>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">
+            {{ t('hotel_filter.action.apply') }}
+        </button>
 
-        <a class="btn btn-outline-secondary" href="{{ localized_route('hotels') }}">
-            Temizle
+        <a class="btn btn-outline-secondary flex-fill"
+           href="{{ localized_route('hotels') }}">
+            {{ t('hotel_filter.action.clear') }}
         </a>
     </div>
 </form>

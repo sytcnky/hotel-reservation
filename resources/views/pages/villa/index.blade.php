@@ -6,7 +6,6 @@
 
 <section>
     <div class="text-center my-5 px-3 px-lg-5">
-        {{-- PAGE HEADER (en üstteki bölüm) --}}
         @php
             $loc = app()->getLocale();
             $c = $page->content ?? [];
@@ -26,99 +25,82 @@
     <div class="row g-4">
         @foreach($villas as $villa)
 
-        @php
-        $locale   = app()->getLocale();
-        $baseLang = config('app.locale', 'tr');
+            @php
+                $uiLocale   = app()->getLocale();
+                $baseLocale = \App\Support\Helpers\LocaleHelper::defaultCode();
 
-        // Slug (json/jsonb)
-        $slugSource = $villa['slug'] ?? null;
-        if (is_array($slugSource)) {
-        $slug = $slugSource[$locale] ?? ($slugSource[$baseLang] ?? reset($slugSource));
-        } else {
-        $slug = $slugSource;
-        }
+                // Slug / Name (locale-keyed map okuması tek otorite: I18nHelper)
+                $slug = \App\Support\Helpers\I18nHelper::scalar($villa['slug'] ?? null, $uiLocale, $baseLocale);
+                $villaName = \App\Support\Helpers\I18nHelper::scalar($villa['name'] ?? null, $uiLocale, $baseLocale);
 
-        // Name (json/jsonb)
-        $nameSource = $villa['name'] ?? null;
-        if (is_array($nameSource)) {
-        $villaName = $nameSource[$locale] ?? ($nameSource[$baseLang] ?? reset($nameSource));
-        } else {
-        $villaName = $nameSource ?: 'Villa';
-        }
+                // Slug yoksa deterministic: kartı render etme (fallback üretmeyiz, hata da üretmeyiz)
+                if (! is_string($slug) || trim($slug) === '') {
+                    continue;
+                }
 
-        $city   = $villa['location']['city']   ?? null;
-        $region = $villa['location']['region'] ?? null;
+                $city   = $villa['location']['city']   ?? null;
+                $region = $villa['location']['region'] ?? null;
 
-        $basePrice  = $villa['price']    ?? null;
-        $currency   = $villa['currency'] ?? null;
-        @endphp
+                $locationLabel = collect([$city, $region])->filter()->implode(', ');
 
-        <div class="col-lg-9 mx-auto">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="row align-items-end">
+                $basePrice  = $villa['price']    ?? null;
+                $currency   = $villa['currency'] ?? null;
+            @endphp
 
-                        {{-- Sol: Görsel --}}
-                        <div class="col-xl-3 mb-3 mb-lg-0">
-                            <a href="{{ localized_route('villa.villa-detail', ['slug' => $slug]) }}">
+            <div class="col-lg-9 mx-auto">
+
+                <a href="{{ localized_route('villa.villa-detail', ['slug' => $slug]) }}" class="card shadow-sm text-decoration-none">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            {{-- Sol: Görsel --}}
+                            <div class="col-xl-3 mb-3 mb-lg-0">
                                 <x-responsive-image
                                     :image="$villa['cover']"
                                     preset="listing-card"
                                     class="img-fluid rounded w-100"
                                     style="height: 200px; object-fit: cover;"
                                 />
-                            </a>
-                        </div>
+                            </div>
 
-                        {{-- Orta: Bilgiler --}}
-                        <div class="col-xl-6 mb-3 mb-lg-0">
-                            <h4 class="card-title mb-0">
-                                <a href="{{ localized_route('villa.villa-detail', ['slug' => $slug]) }}"
-                                   class="text-decoration-none text-dark">
+                            {{-- Orta: Bilgiler --}}
+                            <div class="col-xl-6 mb-3 mb-lg-0">
+                                <h4 class="card-title mb-0">
                                     {{ $villaName }}
-                                </a>
-                            </h4>
+                                </h4>
 
-                            <div class="text-muted small mb-3">
-                                {{ $city }}
-                                @if($city && $region)
-                                , {{ $region }}
-                                @elseif(!$city && $region)
-                                {{ $region }}
+                                @if ($locationLabel)
+                                    <div class="text-muted small d-flex align-items-center mb-2">
+                                        <i class="fi fi-rr-marker me-1"></i>
+                                        {{ $locationLabel }}
+                                    </div>
                                 @endif
-                            </div>
 
-                            <div class="d-flex gap-3 mb-1 text-secondary small">
-                                @if(!empty($villa['max_guests']))
-                                <div><i class="fi fi-rs-user align-middle"></i> {{ $villa['max_guests'] }} Kişi</div>
-                                @endif
-                                @if(!empty($villa['bedroom_count']))
-                                <div><i class="fi fi-rs-bed-alt align-middle"></i> {{ $villa['bedroom_count'] }} Yatak Odası</div>
-                                @endif
-                                @if(!empty($villa['bathroom_count']))
-                                <div><i class="fi fi-rs-shower align-middle"></i> {{ $villa['bathroom_count'] }} Banyo</div>
-                                @endif
-                            </div>
-
-                            @if(!empty($villa['category_name']))
-                            <div class="mb-3">
-                            <span class="badge bg-light text-muted me-1">
-                                {{ $villa['category_name'] }}
-                            </span>
-                            </div>
-                            @endif
-                        </div>
-
-                        {{-- Sağ: Fiyat / Buton --}}
-                        <div class="col-xl-3 text-xl-end">
-                            <div class="d-flex flex-column">
-                                <div class="text-danger small mb-1">
-                                    <i class="fi fi-rs-user align-middle"></i>
-                                    yeni üyelere %15 indirim!
+                                <div class="d-flex gap-3 mb-1 text-secondary small">
+                                    @if(!empty($villa['max_guests']))
+                                    <div><i class="fi fi-rs-user align-middle"></i> {{ $villa['max_guests'] }} {{ t('ui.guests') }}</div>
+                                    @endif
+                                    @if(!empty($villa['bedroom_count']))
+                                    <div><i class="fi fi-rs-bed-alt align-middle"></i> {{ $villa['bedroom_count'] }} {{ t('ui.bedroom') }}</div>
+                                    @endif
+                                    @if(!empty($villa['bathroom_count']))
+                                    <div><i class="fi fi-rs-shower align-middle"></i> {{ $villa['bathroom_count'] }} {{ t('ui.bathroom') }}</div>
+                                    @endif
                                 </div>
 
+                                @if(!empty($villa['category_name']))
+                                    <div class="mb-3">
+                                        <span class="badge bg-light text-muted me-1">
+                                            {{ $villa['category_name'] }}
+                                        </span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Sağ: Fiyat / Buton --}}
+                            <div class="col-xl-3 text-xl-end">
                                 <div>
                                     @if($basePrice)
+                                        <small class="text-secondary d-block">{{ t('ui.nightly') }}</small>
                                         <div class="fs-5 fw-bold text-primary">
                                             {{ \App\Support\Currency\CurrencyPresenter::format($basePrice, $currency) }}
                                         </div>
@@ -126,20 +108,11 @@
                                         <div class="text-muted small">Fiyat bilgisi bulunamadı</div>
                                     @endif
                                 </div>
-
-                                <div class="d-grid mt-1">
-                                    <a href="{{ localized_route('villa.villa-detail', ['slug' => $slug]) }}"
-                                       class="btn btn-outline-primary mt-auto w-100">
-                                        Villayı İncele
-                                    </a>
-                                </div>
                             </div>
                         </div>
-
                     </div>
-                </div>
+                </a>
             </div>
-        </div>
 
         @endforeach
 

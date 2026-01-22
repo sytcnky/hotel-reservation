@@ -2,16 +2,15 @@
     if (! function_exists('coupon_build_texts')) {
         /**
          * Kuponun ham view-model'inden, gösterilecek metinleri üretir.
-         * Buradaki Türkçe metinler ileride t() / çeviri altyapısına taşınacak.
          */
         function coupon_build_texts(array $coupon): array
         {
             // Durum label
             $statusLabel = match ($coupon['status'] ?? 'active') {
-                'used'        => 'Kullanıldı',
-                'not_started' => 'Henüz başlamadı',
-                'expired'     => 'Süresi doldu',
-                default       => 'Aktif',
+                'used'        => t('coupon.status.used'),
+                'not_started' => t('coupon.status.not_started'),
+                'expired'     => t('coupon.status.expired'),
+                default       => t('coupon.status.active'),
             };
 
             // Geçerlilik metni
@@ -25,13 +24,20 @@
             $toText   = $effectiveValidTo ? \App\Support\Date\DatePresenter::human($effectiveValidTo, 'd.m.Y') : null;
 
             if ($fromText && $toText) {
-                $validityText = sprintf('Geçerlilik: %s – %s', $fromText, $toText);
+                $validityText = t('coupon.validity.range', [
+                    'from' => $fromText,
+                    'to'   => $toText,
+                ]);
             } elseif ($toText) {
-                $validityText = 'Son kullanım: ' . $toText;
+                $validityText = t('coupon.validity.until', [
+                    'to' => $toText,
+                ]);
             } elseif ($fromText) {
-                $validityText = 'Başlangıç: ' . $fromText;
+                $validityText = t('coupon.validity.from', [
+                    'from' => $fromText,
+                ]);
             } else {
-                $validityText = 'Geçerlilik tarihi: Belirtilmemiş';
+                $validityText = t('coupon.validity.unspecified');
             }
 
             // Alt limit metni
@@ -40,15 +46,21 @@
             $minNights          = $coupon['min_nights'] ?? null;
 
             if ($minBookingAmount && $minBookingAmount > 0 && $minBookingCurrency) {
-                $altLimitText = 'Alt limit: ' .
-                    \App\Support\Currency\CurrencyPresenter::format($minBookingAmount, $minBookingCurrency);
+                $altLimitText = t('coupon.limit.amount', [
+                    'amount' => \App\Support\Currency\CurrencyPresenter::format(
+                        $minBookingAmount,
+                        $minBookingCurrency
+                    ),
+                ]);
             } elseif ($minNights && $minNights > 0) {
-                $altLimitText = 'Alt limit: ' . $minNights . ' Gece';
+                $altLimitText = t('coupon.limit.nights', [
+                    'count' => $minNights,
+                ]);
             } else {
-                $altLimitText = 'Alt limit: Yok';
+                $altLimitText = t('coupon.limit.none');
             }
 
-            // İndirim tutarı ve maksimum indirim (aktif para birimi için)
+            // İndirim tutarı ve maksimum indirim
             $discountAmount      = $coupon['discount_amount'] ?? null;
             $discountCurrency    = $coupon['discount_currency'] ?? null;
             $maxDiscountAmount   = $coupon['max_discount_amount'] ?? null;
@@ -61,20 +73,25 @@
 
             $maxDiscountText = null;
             if ($maxDiscountAmount && $maxDiscountAmount > 0 && $maxDiscountCurrency) {
-                $maxDiscountText = 'Maksimum indirim: ' .
-                    \App\Support\Currency\CurrencyPresenter::format($maxDiscountAmount, $maxDiscountCurrency);
+                $maxDiscountText = t('coupon.discount.max', [
+                    'amount' => \App\Support\Currency\CurrencyPresenter::format(
+                        $maxDiscountAmount,
+                        $maxDiscountCurrency
+                    ),
+                ]);
             }
 
             // Kalan kullanım metni
-            $remainingText = '';
             $maxUses = $coupon['max_uses_per_user'] ?? null;
             $used    = $coupon['used_count'] ?? 0;
 
             if ($maxUses !== null) {
                 $remaining = max(0, (int) $maxUses - (int) $used);
-                $remainingText = 'Kalan kullanım: ' . $remaining;
+                $remainingText = t('coupon.usage.remaining', [
+                    'count' => $remaining,
+                ]);
             } else {
-                $remainingText = 'Kullanım sınırı yok';
+                $remainingText = t('coupon.usage.unlimited');
             }
 
             return [
@@ -91,7 +108,6 @@
     if (! function_exists('coupon_build_tooltip_html')) {
         /**
          * Tooltip HTML'ini üretir.
-         * HTML layout burada; metinler coupon_build_texts ile üretilen değerlerden gelir.
          */
         function coupon_build_tooltip_html(array $coupon): string
         {
@@ -110,12 +126,12 @@
 
             $parts[] = '<hr>';
 
-            $parts[] = '<div><small>Durum: ' . e($texts['status_label']) . '</small></div>';
+            $parts[] = '<div><small>' . t('coupon.label.status') . ': ' . e($texts['status_label']) . '</small></div>';
             $parts[] = '<div><small>' . e($texts['validity_text']) . '</small></div>';
             $parts[] = '<div><small>' . e($texts['alt_limit']) . '</small></div>';
 
             if (! empty($texts['discount_summary'])) {
-                $parts[] = '<div><small>İndirim tutarı: ' . e($texts['discount_summary']) . '</small></div>';
+                $parts[] = '<div><small>' . t('coupon.label.discount_amount') . ': ' . e($texts['discount_summary']) . '</small></div>';
             }
 
             if (! empty($texts['max_discount'])) {

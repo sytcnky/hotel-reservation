@@ -6,9 +6,9 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-start gap-3">
                 <div>
-                    <h2 class="h5 mb-1">Yeni Destek Talebi</h2>
+                    <h2 class="h5 mb-1">{{ t('account.tickets.create.title') }}</h2>
                     <div class="text-muted small">
-                        Konu tipini seçip talebinizi oluşturabilirsiniz.
+                        {{ t('account.tickets.create.subtitle') }}
                     </div>
                 </div>
             </div>
@@ -27,14 +27,14 @@
                     {{-- Konu Tipi --}}
                     <div class="col-12 col-lg-6">
                         <label for="categorySelect" class="form-label">
-                            Konu Tipi
+                            {{ t('account.tickets.form.category') }}
                         </label>
 
                         <select id="categorySelect"
                                 name="support_ticket_category_id"
                                 class="form-select @error('support_ticket_category_id') is-invalid @enderror"
                                 required>
-                            <option value="">Seçiniz</option>
+                            <option value="">{{ t('account.tickets.form.select') }}</option>
 
                             @foreach(($categories ?? []) as $cat)
                                 <option value="{{ $cat->id }}"
@@ -53,7 +53,7 @@
                     {{-- Sipariş --}}
                     <div class="col-12 col-lg-6" id="orderSelectWrap" style="display:none;">
                         <label for="orderSelect" class="form-label">
-                            Sipariş
+                            {{ t('account.tickets.form.order') }}
                         </label>
 
                         @php
@@ -63,7 +63,7 @@
                         <select id="orderSelect"
                                 name="order_id"
                                 class="form-select @error('order_id') is-invalid @enderror">
-                            <option value="">Seçiniz</option>
+                            <option value="">{{ t('account.tickets.form.select') }}</option>
 
                             @foreach(($orders ?? []) as $order)
                                 <option value="{{ $order->id }}"
@@ -72,7 +72,7 @@
                                     {{ (string) $selectedOrderId === (string) $order->id ? 'selected' : '' }}>
                                     {{ $order->code }}
                                     @if($order->has_ticket)
-                                        — (Mevcut destek talebi var)
+                                        — ({{ t('account.tickets.form.order_has_ticket') }})
                                     @endif
                                 </option>
                             @endforeach
@@ -86,7 +86,7 @@
                     {{-- Konu Başlığı --}}
                     <div class="col-12">
                         <label for="subjectInput" class="form-label">
-                            Konu Başlığı
+                            {{ t('account.tickets.form.subject') }}
                         </label>
 
                         <input type="text"
@@ -103,16 +103,16 @@
                     </div>
                 </div>
 
-                {{-- Mesaj + Ekler (detail sayfasıyla birebir aynı mantık) --}}
+                {{-- Mesaj + Ekler --}}
                 <div class="card shadow-sm mt-4">
                     <div class="card-body">
                         <div class="mb-3">
-                        <textarea id="replyMessage"
-                                  name="body"
-                                  class="form-control @error('body') is-invalid @enderror"
-                                  rows="5"
-                                  placeholder="Mesajınızı yazın..."
-                                  required>{{ old('body') }}</textarea>
+                            <textarea id="replyMessage"
+                                      name="body"
+                                      class="form-control @error('body') is-invalid @enderror"
+                                      rows="5"
+                                      placeholder="{{ t('account.tickets.reply.placeholder') }}"
+                                      required>{{ old('body') }}</textarea>
 
                             @error('body')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -126,15 +126,17 @@
                             <button type="button"
                                     id="addAttachmentBtn"
                                     class="btn btn-secondary text-light btn-sm mt-3"
-                                    data-text-add="Dosya Ekle"
-                                    data-text-add-more="Başka Dosya Ekle">
+                                    data-text-add="{{ t('account.tickets.attachments.add') }}"
+                                    data-text-add-more="{{ t('account.tickets.attachments.add_more') }}">
                                 <i class="fi-br-plus align-middle"></i>
-                                <span id="addAttachmentBtnText">Dosya Ekle</span>
+                                <span id="addAttachmentBtnText">
+                                    {{ t('account.tickets.attachments.add') }}
+                                </span>
                             </button>
 
                             <span class="text-muted small d-block mt-2">
-                            Dosya ekleri isteğe bağlıdır.
-                        </span>
+                                {{ t('account.tickets.attachments.optional') }}
+                            </span>
 
                             @error('attachments')
                             <div class="text-danger small mt-2">{{ $message }}</div>
@@ -146,11 +148,14 @@
 
                         <p class="mt-2 text-muted small">
                             <i class="fi-rs-shield-exclamation align-middle"></i>
-                            <span>Kişisel bilgileriniz, hesap veya kredi kartı şifreniz gibi bilgileri kesinlikle paylaşmayın.</span>
+                            <span>{{ t('account.tickets.security_notice') }}</span>
                         </p>
 
-                        <button id="replySubmitBtn" type="submit" class="btn btn-primary w-100 d-block d-lg-inline" disabled>
-                            Talep Oluştur
+                        <button id="replySubmitBtn"
+                                type="submit"
+                                class="btn btn-primary w-100 d-block d-lg-inline"
+                                disabled>
+                            {{ t('account.tickets.action.create') }}
                         </button>
                     </div>
                 </div>
@@ -162,7 +167,7 @@
     {{-- Geri bağlantısı --}}
     <div class="mt-4">
         <a href="{{ localized_route('account.tickets') }}" class="btn btn-outline-secondary d-block d-lg-inline">
-            <i class="fi fi-rr-arrow-small-left align-middle me-1"></i>Geri dön
+            <i class="fi fi-rr-arrow-small-left align-middle me-1"></i>{{ t('account.tickets.action.back') }}
         </a>
     </div>
 

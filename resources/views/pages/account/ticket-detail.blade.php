@@ -8,42 +8,54 @@
                 <div>
                     <h2 class="h5 mb-1">{{ $ticket->subject }}</h2>
                     <div class="text-muted small">
-                        {{ $ticket->category?->name_l ?? '-' }} — Talep No: {{ $ticket->id }}
+                        {{ $ticket->category?->name_l ?? '-' }} — {{ t('account.tickets.meta.no') }}: {{ $ticket->id }}
                     </div>
 
                     @if($ticket->status === 'waiting_agent')
-                        <span class="badge bg-warning-subtle text-warning mt-3 d-lg-none">Yanıt Bekliyor</span>
+                        <span class="badge bg-warning-subtle text-warning mt-3 d-lg-none">
+                            {{ t('account.tickets.status.waiting') }}
+                        </span>
                     @elseif($ticket->status === 'waiting_customer')
-                        <span class="badge bg-success-subtle text-success mt-3 d-lg-none">Yanıtlandı</span>
+                        <span class="badge bg-success-subtle text-success mt-3 d-lg-none">
+                            {{ t('account.tickets.status.answered') }}
+                        </span>
                     @elseif($ticket->status === 'closed')
-                        <span class="badge bg-secondary-subtle text-secondary mt-3 d-lg-none">Kapalı</span>
+                        <span class="badge bg-secondary-subtle text-secondary mt-3 d-lg-none">
+                            {{ t('account.tickets.status.closed') }}
+                        </span>
                     @endif
                 </div>
 
                 @if($ticket->status === 'waiting_agent')
-                    <span class="badge bg-warning-subtle text-warning d-none d-lg-block">Yanıt Bekliyor</span>
+                    <span class="badge bg-warning-subtle text-warning d-none d-lg-block">
+                        {{ t('account.tickets.status.waiting') }}
+                    </span>
                 @elseif($ticket->status === 'waiting_customer')
-                    <span class="badge bg-success-subtle text-success d-none d-lg-block">Yanıtlandı</span>
+                    <span class="badge bg-success-subtle text-success d-none d-lg-block">
+                        {{ t('account.tickets.status.answered') }}
+                    </span>
                 @elseif($ticket->status === 'closed')
-                    <span class="badge bg-secondary-subtle text-secondary d-none d-lg-block">Kapalı</span>
+                    <span class="badge bg-secondary-subtle text-secondary d-none d-lg-block">
+                        {{ t('account.tickets.status.closed') }}
+                    </span>
                 @endif
             </div>
 
             <hr class="my-3">
 
             <dl class="row mb-0 small text-muted">
-                <dt class="col-sm-3">Oluşturulma</dt>
+                <dt class="col-sm-3">{{ t('account.tickets.meta.created') }}</dt>
                 <dd class="col-sm-9">
                     {{ \App\Support\Date\DatePresenter::humanDateTime($ticket->created_at) }}
                 </dd>
 
-                <dt class="col-sm-3">Son Güncelleme</dt>
+                <dt class="col-sm-3">{{ t('account.tickets.meta.updated') }}</dt>
                 <dd class="col-sm-9">
                     {{ \App\Support\Date\DatePresenter::humanDateTime($ticket->last_message_at) }}
                 </dd>
 
                 @if(!empty($ticket->order_id))
-                    <dt class="col-sm-3">Sipariş</dt>
+                    <dt class="col-sm-3">{{ t('account.tickets.meta.order') }}</dt>
                     <dd class="col-sm-9">
                         {{ $ticket->order?->code ?? $ticket->order_id }}
                     </dd>
@@ -57,7 +69,7 @@
         @forelse(($ticket->messages ?? []) as $message)
             @php
                 $isAgent = (($message->author_type ?? null) === 'agent');
-                $authorName = $message->author?->name ?? ($isAgent ? 'Destek' : 'Kullanıcı');
+                $authorName = $message->author?->name ?? ($isAgent ? t('account.tickets.author.support') : t('account.tickets.author.user'));
             @endphp
 
             <div class="card shadow-sm {{ $isAgent ? 'bg-info bg-opacity-10' : 'bg-light' }}">
@@ -66,7 +78,9 @@
                         <div class="fw-semibold d-flex align-items-center">
                             <span class="me-2">{{ $authorName }}</span>
                             @if($isAgent)
-                                <span class="badge bg-info-subtle text-info-emphasis">Destek</span>
+                                <span class="badge bg-info-subtle text-info-emphasis">
+                                    {{ t('account.tickets.author.support') }}
+                                </span>
                             @endif
                         </div>
                         <div class="text-muted small">
@@ -100,7 +114,7 @@
         @empty
             <div class="card shadow-sm">
                 <div class="card-body text-muted">
-                    Henüz mesaj yok.
+                    {{ t('account.tickets.messages.empty') }}
                 </div>
             </div>
         @endforelse
@@ -112,8 +126,6 @@
             <div class="card-body">
 
                 @php
-                    // FE tarafında hata mesajı göstermek için tek kutu
-                    // (attachments veya attachments.* hatası varsa ilkini al)
                     $serverAttachmentError = $errors->first('attachments') ?: $errors->first('attachments.*');
                 @endphp
 
@@ -131,11 +143,11 @@
                                   name="body"
                                   class="form-control @error('body') is-invalid @enderror"
                                   rows="4"
-                                  placeholder="Mesajınızı yazın..."
+                                  placeholder="{{ t('account.tickets.reply.placeholder') }}"
                                   required>{{ old('body') }}</textarea>
 
                         <div class="invalid-feedback">
-                            Mesaj alanı zorunludur.
+                            {{ t('account.tickets.reply.required') }}
                         </div>
 
                         @error('body')
@@ -158,27 +170,29 @@
                         <button type="button"
                                 id="addAttachmentBtn"
                                 class="btn btn-secondary text-light btn-sm mt-3"
-                                data-text-add="Dosya Ekle"
-                                data-text-add-more="Başka Dosya Ekle">
+                                data-text-add="{{ t('account.tickets.attachments.add') }}"
+                                data-text-add-more="{{ t('account.tickets.attachments.add_more') }}">
                             <i class="fi-br-plus align-middle"></i>
-                            <span id="addAttachmentBtnText">Dosya Ekle</span>
+                            <span id="addAttachmentBtnText">
+                                {{ t('account.tickets.attachments.add') }}
+                            </span>
                         </button>
 
                         <p id="attachmentsHint" class="small text-muted d-none mb-0 mt-2">
-                            .jpg .jpeg .png .webp — Maks 2MB
+                            {{ t('account.tickets.attachments.hint') }}
                         </p>
                     </div>
 
                     <p class="mt-2 text-muted small">
                         <i class="fi-rs-shield-exclamation align-middle"></i>
-                        <span>Kişisel bilgileriniz, hesap veya kredi kartı şifreniz gibi bilgileri kesinlikle paylaşmayın.</span>
+                        <span>{{ t('account.tickets.security_notice') }}</span>
                     </p>
 
                     <button id="replySubmitBtn"
                             type="submit"
                             class="btn btn-primary w-100 d-block d-lg-inline"
                             disabled>
-                        Yanıtla
+                        {{ t('account.tickets.action.reply') }}
                     </button>
                 </form>
             </div>
@@ -188,7 +202,7 @@
     {{-- Geri bağlantısı --}}
     <div class="mt-4">
         <a href="{{ localized_route('account.tickets') }}" class="btn btn-outline-secondary d-block d-lg-inline">
-            <i class="fi fi-rr-arrow-small-left align-middle me-1"></i>Geri dön
+            <i class="fi fi-rr-arrow-small-left align-middle me-1"></i>{{ t('account.tickets.action.back') }}
         </a>
     </div>
 

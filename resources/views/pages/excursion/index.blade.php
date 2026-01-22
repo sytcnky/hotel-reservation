@@ -24,7 +24,7 @@
     <div class="mb-4 col-12 col-md-6 px-0 mx-auto">
         <form method="GET" action="{{ localized_route('excursions') }}">
             <select class="form-select" name="category" onchange="this.form.submit()">
-                <option value="">Tüm Turlar</option>
+                <option value="">{{ t('ui.all_excursions') }}</option>
 
                 @foreach ($categories as $cat)
                 <option value="{{ $cat['slug'] }}"
@@ -58,17 +58,15 @@
             @endphp
 
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm position-relative overflow-hidden">
+                <a href="{{ localized_route('excursions.detail', ['slug' => $tour['slug']]) }}" class="card h-100 shadow-sm position-relative overflow-hidden text-decoration-none">
 
                     {{-- Görsel --}}
-                    <a href="{{ localized_route('excursions.detail', ['slug' => $tour['slug']]) }}">
-                        <x-responsive-image
-                            :image="$cover"
-                            preset="listing-card"
-                            class="card-img-top object-fit-cover"
-                            style="height: 200px;"
-                        />
-                    </a>
+                    <x-responsive-image
+                        :image="$cover"
+                        preset="listing-card"
+                        class="card-img-top object-fit-cover"
+                        style="height: 200px;"
+                    />
 
                     {{-- Kategori Badge --}}
                     @if (!empty($tour['category']))
@@ -77,45 +75,39 @@
                     </span>
                     @endif
 
-                    <div class="card-body d-flex flex-column">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div class="mb-3">
+                            <h6 class="card-title">{{ $tour['name'] }}</h6>
 
-                        <h6 class="card-title">{{ $tour['name'] }}</h6>
-
-                        @if (!empty($tour['short_description']))
-                            <p class="card-text small text-muted text-truncate-2">{{ $tour['short_description'] }}</p>
-                        @endif
-
+                            @if (!empty($tour['short_description']))
+                                <p class="card-text small text-muted text-truncate-2">{{ $tour['short_description'] }}</p>
+                            @endif
+                        </div>
                         {{-- Fiyat Alanı --}}
-                        <div class="d-flex mb-3">
+                        <div class="d-flex">
                             @if($adultPrice !== null)
                                 <div class="mt-auto me-3">
-                                    <div class="text-muted small">Yetişkin</div>
+                                    <div class="text-muted small">{{ t('ui.adult') }}</div>
                                     <div class="fw-bold fs-6">{{ \App\Support\Currency\CurrencyPresenter::format($adultPrice, $currency) }}</div>
                                 </div>
                             @endif
 
                             @if($childPrice !== null)
                                 <div class="mt-auto me-3">
-                                    <div class="text-muted small">Çocuk</div>
+                                    <div class="text-muted small">{{ t('ui.child') }}</div>
                                     <div class="fw-bold fs-6">{{ \App\Support\Currency\CurrencyPresenter::format($childPrice, $currency) }}</div>
                                 </div>
                             @endif
 
                             @if($infantPrice !== null)
                                 <div class="mt-auto me-3">
-                                    <div class="text-muted small">Bebek</div>
+                                    <div class="text-muted small">{{ t('ui.infant') }}</div>
                                     <div class="fw-bold fs-6">{{ \App\Support\Currency\CurrencyPresenter::format($infantPrice, $currency) }}</div>
                                 </div>
                             @endif
                         </div>
-
-                        <a href="{{ localized_route('excursions.detail', ['slug' => $tour['slug']]) }}"
-                           class="btn btn-outline-secondary">
-                            Gezi Detayları ve Rezervasyon
-                        </a>
-
                     </div>
-                </div>
+                </a>
             </div>
 
         @endforeach

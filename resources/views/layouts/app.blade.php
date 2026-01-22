@@ -5,10 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'TurAcenta')</title>
 
+    @php
+        use App\Models\Setting;
+        $gaCode = trim((string) Setting::get('google_analytics_code', ''));
+    @endphp
+
     {{-- Site tarafı: Bootstrap + site.css, tek entry --}}
     @vite(['resources/css/site.scss', 'resources/js/site/site.js'])
 
-
+    @if ($gaCode !== '')
+        {!! $gaCode !!}
+    @endif
 </head>
 <body data-page="{{ $pageKey ?? '' }}">
 @include('partials.header')

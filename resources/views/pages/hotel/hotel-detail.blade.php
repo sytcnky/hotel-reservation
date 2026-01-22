@@ -20,9 +20,17 @@
                 </span>
                 @endif
 
-                <span class="text-secondary">
-                    {{ $hotel['location']['region'] }}, {{ $hotel['location']['city'] }}
-                </span>
+                @php
+                    $area     = $hotel['location']['area'] ?? null;
+                    $district = $hotel['location']['district'] ?? null;
+
+                    $locationLabel = collect([$area, $district])->filter()->implode(', ');
+                @endphp
+
+                @if($locationLabel !== '')
+                    <span class="text-secondary">{{ $locationLabel }}</span>
+                @endif
+
             </div>
         </div>
     </div>
@@ -59,7 +67,7 @@
                             data-bs-toggle="modal"
                             data-bs-target="#hotelVideoModal">
                         <i class="fi fi-rr-play text-primary"></i>
-                        <span class="fw-medium text-primary small">Tanıtım Videosu</span>
+                        <span class="fw-medium text-primary small">{{ t('ui.video') }}</span>
                     </button>
                     @endif
 
@@ -96,17 +104,18 @@
                       class="row g-3"
                       method="GET"
                       action="{{ localized_route('hotel.detail', ['slug' => $hotel['slug']]) }}"
+                      autocomplete="off"
                       novalidate>
 
                     <!-- Giriş-Çıkış Tarihi -->
                     <div class="col-xl-4">
-                        <label for="checkin" class="form-label">Giriş - Çıkış Tarihi</label>
+                        <label for="checkin" class="form-label">{{ t('ui.checkin_checkout_dates') }}</label>
                         <div class="input-group">
                             <input type="text"
                                    id="checkin"
                                    name="checkin"
                                    class="form-control date-input"
-                                   placeholder="Tarih seçin"
+                                   placeholder="{{ t('ui.choose_dates') }}"
                                    value="{{ request('checkin') }}"
                                    autocomplete="off"
                                    required>
@@ -118,7 +127,7 @@
 
                     @if(!empty($hotel['board_types']))
                     <div class="col-xl-3">
-                        <label for="boardType" class="form-label">Konaklama Tipi</label>
+                        <label for="boardType" class="form-label">{{ t('ui.board_type') }}</label>
                         <select name="board_type_id" class="form-select">
                             @foreach($hotel['board_types'] as $bt)
                             <option value="{{ $bt['id'] }}"
@@ -132,15 +141,18 @@
 
                     <!-- Kişi Seçimi -->
                     <div class="col-xl-4 position-relative">
-                        <label for="guestInput" class="form-label">Kişi Sayısı</label>
+                        <label for="guestInput" class="form-label">{{ t('ui.guests') }}</label>
 
                         <div class="guest-picker-wrapper position-relative">
                             <div class="input-group">
                                 <input type="text"
                                        id="guestInput"
                                        class="form-control guest-wrapper"
-                                       placeholder="Kişi sayısı seçin"
-                                       readonly>
+                                       placeholder="{{ t('ui.guest.placeholder') }}"
+                                       readonly
+                                       data-label-adult="{{ t('ui.adult') }}"
+                                       data-label-child="{{ t('ui.child') }}"
+                                       data-label-infant="{{ t('ui.infant') }}">
                                 <span class="input-group-text bg-white"><i class="fi fi-rr-user"></i></span>
                             </div>
 
@@ -150,7 +162,7 @@
 
                                 <!-- Yetişkin -->
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>Yetişkin</span>
+                                    <span>{{ t('ui.adult') }}</span>
                                     <div class="input-group input-group-sm" style="width: 120px;">
                                         <button type="button"
                                                 class="btn btn-outline-secondary minus"
@@ -168,7 +180,7 @@
 
                                 <!-- Çocuk -->
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span>Çocuk</span>
+                                    <span>{{ t('ui.child') }}</span>
                                     <div class="input-group input-group-sm" style="width: 120px;">
                                         <button type="button"
                                                 class="btn btn-outline-secondary minus"
@@ -191,7 +203,9 @@
                     </div>
 
                     <div class="col-xl-1 d-grid align-self-end">
-                        <button type="submit" class="btn btn-primary"> Ara
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fi fi-rr-search fs-5 align-middle d-none d-xl-block"></i>
+                            <span class="d-xl-none ms-1">{{ t('ui.search') }}</span>
                         </button>
                     </div>
                 </form>
@@ -227,35 +241,40 @@
             <!-- Kampanya Banner -->
             @include('partials.campaigns.banner', ['campaigns' => $campaigns ?? []])
 
-            <div class="bg-light p-4 rounded shadow-sm">
-                @if(!empty($hotel['latitude']) && !empty($hotel['longitude']))
-                <!-- Harita -->
-                <div class="ratio ratio-16x9 rounded shadow-sm overflow-hidden mb-4">
-                    <iframe
-                        src="https://www.google.com/maps?q={{ $hotel['latitude'] }},{{ $hotel['longitude'] }}&hl={{ app()->getLocale() }}&z=16&output=embed"
-                        width="100%"
-                        height="100%"
-                        style="border:0;"
-                        allowfullscreen
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
-                </div>
-                @endif
+            @php
+                $hasMap    = !empty($hotel['latitude']) && !empty($hotel['longitude']);
+                $hasNearby = !empty($hotel['nearby']);
+            @endphp
 
-                <!-- Yakındaki Lokasyonlar -->
-                @if(!empty($hotel['nearby']))
-                <h5 class="mb-3">Yakındaki Yerler</h5>
-                <ul class="list-unstyled mb-0 small">
-                    @foreach($hotel['nearby'] as $item)
-                    <li class="mb-2 d-flex align-items-start">
-                        <i class="{{ $item['icon'] ?? 'fi fi-rr-marker' }} me-2 text-primary fs-5"></i>
-                        {{ $item['label'] }} — <strong class="ms-1">{{ $item['distance'] }}</strong>
-                    </li>
-                    @endforeach
-                </ul>
-                @endif
-            </div>
+            @if($hasMap || $hasNearby)
+                <div class="bg-light p-4 rounded shadow-sm">
+                    @if($hasMap)
+                        <div class="ratio ratio-16x9 rounded shadow-sm overflow-hidden mb-4">
+                            <iframe
+                                src="https://www.google.com/maps?q={{ $hotel['latitude'] }},{{ $hotel['longitude'] }}&hl={{ app()->getLocale() }}&z=16&output=embed"
+                                width="100%"
+                                height="100%"
+                                style="border:0;"
+                                allowfullscreen
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                        </div>
+                    @endif
+
+                    @if($hasNearby)
+                        <h5 class="mb-3">{{ t('ui.nearby_places') }}</h5>
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach($hotel['nearby'] as $item)
+                                <li class="mb-2 d-flex align-items-start">
+                                    <i class="{{ $item['icon'] ?? 'fi fi-rr-marker' }} me-2 text-primary fs-5"></i>
+                                    {{ $item['label'] }} — <strong class="ms-1">{{ $item['distance'] }}</strong>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 
@@ -281,7 +300,7 @@
             <!-- Notlar -->
             @if(!empty($hotel['notes']))
             <div class="mt-4 bg-light p-4 rounded shadow-sm">
-                <h5 class="mb-4">Diğer Notlar</h5>
+                <h5 class="mb-4">{{ t('ui.other_notes') }}</h5>
                 <div class="row">
                     @foreach($hotel['notes'] as $note)
                     <div class="col-12 col-md-6 mb-2 d-flex align-items-baseline">
@@ -337,42 +356,18 @@
 @endif
 
 
-{{-- Benzer Oteller --}}
-<section class="container py-5">
+{{-- Back --}}
+<section class="container">
     <div class="row">
         <div class="col">
-            <h3 class="fw-bold mb-4">Benzer Oteller</h3>
+            <h3 class="fw-bold mb-4">
+                <a href="{{ localized_route('hotels') }}"
+                   class="btn btn-outline-secondary btn-sm text-decoration-none">
+                    <i class="fi fi-sr-angle-square-left fs-5 align-middle"></i>
+                    <span>{{ t('ui.back') }}</span>
+                </a>
+            </h3>
         </div>
-        <div class="col fs-2 text-end">
-            <i class="fi fi-ss-arrow-circle-left text-secondary"></i>
-            <i class="fi fi-ss-arrow-circle-right"></i>
-        </div>
-    </div>
-    <div class="row g-4">
-        @for ($i = 1; $i <= 4; $i++)
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="ratio ratio-4x3">
-                    <img src="/images/samples/hotel-{{ $i }}.jpg" class="card-img-top object-fit-cover" alt="Otel {{ $i }}">
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title fw-semibold">Otel Adı {{ $i }}</h5>
-                    <i class="fi fi-ss-star text-warning"></i>
-                    <i class="fi fi-ss-star text-warning"></i>
-                    <i class="fi fi-ss-star text-warning"></i>
-                    <i class="fi fi-ss-star text-warning"></i>
-                    <i class="fi fi-rs-star text-warning"></i>
-                    <p class="mb-1 text-muted">Marmaris, Muğla</p>
-                    <div class="text-primary fw-bold mt-2">
-                        3.200₺ / gece
-                    </div>
-                </div>
-                <div class="card-footer bg-white border-0 pt-0">
-                    <a href="#" class="btn btn-outline-primary w-100">Detayları Gör</a>
-                </div>
-            </div>
-        </div>
-        @endfor
     </div>
 </section>
 @endsection

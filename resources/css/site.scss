@@ -52,15 +52,21 @@ button:focus-visible {
     box-shadow: none !important;
 }
 
-.btn-success {
+.btn-success, .btn-info {
     color: $light;
 }
 
+.btn-info:hover,
 .btn-success:hover,
 .btn-outline-success:hover,
+.btn-outline-info:hover,
 .btn-outline-secondary:hover,
 .btn-outline-secondary.active {
     color: white;
+}
+
+.collapsing {
+    transition: height 0.75s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 /* input type="time" içindeki Chrome ikonunu gizler */

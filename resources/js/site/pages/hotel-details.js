@@ -115,8 +115,9 @@ function initRoomToggles() {
 
         toggleBtn.addEventListener('click', () => {
             const isOpen = card.classList.toggle('expanded');
-            toggleBtn.classList.toggle('bg-warning', isOpen);
-            toggleBtn.classList.toggle('bg-white', !isOpen);
+
+            toggleBtn.classList.toggle('btn-outline-info', !isOpen);
+            toggleBtn.classList.toggle('btn-info', isOpen);
 
             if (isOpen) {
                 if (gallery && !gallery.dataset.initialized) {
@@ -170,8 +171,13 @@ function initBookingFormSync() {
         const c = parseInt(childInput.value || '0', 10);
 
         const parts = [];
-        if (a > 0) parts.push(a + ' Yetişkin');
-        if (c > 0) parts.push(c + ' Çocuk');
+
+        if (a > 0) parts.push(a + ' ' + guestInput.dataset.labelAdult);
+        if (c > 0) parts.push(c + ' ' + guestInput.dataset.labelChild);
+
+        guestInput.value = parts.length
+            ? parts.join(', ')
+            : guestInput.dataset.placeholder;
 
         guestInput.value = parts.join(', ');
     }

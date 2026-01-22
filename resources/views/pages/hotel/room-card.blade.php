@@ -32,9 +32,9 @@
                 <p class="text-muted mb-2">{{ $room['description'] }}</p>
                 @endif
 
-                <div class="text-success small">
-                    <i class="fi fi-rr-credit-card align-middle"></i>
-                    Son Dakika Fırsatı %35 İndirim + 9 Taksit
+                <div class="text-secondary d-flex align-items-center">
+                    <i class="fi fi-rs-bed-alt me-1"></i>
+                    {{ $room['bed_type'] }}
                 </div>
             </div>
         </div>
@@ -46,7 +46,7 @@
                 @if($state === 'no_context')
                 {{-- Form boş: sadece "başlayan fiyatlar" placeholder --}}
                 <small>
-                    Fiyat için tarih ve kişi sayısı seçin
+                    {{ t('ui.for_price') }}
                 </small>
 
                 @elseif($state === 'over_capacity')
@@ -56,12 +56,12 @@
 
                 @elseif($state === 'over_max_nights')
                 <div class="text-danger small">
-                    {{ $room['stay_message'] ?? 'Bu odanın maksimum konaklama süresi aşıldı.' }}
+                    {{ $room['stay_message'] }}
                 </div>
 
                 @elseif($state === 'unavailable')
                 <div class="text-muted small">
-                    Seçilen tarihlerde müsait değil.
+                    {{ t('ui.not_available') }}
                 </div>
 
                 @elseif($state === 'priced' && $pricing)
@@ -74,30 +74,30 @@
                     @if(($pricing['mode'] ?? null) === 'per_room')
                         <div class="small text-muted">
                             {{ \App\Support\Currency\CurrencyPresenter::format($pricing['room_per_night'] ?? null, $pricing['currency'] ?? null) }}
-                            / gece
+                            / {{ t('ui.night') }}
                         </div>
 
                     @elseif(($pricing['mode'] ?? null) === 'per_person')
                         @if(($pricing['adult_count'] ?? 0) > 0)
                             <div class="small text-muted">
-                                Yetişkin:
+                                {{ t('ui.adult') }}:
                                 {{ \App\Support\Currency\CurrencyPresenter::format($pricing['adult_per_night'] ?? null, $pricing['currency'] ?? null) }}
-                                / gece
+                                / {{ t('ui.night') }}
                             </div>
                         @endif
 
                         @if(($pricing['child_count'] ?? 0) > 0)
                             <div class="small text-muted">
-                                Çocuk:
+                                {{ t('ui.child') }}:
                                 {{ \App\Support\Currency\CurrencyPresenter::format($pricing['child_per_night'] ?? null, $pricing['currency'] ?? null) }}
-                                / gece
+                                / {{ t('ui.night') }}
                             </div>
                         @endif
                     @endif
 
                 @else
                 <div class="small text-muted">
-                    Fiyat bilgisi şu an hesaplanamadı.
+                    {{ t('ui.price_cannot_calculated') }}
                 </div>
                 @endif
 
@@ -148,42 +148,47 @@
 
                 {{-- Sağ: Bilgiler --}}
                 <div class="{{ $hasImages ? 'col-md-5' : 'col-12' }}">
-                    <h4 class="my-3 text-primary">Oda Özellikleri:</h4>
+                    <h4 class="my-3 text-primary">{{ t('ui.room_features') }}:</h4>
 
                     <ul class="list-unstyled mb-3 small">
                         <li class="border-bottom mb-2 p-1">
                             <i class="fi fi-rr-square-dashed align-middle"></i>
-                            <span class="ms-1">Oda Boyutu:</span>
+                            <span class="ms-1">{{ t('ui.room_size') }}:</span>
                             <strong>{{ $room['size'] }} m²</strong>
                         </li>
 
                         <li class="border-bottom mb-2 p-1">
                             <i class="fi fi-rs-bed-alt align-middle"></i>
-                            <span class="ms-1">Yatak Tipi:</span>
+                            <span class="ms-1">{{ t('ui.bed_type') }}:</span>
                             <strong>{{ $room['bed_type'] }}</strong>
                         </li>
 
                         <li class="border-bottom mb-2 p-1">
                             <i class="fi fi-rs-users align-middle"></i>
-                            <span class="ms-1">Kapasite:</span>
+                            <span class="ms-1">{{ t('ui.room_capacity') }}:</span>
                             <strong>
-                                {{ $room['capacity']['adults'] }} yetişkin
+                                {{ $room['capacity']['adults'] }} {{ t('ui.adult') }}
                                 @if(($room['capacity']['children'] ?? 0) > 0)
-                                , {{ $room['capacity']['children'] }} çocuk
+                                , {{ $room['capacity']['children'] }} {{ t('ui.child') }}
                                 @endif
                             </strong>
                         </li>
 
                         <li class="border-bottom mb-2 p-1">
                             <i class="fi fi-rs-leaf-heart align-middle"></i>
-                            <span class="ms-1">Manzara:</span>
+                            <span class="ms-1">{{ t('ui.room_view') }}:</span>
                             <strong>{{ $room['view'] }}</strong>
                         </li>
 
                         <li class="border-bottom mb-2 p-1">
                             <i class="fi fi-rr-smoking align-middle"></i>
-                            <span class="ms-1">Sigara:</span>
-                            <strong>{{ $room['smoking'] ? 'İçilebilir' : 'İçilmez' }}</strong>
+                            <span class="ms-1">{{ t('ui.smoking') }}:</span>
+                            <strong>
+                                {{ $room['smoking']
+                                    ? t('smoking.allowed')
+                                    : t('smoking.not_allowed')
+                                }}
+                            </strong>
                         </li>
                     </ul>
 
@@ -204,9 +209,9 @@
     <!-- Oda Footer -->
     <div class="row border border-top">
         <!-- Sol taraf: Özellikler -->
-        <div class="col-6 text-center room-footer-toggle px-3 py-2 bg-white" style="cursor: pointer;">
-            <a class="btn btn-outline-secondary w-100 room-toggle-details">
-                Oda Özellikleri
+        <div class="col-6 text-center room-footer-toggle px-3 py-2" style="cursor: pointer;">
+            <a class="btn btn-outline-info w-100 room-toggle-details">
+                {{ t('ui.room_features') }}
             </a>
         </div>
 
@@ -245,17 +250,12 @@
                     <input type="hidden" name="board_type_id" value="{{ $ctx['board_type_id'] }}">
                 @endif
 
-                    <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
-
-                @if($pricing)
-                    <input type="hidden" name="currency" value="{{ $pricing['currency'] ?? '' }}">
-                    <input type="hidden" name="price_total" value="{{ $pricing['total_amount'] ?? '' }}">
-                @endif
+                <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
 
                 <button type="submit"
                         class="btn btn-primary w-100"
                         {{ $canBook && $pricing ? '' : 'disabled' }}>
-                Sepete Ekle
+                    {{ t('ui.add_cart') }}
                 </button>
             </form>
         </div>

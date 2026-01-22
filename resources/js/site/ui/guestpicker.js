@@ -24,13 +24,21 @@ export function initGuestPicker(container = document) {
         };
 
         function updateDisplay() {
-            // Görünür text
             const parts = [];
-            if (counts.adult > 0) parts.push(`${counts.adult} Yetişkin`);
-            if (counts.child > 0) parts.push(`${counts.child} Çocuk`);
-            if (counts.infant > 0) parts.push(`${counts.infant} Bebek`);
 
-            input.value = parts.length > 0 ? parts.join(', ') : 'Kişi sayısı seçin';
+            if (counts.adult > 0) {
+                parts.push(`${counts.adult} ${input.dataset.labelAdult}`);
+            }
+            if (counts.child > 0) {
+                parts.push(`${counts.child} ${input.dataset.labelChild}`);
+            }
+            if (counts.infant > 0) {
+                parts.push(`${counts.infant} ${input.dataset.labelInfant}`);
+            }
+
+            input.value = parts.length
+                ? parts.join(', ')
+                : input.placeholder;
 
             // Dropdown içindeki sayısal input'ları güncelle
             const adultInput  = dropdown.querySelector('input[data-type="adult"]');

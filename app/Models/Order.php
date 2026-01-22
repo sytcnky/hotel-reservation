@@ -372,20 +372,17 @@ class Order extends Model
             ->all();
     }
 
-    protected function resolveItemImageFromSnapshot(array $s): ?string
+    protected function resolveItemImageFromSnapshot(array $s): ?array
     {
         foreach (['hotel_image', 'villa_image', 'vehicle_cover', 'cover_image'] as $key) {
-            if (! array_key_exists($key, $s) || blank($s[$key])) {
+            if (! array_key_exists($key, $s)) {
                 continue;
             }
 
             $value = $s[$key];
 
-            if (is_array($value) && ! empty($value['thumb'])) {
-                return $value['thumb'];
-            }
-
-            if (is_string($value)) {
+            // Yeni kontrat: snapshot zaten UI-ready image array
+            if (is_array($value)) {
                 return $value;
             }
         }
@@ -533,5 +530,17 @@ class Order extends Model
                 'bootstrap_class' => 'bg-secondary',
             ],
         };
+    }
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_CONFIRMED,
+        self::STATUS_CANCELLED,
+        self::STATUS_COMPLETED,
+    ];
+
+    public static function statusList(): array
+    {
+        return self::STATUSES;
     }
 }

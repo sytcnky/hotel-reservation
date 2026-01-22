@@ -1,89 +1,92 @@
 @extends('layouts.app')
 
-@section('title', 'Şifremi Unuttum')
+@section('title', t('auth.password_forgot.title'))
 
 @section('content')
-<section class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-7 col-xl-5">
-            <h1 class="mb-4 text-secondary">Şifremi Unuttum</h1>
+    <section class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7 col-xl-5">
+                <h1 class="mb-4 text-secondary">{{ t('auth.password_forgot.heading') }}</h1>
 
-            @if (session('status'))
-            <div class="alert alert-success">{{ session('status') }}</div>
-            @endif
+                @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                @endif
 
-            @if (session('pw_reset_retry'))
-                <div class="alert alert-danger" id="pwResetRateLimitAlert"
-                     data-seconds="{{ (int) session('pw_reset_retry') }}">
-                    {{ $errors->first('email') }}
+                @if (session('pw_reset_retry'))
+                    <div class="alert alert-danger" id="pwResetRateLimitAlert"
+                         data-seconds="{{ (int) session('pw_reset_retry') }}">
+                        {{ $errors->first('email') }}
 
-                    <div class="mt-2">
-                        <small>
-                            <span id="pwResetCountdown">{{ (int) session('pw_reset_retry') }}</span>
-                            saniye sonra tekrar deneyebilirsin.
-                        </small>
+                        <div class="mt-2">
+                            <small>
+                                <span id="pwResetCountdown">{{ (int) session('pw_reset_retry') }}</span>
+                                {{ t('auth.password_forgot.retry_suffix') }}
+                            </small>
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            <form method="POST" action="{{ route('password.email') }}" class="needs-validation" novalidate>
-                @csrf
+                <form method="POST" action="{{ route('password.email') }}" class="needs-validation" novalidate>
+                    @csrf
 
-                <div class="mb-3">
-                    <label class="form-label">E-posta</label>
-                    <input
-                        type="email"
-                        name="email"
-                        value="{{ old('email') }}"
-                        class="form-control @error('email') is-invalid @enderror"
-                        required
-                    >
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('auth.password_forgot.email.label') }}</label>
+                        <input
+                            type="email"
+                            name="email"
+                            value="{{ old('email') }}"
+                            class="form-control @error('email') is-invalid @enderror"
+                            required
+                        >
 
-                    @error('email')
-                    @if (! session()->has('pw_reset_retry'))
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @endif
-                    @enderror
-                </div>
+                        @error('email')
+                        @if (! session()->has('pw_reset_retry'))
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @endif
+                        @enderror
+                    </div>
 
-                <button id="pwResetSubmitBtn" class="btn btn-success w-100" type="submit">Sıfırlama Linki Gönder</button>
+                    <button id="pwResetSubmitBtn" class="btn btn-success w-100" type="submit">
+                        {{ t('auth.password_forgot.actions.send_link') }}
+                    </button>
 
-                <div class="text-center mt-3">
-                    <a href="{{ route('login') }}">Geri dön</a>
-                </div>
-            </form>
+                    <div class="text-center mt-3">
+                        <a href="{{ route('login') }}">{{ t('auth.password_forgot.actions.back') }}</a>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-</section>
-<script>
-    (function () {
-        const alertEl = document.getElementById('pwResetRateLimitAlert');
-        if (!alertEl) return;
+    </section>
 
-        const secondsAttr = alertEl.getAttribute('data-seconds');
-        if (!secondsAttr) return;
+    <script>
+        (function () {
+            const alertEl = document.getElementById('pwResetRateLimitAlert');
+            if (!alertEl) return;
 
-        let remaining = parseInt(secondsAttr, 10);
-        if (!Number.isFinite(remaining) || remaining <= 0) return;
+            const secondsAttr = alertEl.getAttribute('data-seconds');
+            if (!secondsAttr) return;
 
-        const countdownEl = document.getElementById('pwResetCountdown');
-        const submitBtn = document.getElementById('pwResetSubmitBtn');
+            let remaining = parseInt(secondsAttr, 10);
+            if (!Number.isFinite(remaining) || remaining <= 0) return;
 
-        if (submitBtn) submitBtn.disabled = true;
+            const countdownEl = document.getElementById('pwResetCountdown');
+            const submitBtn = document.getElementById('pwResetSubmitBtn');
 
-        const tick = () => {
-            remaining -= 1;
+            if (submitBtn) submitBtn.disabled = true;
 
-            if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
+            const tick = () => {
+                remaining -= 1;
 
-            if (remaining <= 0) {
-                if (submitBtn) submitBtn.disabled = false;
-                alertEl.remove();
-                clearInterval(timer);
-            }
-        };
+                if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
 
-        const timer = setInterval(tick, 1000);
-    })();
-</script>
+                if (remaining <= 0) {
+                    if (submitBtn) submitBtn.disabled = false;
+                    alertEl.remove();
+                    clearInterval(timer);
+                }
+            };
+
+            const timer = setInterval(tick, 1000);
+        })();
+    </script>
 @endsection

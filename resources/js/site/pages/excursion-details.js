@@ -6,7 +6,6 @@ export function initExcursionDetails() {
     const dateInput   = document.getElementById('excursion-date');
     const guestInput  = document.getElementById('guestInput');
     const priceOutput = document.getElementById('excursion-price-total');
-    const totalInput  = document.getElementById('inputTotal');
 
     const hiddenAdults   = document.getElementById('inputAdults');
     const hiddenChildren = document.getElementById('inputChildren');
@@ -20,7 +19,6 @@ export function initExcursionDetails() {
         });
     }
 
-    // --- SUBMIT: tarih zorunluluğu (inline script taşındı) ---
     if (form && dateInput) {
         form.addEventListener('submit', function (event) {
             const value = (dateInput.value || '').trim();
@@ -30,12 +28,10 @@ export function initExcursionDetails() {
                 event.stopPropagation();
 
                 dateInput.classList.add('is-invalid');
-                form.classList.add('was-validated');
                 return;
             }
 
             dateInput.classList.remove('is-invalid');
-            form.classList.add('was-validated');
         });
 
         ['input', 'change'].forEach(function (evt) {
@@ -67,6 +63,24 @@ export function initExcursionDetails() {
         return { adults, children, infants };
     }
 
+    function updateGuestDisplay() {
+        if (!guestInput) return;
+
+        const { adults, children, infants } = readCounts();
+        const parts = [];
+
+        const adultLabel  = guestInput.dataset.labelAdult || '';
+        const childLabel  = guestInput.dataset.labelChild || '';
+        const infantLabel = guestInput.dataset.labelInfant || '';
+        const placeholder = guestInput.dataset.placeholder || guestInput.getAttribute('placeholder') || '';
+
+        if (adults > 0)   parts.push(adults + ' ' + adultLabel);
+        if (children > 0) parts.push(children + ' ' + childLabel);
+        if (infants > 0)  parts.push(infants + ' ' + infantLabel);
+
+        guestInput.value = parts.length ? parts.join(', ') : placeholder;
+    }
+
     function calculateTotal() {
         if (!guestInput || !guestInput.dataset.prices) return;
 
@@ -77,9 +91,18 @@ export function initExcursionDetails() {
             return;
         }
 
-        const currency = (guestInput.dataset.currency || 'TRY').toUpperCase();
+        const currencyRaw = (guestInput.dataset.currency || '').trim();
+        const currency = currencyRaw ? currencyRaw.toUpperCase() : '';
+        if (!currency) {
+            if (priceOutput) priceOutput.textContent = '—';
+            return;
+        }
+
         const cfg = prices && prices[currency] ? prices[currency] : null;
-        if (!cfg) return;
+        if (!cfg) {
+            if (priceOutput) priceOutput.textContent = '—';
+            return;
+        }
 
         const { adults, children, infants } = readCounts();
 
@@ -88,18 +111,22 @@ export function initExcursionDetails() {
         total += children * Number(cfg.child  ?? 0);
         total += infants  * Number(cfg.infant ?? 0);
 
+        const uiLocale = document.documentElement.lang;
+
         if (priceOutput) {
             priceOutput.textContent =
                 total > 0
-                    ? `${total.toLocaleString('tr-TR')} ${currency}`
+                    ? `${total.toLocaleString(uiLocale)} ${currency}`
                     : '—';
-        }
-
-        if (totalInput) {
-            totalInput.value = String(total);
         }
     }
 
     document.addEventListener('guestCountChanged', calculateTotal);
     calculateTotal();
+
+    document.addEventListener('guestCountChanged', calculateTotal);
+    calculateTotal();
+
+    document.addEventListener('guestCountChanged', updateGuestDisplay);
+    updateGuestDisplay();
 }

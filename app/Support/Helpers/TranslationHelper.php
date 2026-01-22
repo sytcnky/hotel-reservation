@@ -11,8 +11,18 @@ if (! function_exists('t')) {
 
         [$group, $key] = explode('.', $dotKey, 2);
 
-        return Translation::getValue($group, $key, $locale)
-            ?? __($dotKey)   // Laravel lang fallback (varsa)
-            ?? $dotKey;      // En son plain key
+        $value = Translation::getValue($group, $key, $locale)
+            ?? __($dotKey)
+            ?? $dotKey;
+
+        // Placeholder replace: {key}
+        if ($replacements) {
+            foreach ($replacements as $k => $v) {
+                $value = str_replace('{' . $k . '}', (string) $v, $value);
+            }
+        }
+
+        return $value;
     }
 }
+

@@ -118,11 +118,11 @@ class VillaController extends Controller
         $location = $villa->location;
 
         // Şehir / bölge
-        $city   = $location?->parent?->name ?? $location?->name;
-        $region = $location?->parent?->parent?->name;
+        $area     = $location?->name;
+        $district = $location?->parent?->name;
 
         // İsim / açıklama i18n
-        $name        = I18nHelper::scalar($villa->name, $locale, $baseLang) ?? 'Villa'; // mevcut davranış korunur
+        $name        = I18nHelper::scalar($villa->name, $locale, $baseLang);
         $description = I18nHelper::scalar($villa->description, $locale, $baseLang);
 
         // Kategori → badge
@@ -133,13 +133,25 @@ class VillaController extends Controller
 
         // === FİYAT + MIN/MAX NIGHTS ===
         $selectedCurrency = CurrencyContext::code(request());
+        $selectedCurrency = $selectedCurrency !== null ? strtoupper(trim($selectedCurrency)) : null;
 
         $rule = null;
         if ($selectedCurrency) {
+            // getBasePrice() ile AYNI seçme kuralları:
+            // - currency code: case-insensitive
+            // - is_active: true veya null
+            // - closed: false veya null
+            // - priority/date_start sırası
             $rule = $villa->rateRules()
-                ->whereHas('currency', fn ($q) => $q->where('code', $selectedCurrency))
-                ->where('is_active', true)
-                ->where('closed', false)
+                ->whereHas('currency', function ($q) use ($selectedCurrency) {
+                    $q->whereRaw('upper(code) = ?', [$selectedCurrency]);
+                })
+                ->where(function ($q) {
+                    $q->where('is_active', true)->orWhereNull('is_active');
+                })
+                ->where(function ($q) {
+                    $q->where('closed', false)->orWhereNull('closed');
+                })
                 ->orderBy('priority', 'asc')
                 ->orderBy('date_start', 'asc')
                 ->first();
@@ -152,7 +164,7 @@ class VillaController extends Controller
 
         if ($rule && (float) $rule->amount > 0) {
             $basePrice = (float) $rule->amount;
-            $currency  = $rule->currency?->code ?? $selectedCurrency;
+            $currency  = $rule->currency?->code ? strtoupper(trim((string) $rule->currency->code)) : $selectedCurrency;
             $minNights = $rule->min_nights ?: null;
             $maxNights = $rule->max_nights ?: null;
         }
@@ -195,11 +207,10 @@ class VillaController extends Controller
             'bathroom_count' => $villa->bathroom_count,
 
             'location' => [
-                'city'   => $city,
-                'region' => $region,
+                'area'     => $area,
+                'district' => $district,
             ],
 
-            // NOTE: mevcut anahtarları koruyoruz; cover ek anahtar (blade sprintinde kullanırız)
             'cover'           => $cover,
             'gallery'         => $gallery,
 

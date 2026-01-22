@@ -69,14 +69,14 @@ const CONTRACTS = Object.freeze({
     },
 
     // Villa: UI range d.m.Y - d.m.Y; submit is page-specific (hidden fields), so we do not force input value.
-    villa_range_ui_dmy: {
+    villa_range_ui_dmy_alt: {
         mode: 'range',
-        submitFormat: UI_FORMAT,
+        submitFormat: 'Y-m-d',
         uiFormat: UI_FORMAT,
-        useAltInput: false,
+        useAltInput: true,
         rangeSeparator: RANGE_SEP,
         minDate: 'today',
-        writeInputValue: false,
+        writeInputValue: true,
     },
 });
 
@@ -88,7 +88,10 @@ function resolveElement(el) {
 }
 
 function normalizeLocaleCode(code) {
-    return String(code || '').trim().toLowerCase();
+    const raw = String(code || '').trim().toLowerCase();
+    if (!raw) return '';
+    // tr_TR, en_GB, tr-TR, en-US -> tr / en
+    return raw.replace('_', '-').split('-')[0];
 }
 
 function getLocaleObject(localeCode) {

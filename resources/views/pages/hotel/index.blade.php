@@ -2,12 +2,22 @@
 @section('title', 'Oteller')
 @section('content')
 
-<section>
-    <div class="text-center my-5 px-lg-5">
-        <h1 class="display-5 fw-bold text-secondary">En konforlu oteller</h1>
-        <p class="lead text-muted px-lg-5">Birbirinden güzel otel ve size özel ayrıcalıkları keşfedin.</p>
-    </div>
-</section>
+    <section>
+        <div class="text-center my-5 px-3 px-lg-5">
+            @php
+                $loc = app()->getLocale();
+                $c = $page->content ?? [];
+            @endphp
+
+            <h1 class="display-5 fw-bold text-secondary">
+                {{ $c['page_header']['title'][$loc] ?? '' }}
+            </h1>
+
+            <p class="lead text-muted px-lg-5">
+                {{ $c['page_header']['description'][$loc] ?? '' }}
+            </p>
+        </div>
+    </section>
 
 <section class="container pb-5">
     <div class="row">
@@ -20,7 +30,7 @@
                 id="toggleFilterBtn"
                 aria-expanded="true"
             >
-                <i class="fi fi-rr-filter"></i> Filtre
+                <i class="fi fi-rr-filter"></i> {{ t('ui.filter') }}
             </button>
 
             <div class="d-flex align-items-center gap-2">
@@ -30,11 +40,11 @@
                     name="sort_by"
                     id="sortBySelect"
                 >
-                    <option value="">Sıralama</option>
-                    <option value="price_asc">Fiyat (Artan)</option>
-                    <option value="price_desc">Fiyat (Azalan)</option>
-                    <option value="name_asc">A-Z</option>
-                    <option value="name_desc">Z-A</option>
+                    <option value="">{{ t('ui.order') }}</option>
+                    <option value="price_asc">{{ t('ui.order_price_asc') }}</option>
+                    <option value="price_desc">{{ t('ui.order_price_desc') }}</option>
+                    <option value="name_asc">{{ t('ui.order_name_asc') }}</option>
+                    <option value="name_desc">{{ t('ui.order_name_desc') }}</option>
                 </select>
 
             </div>
@@ -53,16 +63,19 @@
                 @foreach ($hotels as $hotel)
                     @php
                     $locale = app()->getLocale();
+                    $baseLocale = \App\Support\Helpers\LocaleHelper::defaultCode();
 
-                    // Slug (jsonb ise aktive dile göre çek)
                     $slugSource = $hotel->slug ?? null;
-                    if (is_array($slugSource)) {
-                        $slug = $slugSource[$locale] ?? reset($slugSource);
-                    } else {
-                        $slug = $slugSource;
+
+                    $slug = is_array($slugSource)
+                        ? \App\Support\Helpers\I18nHelper::scalar($slugSource, $locale, $baseLocale)
+                        : (is_string($slugSource) ? trim($slugSource) : null);
+
+                    if (! is_string($slug) || $slug === '') {
+                        continue;
                     }
 
-                    $hotelName = $hotel->name_l ?? $hotel->name ?? 'Otel';
+                    $hotelName = $hotel->name_l ?? $hotel->name;
 
                     // Yıldız (starRating ilişkisinden)
                     $stars = (int) ($hotel->starRating?->rating_value ?? 0);
@@ -87,27 +100,22 @@
                 @endphp
 
                 <div class="col-12">
-                    <div class="card shadow-sm h-100">
+                    <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}" class="card shadow-sm h-100 text-decoration-none">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 {{-- Sol: Görsel --}}
                                 <div class="col-lg-3 mb-3 mb-lg-0">
-                                    <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}">
-                                        <x-responsive-image
-                                            :image="$hotel->cover_image"
-                                            preset="listing-card"
-                                            class="rounded object-fit-cover w-100"
-                                        />
-                                    </a>
+                                    <x-responsive-image
+                                        :image="$hotel->cover_image"
+                                        preset="listing-card"
+                                        class="rounded object-fit-cover w-100"
+                                    />
                                 </div>
 
                                 {{-- Orta: Başlık, yıldız, konum, özellikler --}}
                                 <div class="col-lg-6 mb-3 mb-lg-0">
                                     <h4 class="card-title mb-1">
-                                        <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}"
-                                           class="text-decoration-none text-dark">
-                                            {{ $hotelName }}
-                                        </a>
+                                        {{ $hotelName }}
                                     </h4>
 
                                     @if($stars > 0)
@@ -122,8 +130,8 @@
                                     @endif
 
                                     @if ($locationLabel)
-                                    <div class="text-muted small">
-                                        <i class="fi fi-rr-marker"></i>
+                                    <div class="text-muted small d-flex align-items-center">
+                                        <i class="fi fi-rr-marker me-1"></i>
                                         {{ $locationLabel }}
                                     </div>
                                     @endif
@@ -138,7 +146,7 @@
 
                                         @if ($totalFeatures > $visibleFeatures)
                                         <span class="badge bg-transparent text-secondary border">
-                                            +{{ $totalFeatures - $visibleFeatures }} daha
+                                            +{{ $totalFeatures - $visibleFeatures }} {{ t('hotel_card.more') }}
                                         </span>
                                         @endif
                                     </div>
@@ -154,39 +162,32 @@
                                                 $type   = $hotel->from_price_type ?? null;
 
                                                 $suffix = match ($type) {
-                                                    'room_per_night'   => '/ oda',
-                                                    'person_per_night' => '/ kişi',
+                                                    'room_per_night'   => '/ ' . t('hotel_card.room'),
+                                                    'person_per_night' => '/ ' . t('hotel_card.person'),
                                                     default            => '',
                                                 };
                                             @endphp
 
                                             @if(!is_null($amount))
                                                 <div class="mb-2">
-                                                    <span class="text-muted small d-block">Gecelik başlayan fiyat</span>
                                                     <div class="fw-semibold fs-5">
                                                         {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currencyCode ?? null) }}
                                                         <span class="text-muted small">{{ $suffix }}</span>
                                                     </div>
+                                                    <span class="text-muted small d-block">{{ t('hotel_card.prices_starting_from') }}</span>
                                                 </div>
                                             @else
                                                 <div class="mb-2">
-                                                    <span class="text-muted small d-block">Fiyat bulunamadı</span>
+                                                    <span class="text-muted small d-block">{{ t('hotel_card.price_not_found') }}</span>
                                                 </div>
                                             @endif
 
-                                        </div>
-
-                                        <div class="d-grid mt-1 w-100">
-                                            <a href="{{ localized_route('hotel.detail', ['slug' => $slug]) }}"
-                                               class="btn btn-outline-primary mt-2">
-                                                Oteli İncele
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 @endforeach
             </div>

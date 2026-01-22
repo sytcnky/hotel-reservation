@@ -77,7 +77,7 @@
                     <a href="{{ $waUrl }}"
                        target="_blank"
                        rel="noopener"
-                       class="btn btn-outline-success btn-sm text-decoration-none">
+                       class="btn btn-outline-success btn-sm text-decoration-none d-none d-xl-block">
                         <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
                         <span>{{ $waLabel }}</span>
                     </a>
@@ -359,12 +359,15 @@
 
 
         {{-- WhatsApp Destek --}}
-        <a href="https://wa.me/905551112233"
-           target="_blank"
-           class="btn btn-outline-success btn-sm text-decoration-none">
-            <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
-            <span>Whatsapp Destek</span>
-        </a>
+        @if ($waUrl && $waLabel)
+            <a href="{{ $waUrl }}"
+               target="_blank"
+               rel="noopener"
+               class="btn btn-outline-success btn-sm text-decoration-none">
+                <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
+                <span>{{ $waLabel }}</span>
+            </a>
+        @endif
     </div>
 </div>
 

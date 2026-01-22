@@ -68,6 +68,7 @@
                 <form id="excursionForm"
                       method="POST"
                       action="{{ localized_route('tour.book') }}"
+                      autocomplete="off"
                       novalidate
                       data-days="{{ implode(',', $tour['days_of_week'] ?? []) }}">
                     @csrf
@@ -75,8 +76,6 @@
                     {{-- BE için temel alanlar --}}
                     <input type="hidden" name="tour_id" value="{{ $tour['id'] }}">
                     <input type="hidden" name="tour_name" value="{{ $tour['name'] }}">
-                    <input type="hidden" name="currency" value="{{ $currency ?? '' }}">
-                    <input type="hidden" id="inputTotal" name="price_total" value="{{ $adultBase ?? 0 }}">
 
                     @if(!empty($tour['cover']))
                         <input type="hidden" name="cover_image[thumb]" value="{{ $tour['cover']['thumb'] }}">
@@ -97,14 +96,14 @@
                         <div class="card-body row align-items-end g-3">
 
                             {{-- Tarih --}}
-                            <div class="col-md-4">
-                                <label for="excursion-date" class="form-label">Tarih Seçimi</label>
+                            <div class="col-lg-5">
+                                <label for="excursion-date" class="form-label">{{ t('ui.choose_dates') }}</label>
                                 <div class="input-group">
                                     <input type="text"
                                            id="excursion-date"
                                            name="date"
                                            class="form-control"
-                                           placeholder="Tarih seçin"
+                                           placeholder="{{ t('ui.choose_dates') }}"
                                            required>
                                         <div class="input-group-text bg-white">
                                             <i class="fi fi-rr-calendar"></i>
@@ -113,17 +112,20 @@
                             </div>
 
                             {{-- Kişi Sayısı --}}
-                            <div class="col-md-4 guest-picker-wrapper position-relative">
-                                <label for="guestInput" class="form-label">Kişi Sayısı</label>
+                            <div class="col-lg-4 guest-picker-wrapper position-relative">
+                                <label for="guestInput" class="form-label">{{ t('ui.guests') }}</label>
 
                                 <div class="input-group">
                                     <input type="text"
                                            id="guestInput"
                                            class="form-control guest-wrapper"
-                                           placeholder="Kişi sayısı seçin"
-                                           readonly
-                                           data-prices='@json($prices)'
-                                           data-currency="{{ $currency ?? '' }}">
+                                           placeholder="{{ t('ui.guests') }}"
+                                           readonlydata-prices='@json($prices)'
+                                           data-currency="{{ $currency ?? '' }}"
+                                           data-label-adult="{{ t('ui.adult') }}"
+                                           data-label-child="{{ t('ui.child') }}"
+                                           data-label-infant="{{ t('ui.infant') }}"
+                                           data-placeholder="{{ t('ui.guests') }}">
                                     <span class="input-group-text bg-white">
                                     <i class="fi fi-rr-user"></i>
                                 </span>
@@ -135,7 +137,7 @@
 
                                     {{-- Yetişkin --}}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span>Yetişkin</span>
+                                        <span>{{ t('ui.adult') }}</span>
                                         <div class="input-group input-group-sm" style="width: 120px;">
                                             <button type="button"
                                                     class="btn btn-outline-secondary minus"
@@ -154,7 +156,7 @@
                                     {{-- Çocuk --}}
                                     @if($currency && isset($prices[$currency]['child']))
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span>Çocuk</span>
+                                            <span>{{ t('ui.child') }}</span>
                                             <div class="input-group input-group-sm" style="width: 120px;">
                                                 <button type="button"
                                                         class="btn btn-outline-secondary minus"
@@ -174,7 +176,7 @@
                                     {{-- Bebek --}}
                                     @if($currency && isset($prices[$currency]['infant']))
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <span>Bebek</span>
+                                            <span>{{ t('ui.infant') }}</span>
                                             <div class="input-group input-group-sm" style="width: 120px;">
                                                 <button type="button"
                                                         class="btn btn-outline-secondary minus"
@@ -194,7 +196,7 @@
                             </div>
 
                             {{-- Toplam & Buton --}}
-                            <div class="col-md-4 text-end">
+                            <div class="col-lg-3 text-end">
                                 <div class="fw-bold mb-0" id="excursion-price-total">
                                     @if ($adultBase !== null && $currency)
                                         {{ \App\Support\Currency\CurrencyPresenter::format($adultBase, $currency) }}
@@ -205,8 +207,8 @@
 
                                 <button type="submit"
                                         id="btnExcursionAddToCart"
-                                        class="btn btn-primary mt-2">
-                                    Sepete Ekle
+                                        class="btn btn-primary mt-2 w-100">
+                                    {{ t('ui.add_cart') }}
                                 </button>
                             </div>
                         </div>
@@ -218,7 +220,7 @@
                     <div class="row gy-3">
                         {{-- Fiyat --}}
                         <div class="col-6 col-lg-4">
-                            <strong>Fiyat (Yetişkin):</strong><br>
+                            <strong>{{ t('ui.price') }} ({{ t('ui.adult') }}):</strong><br>
                             @if ($adultBase !== null && $currency)
                                 {{ \App\Support\Currency\CurrencyPresenter::format($adultBase, $currency) }}
                             @else
@@ -228,44 +230,50 @@
                             @if ($childBase !== null && $currency)
                                 <br>
                                 <span class="small text-muted">
-                                Çocuk:
-                                {{ ((float) $childBase) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($childBase, $currency) }}
-                            </span>
+                                    {{ t('ui.child') }}:
+                                    {{ ((float) $childBase) == 0.0
+                                        ? t('pricing.free')
+                                        : \App\Support\Currency\CurrencyPresenter::format($childBase, $currency)
+                                    }}
+                                </span>
                             @endif
 
                             @if ($infantBase !== null && $currency)
                                 <br>
                                 <span class="small text-muted">
-                                Bebek:
-                                {{ ((float) $infantBase) == 0.0 ? 'Ücretsiz' : \App\Support\Currency\CurrencyPresenter::format($infantBase, $currency) }}
-                            </span>
+                                    {{ t('ui.infant') }}:
+                                    {{ ((float) $infantBase) == 0.0
+                                        ? t('pricing.free')
+                                        : \App\Support\Currency\CurrencyPresenter::format($infantBase, $currency)
+                                    }}
+                                </span>
                             @endif
                         </div>
 
                         @if (!empty($tour['duration']))
                             <div class="col-6 col-lg-4">
-                                <strong>Süre:</strong><br>
+                                <strong>{{ t('ui.duration') }}:</strong><br>
                                 {{ $tour['duration'] }}
                             </div>
                         @endif
 
                         @if (!empty($tour['start_time']))
                             <div class="col-6 col-lg-4">
-                                <strong>Başlangıç Saati:</strong><br>
+                                <strong>{{ t('ui.starting_time') }}:</strong><br>
                                 {{ $tour['start_time'] }}
                             </div>
                         @endif
 
                         @if (!empty($tour['days_of_week']))
                             <div class="col-6 col-lg-4">
-                                <strong>Günler:</strong><br>
-                                {{ collect($tour['days_of_week'])->map(fn($d) => t('weekdays.' . $d))->join(', ') }}
+                                <strong>{{ t('ui.days') }}:</strong><br>
+                                {{ collect($tour['days_of_week'])->map(fn($d) => t('ui.weekdays.' . $d))->join(', ') }}
                             </div>
                         @endif
 
                         @if (!empty($tour['min_age']))
                             <div class="col-6 col-lg-4">
-                                <strong>Minimum Yaş:</strong><br>
+                                <strong>{{ t('ui.min_age') }}:</strong><br>
                                 {{ $tour['min_age'] }}+
                             </div>
                         @endif
@@ -286,7 +294,7 @@
                 {{-- Dahil Olanlar --}}
                 @if (!empty($tour['included_services']))
                     <div class="mb-4 bg-light p-4 rounded shadow-sm">
-                        <h5 class="mb-3">Dahil Olanlar</h5>
+                        <h5 class="mb-3">{{ t('ui.included') }}</h5>
                         <ul class="list-unstyled mb-0">
                             @foreach ($tour['included_services'] as $item)
                                 <li class="mb-2 d-flex align-items-center">
@@ -301,7 +309,7 @@
                 {{-- Dahil Olmayanlar --}}
                 @if (!empty($tour['excluded_services']))
                     <div class="mb-4 bg-light p-4 rounded shadow-sm">
-                        <h5 class="mb-3">Dahil Olmayanlar</h5>
+                        <h5 class="mb-3">{{ t('ui.not_included') }}</h5>
                         <ul class="list-unstyled mb-0">
                             @foreach ($tour['excluded_services'] as $item)
                                 <li class="mb-2 d-flex align-items-center">

@@ -164,28 +164,23 @@
                                             $totalFeatures   = $allFeatures->count();
                                         @endphp
 
-                                        <div class="card shadow-sm h-100">
+                                        <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}" class="card shadow-sm h-100 text-decoration-none">
                                             <div class="card-body">
                                                 <div class="row align-items-center">
 
                                                     {{-- Sol: Görsel --}}
                                                     <div class="col-lg-3 mb-3 mb-lg-0">
-                                                        <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}">
-                                                            <x-responsive-image
-                                                                :image="$hotel->cover_image"
-                                                                preset="listing-card"
-                                                                class="rounded object-fit-cover w-100"
-                                                            />
-                                                        </a>
+                                                        <x-responsive-image
+                                                            :image="$hotel->cover_image"
+                                                            preset="listing-card"
+                                                            class="rounded object-fit-cover w-100"
+                                                        />
                                                     </div>
 
                                                     {{-- Orta: Başlık, yıldız, konum, özellikler --}}
                                                     <div class="col-lg-6 mb-3 mb-lg-0">
                                                         <h4 class="card-title mb-1">
-                                                            <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}"
-                                                               class="text-decoration-none text-dark">
-                                                                {{ $hotelName }}
-                                                            </a>
+                                                            {{ $hotelName }}
                                                         </h4>
 
                                                         @if($stars > 0)
@@ -200,8 +195,8 @@
                                                         @endif
 
                                                         @if ($locationLabel)
-                                                            <div class="text-muted small">
-                                                                <i class="fi fi-rr-marker"></i>
+                                                            <div class="text-muted small d-flex align-items-center">
+                                                                <i class="fi fi-rr-marker me-1"></i>
                                                                 {{ $locationLabel }}
                                                             </div>
                                                         @endif
@@ -216,7 +211,7 @@
 
                                                                 @if ($totalFeatures > $visibleFeatures)
                                                                     <span class="badge bg-transparent text-secondary border">
-                                                                        +{{ $totalFeatures - $visibleFeatures }} daha
+                                                                        +{{ $totalFeatures - $visibleFeatures }} {{ t('hotel_card.more') }}
                                                                     </span>
                                                                 @endif
                                                             </div>
@@ -232,8 +227,8 @@
                                                                     $type   = $hotel->from_price_type ?? null;
 
                                                                     $suffix = match ($type) {
-                                                                        'room_per_night'   => '/ oda',
-                                                                        'person_per_night' => '/ kişi',
+                                                                        'room_per_night'   => '/ ' . t('hotel_card.room'),
+                                                                        'person_per_night' => '/ ' . t('hotel_card.person'),
                                                                         default            => '',
                                                                     };
                                                                 @endphp
@@ -244,27 +239,20 @@
                                                                             {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currencyCode ?? null) }}
                                                                             <span class="text-muted small">{{ $suffix }}</span>
                                                                         </div>
-                                                                        <span class="text-muted small d-block">Gecelik başlayan fiyat</span>
+                                                                        <span class="text-muted small d-block">{{ t('hotel_card.prices_starting_from') }}</span>
                                                                     </div>
                                                                 @else
                                                                     <div class="mb-2">
-                                                                        <span class="text-muted small d-block">Fiyat bulunamadı</span>
+                                                                        <span class="text-muted small d-block">{{ t('hotel_card.price_not_found') }}</span>
                                                                     </div>
                                                                 @endif
-                                                            </div>
-
-                                                            <div class="d-grid mt-1 w-100">
-                                                                <a href="{{ $slug !== '' ? route(app()->getLocale().'.hotel.detail', ['slug' => $slug]) : '#' }}"
-                                                                   class="btn btn-outline-primary mt-2">
-                                                                    Oteli İncele
-                                                                </a>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                 </div>
                                             </div>
-                                        </div>
+                                        </a>
                                     @endforeach
                                 </div>
                             </div>
@@ -291,7 +279,7 @@
 
                 <p>{!! nl2br(e($c['travel_guides']['description'][$loc] ?? '')) !!}</p>
 
-                <a href="#" class="btn btn-outline-secondary btn-sm">Tüm Rehberler</a>
+                <a href="{{ localized_route('guides') }}" class="btn btn-outline-secondary btn-sm">{{ t('nav.guides') }}</a>
             </div>
 
             <div class="col-12 col-xl-8 ps-xl-5">
@@ -299,11 +287,21 @@
                     @foreach($travelGuides as $guide)
                         @php
                             $guideTitle = $pickLocale($guide->title) ?? '';
-                            $guideDesc  = $pickLocale($guide->excerpt ?? []) ?? '';
+
+                            // locale'e göre slug
+                            $guideSlug = $pickLocale($guide->slug) ?? '';
+
+                            // localized url (slug yoksa link devre dışı)
+                            $href = $guideSlug !== ''
+                                ? localized_route('guides.show', ['slug' => $guideSlug])
+                                : '#';
                         @endphp
 
                         <div class="col-xl-6">
-                            <div class="position-relative h-100 rounded overflow-hidden text-white d-flex align-items-end p-4">
+                            <a href="{{ $href }}"
+                               class="position-relative text-light text-decoration-none h-100 rounded overflow-hidden d-flex align-items-end p-4"
+                               style="min-height: 240px">
+
                                 <x-responsive-image
                                     :image="$guide->cover_image"
                                     preset="listing-card"
@@ -311,13 +309,11 @@
                                 />
 
                                 <div class="position-relative z-2">
-                                    <h3 class="fw-bold mt-5">{{ $guideTitle }}</h3>
-                                    <p class="mb-4">{{ $guideDesc }}</p>
-                                    <a href="#" class="btn btn-outline-light">Gezi Rehberi</a>
+                                    <h3 class="fw-bold m-0">{{ $guideTitle }}</h3>
                                 </div>
 
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-75"></div>
-                            </div>
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
+                            </a>
                         </div>
                     @endforeach
                 </div>

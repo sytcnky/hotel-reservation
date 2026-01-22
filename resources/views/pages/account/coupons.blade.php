@@ -14,7 +14,7 @@
 
     <div class="row">
         <div class="col-12">
-            <h4 class="mb-3 h6">Aktif Kuponlarım</h4>
+            <h4 class="mb-3 h6">{{ t('ui.active_coupons') }}</h4>
         </div>
 
         @forelse($activeCoupons as $coupon)
@@ -48,7 +48,7 @@
                                     data-bs-custom-class="coupon-tooltip"
                                     title="{!! $tooltipHtml !!}">
                                 <i class="fi fi-rr-info" aria-hidden="true"></i>
-                                <span class="visually-hidden">Detay</span>
+                                <span class="visually-hidden">{{ t('ui.detail') }}</span>
                             </button>
                         </div>
 
@@ -69,7 +69,7 @@
         @empty
             <div class="col-12">
                 <div class="alert alert-light border">
-                    Şu anda aktif kuponunuz bulunmamaktadır.
+                    {{ t('ui.no_active_coupons') }}
                 </div>
             </div>
         @endforelse
@@ -77,7 +77,7 @@
 
     <div class="row mt-5">
         <div class="col-12">
-            <h4 class="mb-3 h6">Geçmiş Kuponlarım</h4>
+            <h4 class="mb-3 h6">{{ t('ui.old_coupons') }}</h4>
         </div>
 
         @forelse($pastCoupons as $coupon)
@@ -88,13 +88,13 @@
             @endphp
 
             <div class="col-12 col-lg-6 mb-4">
-                <div class="coupon-card mb-3 border border-2 border-dashed rounded p-2 bg-white d-flex align-items-center">
+                <div class="coupon-card mb-3 border border-2 border-dashed rounded p-2 bg-white d-flex align-items-center opacity-50">
                     <div class="coupon-badge border me-2 text-center px-2 py-1">
                         <div class="h2 fw-bolder text-primary mb-0">
                             {{ $coupon['badge_main'] }}
                         </div>
-                        <div class="badge text-bg-secondary">
-                            {{ $statusLabel }}
+                        <div class="badge text-bg-primary">
+                            {{ $badgeLabel }}
                         </div>
                     </div>
 
@@ -110,7 +110,7 @@
                                     data-bs-custom-class="coupon-tooltip"
                                     title="{!! $tooltipHtml !!}">
                                 <i class="fi fi-rr-info" aria-hidden="true"></i>
-                                <span class="visually-hidden">Detay</span>
+                                <span class="visually-hidden">{{ t('ui.detail') }}</span>
                             </button>
                         </div>
 
@@ -131,7 +131,7 @@
         @empty
             <div class="col-12">
                 <div class="alert alert-light border">
-                    Geçmiş kupon kaydınız bulunmamaktadır.
+                    {{ t('ui.no_old_coupons') }}
                 </div>
             </div>
         @endforelse

@@ -1,4 +1,3 @@
-// resources/js/pages/villa-details.js
 import { initDatePicker } from '../ui/date-picker';
 
 export function initVillaDetails() {
@@ -11,9 +10,12 @@ export function initVillaDetails() {
     }
 
     initGuestSync();
-    initPricing(box, dateInput);
+    initPricingPreview(box, dateInput);
 }
 
+/**
+ * Guests UI -> hidden sync (snapshot: adults/children)
+ */
 function initGuestSync() {
     const form = document.getElementById('villa-booking-form');
     if (!form) return;
@@ -30,27 +32,25 @@ function initGuestSync() {
         const a = parseInt(adultInput?.value || '0', 10);
         const c = parseInt(childInput?.value || '0', 10);
 
-        const parts = [];
-        if (a > 0) parts.push(a + ' Yetişkin');
-        if (c > 0) parts.push(c + ' Çocuk');
+        const labelAdult  = guestInput.dataset.labelAdult || '';
+        const labelChild  = guestInput.dataset.labelChild || '';
+        const placeholder = guestInput.dataset.placeholder || '';
 
-        guestInput.value = parts.join(', ');
+        const parts = [];
+        if (a > 0 && labelAdult) parts.push(`${a} ${labelAdult}`);
+        if (c > 0 && labelChild) parts.push(`${c} ${labelChild}`);
+
+        guestInput.value = parts.length ? parts.join(', ') : placeholder;
     }
 
     function syncHidden() {
-        if (hiddenAdults && adultInput) {
-            hiddenAdults.value = adultInput.value || '0';
-        }
-        if (hiddenChilds && childInput) {
-            hiddenChilds.value = childInput.value || '0';
-        }
+        if (hiddenAdults && adultInput) hiddenAdults.value = adultInput.value || '0';
+        if (hiddenChilds && childInput) hiddenChilds.value = childInput.value || '0';
     }
 
-    // İlk state
     syncHidden();
     updateGuestDisplay();
 
-    // +/- click sonrası sync
     form.addEventListener('click', (e) => {
         const btn = e.target?.closest?.('button.plus, button.minus');
         if (!btn) return;
@@ -61,25 +61,24 @@ function initGuestSync() {
         }, 0);
     });
 
-    // Submit öncesi kesin senkron
     form.addEventListener('submit', () => {
         syncHidden();
     });
 }
 
-function initPricing(box, dateInput) {
+/**
+ * Pricing PREVIEW only (no snapshot, no authority)
+ */
+function initPricingPreview(box, dateInput) {
     const form = document.getElementById('villa-booking-form');
 
-    const basePrice  = parseFloat(box.dataset.price || '0');      // gecelik
-    const currency   = box.dataset.currency || 'TRY';
-    const prepayRate = parseFloat(box.dataset.prepayment || '0'); // yüzde
+    // Server’dan gelen preview verileri (otorite DEĞİL)
+    const basePrice  = parseFloat(box.dataset.price || '');
+    const prepayRate = parseFloat(box.dataset.prepayment || '0');
+    const minNights  = box.dataset.minNights ? parseInt(box.dataset.minNights, 10) : 0;
+    const maxNights  = box.dataset.maxNights ? parseInt(box.dataset.maxNights, 10) : 0;
 
-    const minNightsAttr = box.dataset.minNights;
-    const maxNightsAttr = box.dataset.maxNights;
-
-    const MIN_NIGHTS = minNightsAttr ? parseInt(minNightsAttr, 10) : 0;
-    const MAX_NIGHTS = maxNightsAttr ? parseInt(maxNightsAttr, 10) : 0;
-
+    // UI elemanları
     const elBefore     = document.getElementById('price-before-selection');
     const elAfter      = document.getElementById('price-after-selection');
     const elNightly    = document.getElementById('price-nightly');
@@ -89,41 +88,31 @@ function initPricing(box, dateInput) {
     const elMinNights  = document.getElementById('min-nights-feedback');
     const elMaxNights  = document.getElementById('max-nights-feedback');
 
-    const hiddenCheckin      = document.getElementById('hidden-checkin');
-    const hiddenCheckout     = document.getElementById('hidden-checkout');
-    const hiddenNights       = document.getElementById('villa-nights');
-    const hiddenPriceNightly = document.getElementById('villa-price-nightly');
-    const hiddenPricePrepay  = document.getElementById('villa-price-prepayment');
-    const hiddenPriceTotal   = document.getElementById('villa-price-total');
+    // Hidden (yalnızca tarih/nights)
+    const hiddenCheckin  = document.getElementById('hidden-checkin');
+    const hiddenCheckout = document.getElementById('hidden-checkout');
+    const hiddenNights   = document.getElementById('villa-nights');
 
-    function formatMoney(value) {
-        return (
-            new Intl.NumberFormat('tr-TR', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-            }).format(value) +
-            ' ' +
-            currency
-        );
-    }
+    const uiLocale = (document.documentElement.lang || 'en').trim();
 
-    function clearHidden() {
-        if (hiddenCheckin) hiddenCheckin.value = '';
-        if (hiddenCheckout) hiddenCheckout.value = '';
-        if (hiddenNights) hiddenNights.value = '';
-        if (hiddenPriceNightly) hiddenPriceNightly.value = '';
-        if (hiddenPricePrepay) hiddenPricePrepay.value = '';
-        if (hiddenPriceTotal) hiddenPriceTotal.value = '';
+    function formatNumber(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '';
+        return new Intl.NumberFormat(uiLocale, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(n);
     }
 
     function resetState() {
         if (elBefore) elBefore.classList.remove('d-none');
         if (elAfter) elAfter.classList.add('d-none');
-
         if (elMinNights) elMinNights.classList.add('d-none');
         if (elMaxNights) elMaxNights.classList.add('d-none');
 
-        clearHidden();
+        if (hiddenCheckin) hiddenCheckin.value = '';
+        if (hiddenCheckout) hiddenCheckout.value = '';
+        if (hiddenNights) hiddenNights.value = '';
     }
 
     function setInvalid(on) {
@@ -132,37 +121,30 @@ function initPricing(box, dateInput) {
     }
 
     function hasSelection() {
-        // Bizim için kriter: hiddenCheckin doluysa seçim yapılmış say.
         return !!(hiddenCheckin && hiddenCheckin.value && hiddenCheckin.value.trim());
     }
 
-    // -----------------------------
-    // Date picker
-    // -----------------------------
     initDatePicker({
         el: dateInput,
-        // NOT: burada contract muhtemelen yanlış (excursion). Senin gerçek villa contract adın neyse onu kullanmalısın.
-        contract: 'villa_range_ui_dmy',
-        locale: document.documentElement.lang,
+        contract: 'villa_range_ui_dmy_alt',
+        locale: uiLocale,
         hooks: {
             onClear: () => {
                 resetState();
-                // user submit edip invalid olduysa, temizleyince invalid kalsın
-                // (submit'te tekrar basılacak). burada zorla kaldırmıyoruz.
             },
             onValidChange: (p) => {
                 const nights = Number(p?.nights || 0);
 
                 let invalid = false;
 
-                if (MIN_NIGHTS && nights < MIN_NIGHTS) {
+                if (minNights && nights < minNights) {
                     invalid = true;
                     if (elMinNights) elMinNights.classList.remove('d-none');
                 } else if (elMinNights) {
                     elMinNights.classList.add('d-none');
                 }
 
-                if (MAX_NIGHTS && nights > MAX_NIGHTS) {
+                if (maxNights && nights > maxNights) {
                     invalid = true;
                     if (elMaxNights) elMaxNights.classList.remove('d-none');
                 } else if (elMaxNights) {
@@ -172,69 +154,46 @@ function initPricing(box, dateInput) {
                 if (invalid) {
                     if (elBefore) elBefore.classList.remove('d-none');
                     if (elAfter) elAfter.classList.add('d-none');
-                    clearHidden();
-                    // range geçersizse tarih alanını invalid yap (kırmızı kalsın)
+                    resetState();
                     setInvalid(true);
                     return;
                 }
 
-                const total      = basePrice * nights;
-                const prepayment = Math.round(total * (prepayRate / 100));
+                // PREVIEW hesaplama
+                const total  = Number.isFinite(basePrice) ? basePrice * nights : 0;
+                const prepay = Math.round(total * (prepayRate / 100));
 
-                if (elNightly) elNightly.textContent = formatMoney(basePrice);
+                if (elNightly) elNightly.textContent = formatNumber(basePrice);
                 if (elNights) elNights.textContent = String(nights);
-                if (elPrepayment) elPrepayment.textContent = formatMoney(prepayment);
-                if (elTotal) elTotal.textContent = formatMoney(total);
+                if (elPrepayment) elPrepayment.textContent = formatNumber(prepay);
+                if (elTotal) elTotal.textContent = formatNumber(total);
 
                 if (elBefore) elBefore.classList.add('d-none');
                 if (elAfter) elAfter.classList.remove('d-none');
 
-                if (hiddenCheckin) hiddenCheckin.value = p?.ymdStart || '';
-                if (hiddenCheckout) hiddenCheckout.value = p?.ymdEnd || '';
+                const raw = (dateInput.value || '').trim(); // "YYYY-mm-dd - YYYY-mm-dd"
+                const parts = raw.split(' - ').map(s => s.trim());
+                if (hiddenCheckin) hiddenCheckin.value = parts[0] || '';
+                if (hiddenCheckout) hiddenCheckout.value = parts[1] || '';
                 if (hiddenNights) hiddenNights.value = String(nights);
 
-                if (hiddenPriceNightly) hiddenPriceNightly.value = basePrice.toFixed(2);
-                if (hiddenPricePrepay) hiddenPricePrepay.value = prepayment.toFixed(2);
-                if (hiddenPriceTotal) hiddenPriceTotal.value = total.toFixed(2);
-
-                // valid seçim yapıldı → kırmızıyı kaldır
                 setInvalid(false);
             },
         },
     });
 
-    // İlk yüklemede temiz state garanti
     resetState();
 
-    // -----------------------------
-    // Client-side validate (villa-booking-form)
-    // -----------------------------
+    // Sadece tarih seçilmiş mi? (UX)
     if (form) {
         form.setAttribute('novalidate', 'novalidate');
 
         form.addEventListener('submit', (e) => {
-            let ok = true;
-
-            // Tarih zorunlu: selection yoksa invalid
             if (!hasSelection()) {
                 setInvalid(true);
-                ok = false;
-            }
-
-            if (!ok) {
                 e.preventDefault();
                 e.stopPropagation();
             }
         });
     }
-
-    // kullanıcı input'u değiştirdiğinde (flatpickr manuel yazdırıyorsa) invalid temizliği
-    dateInput.addEventListener('input', () => {
-        if (dateInput.value && dateInput.value.trim()) {
-            // sadece görüntü var ama hidden yoksa yine de hemen temizlemeyelim,
-            // asıl temizliği onValidChange yapıyor.
-            // burada sadece boş değilse "kullanıcı bir şey yaptı" diye kırmızıyı kaldırmak istersen:
-            // setInvalid(false);
-        }
-    });
 }
