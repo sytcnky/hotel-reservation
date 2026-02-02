@@ -156,6 +156,7 @@
                                    id="guestInput"
                                    class="form-control guest-wrapper"
                                    placeholder="Yolcu sayısı seçin"
+                                   data-placeholder="Yolcu sayısı seçin"
                                    value="{{ $giText }}"
                                    readonly
                                    data-label-adult="{{ t('ui.adult') }}"
@@ -236,12 +237,6 @@
                 </div>
             </form>
         </div>
-
-        @if ($errors->any())
-            <div class="alert alert-danger mt-3">
-                {{ $errors->first() }}
-            </div>
-        @endif
 
         {{-- Teklif Kartı: sadece uygun teklif varsa --}}
         @if(!empty($transferOffer))
@@ -386,6 +381,7 @@
                             <input type="hidden" name="route_id" value="{{ $transferOffer['route_id'] }}">
                             <input type="hidden" name="vehicle_id" value="{{ $transferOffer['vehicle_id'] }}">
                             <input type="hidden" name="direction" value="{{ $transferOffer['direction'] }}">
+
                             <input type="hidden" name="from_location_id" value="{{ $transferOffer['from_location_id'] }}">
                             <input type="hidden" name="to_location_id" value="{{ $transferOffer['to_location_id'] }}">
                             <input type="hidden" name="departure_date" value="{{ $transferOffer['departure_date'] }}">
@@ -393,9 +389,6 @@
                             <input type="hidden" name="adults" value="{{ $transferOffer['adults'] }}">
                             <input type="hidden" name="children" value="{{ $transferOffer['children'] }}">
                             <input type="hidden" name="infants" value="{{ $transferOffer['infants'] }}">
-                            <input type="hidden" name="from_label" value="{{ $fromLabel }}">
-                            <input type="hidden" name="to_label" value="{{ $toLabel }}">
-                            <input type="hidden" name="vehicle_name" value="{{ $transferOffer['vehicle_name'] ?? '' }}">
 
                             <div class="bg-light p-3 mt-3 rounded">
                                 <div class="row">
@@ -445,7 +438,7 @@
                                                    id="flight_number_outbound"
                                                    name="flight_number_outbound"
                                                    class="form-control"
-                                                   placeholder="TK1234"
+                                                   placeholder="{{ t('ui.flight_number_example') }}"
                                                    disabled>
                                         </div>
                                     </div>
@@ -497,7 +490,7 @@
                                                        id="flight_number_return"
                                                        name="flight_number_return"
                                                        class="form-control"
-                                                       placeholder="Örn: TK1235"
+                                                       placeholder="{{ t('ui.flight_number_example') }}"
                                                        disabled>
                                             </div>
                                         </div>
@@ -505,7 +498,7 @@
 
                                     <div class="col-12">
                                         <div id="bookPairError" class="text-danger small d-none">
-                                            {{ t('ui.return.flight_number') }}Seçili alanda bilgi girmelisiniz. (Saat veya Uçuş Numarası)
+                                            {{ t('msg.err.transfer.pickup_pair_required') }}
                                         </div>
                                     </div>
                                 </div>

@@ -18,7 +18,9 @@ class TourBookingRequest extends FormRequest
     {
         return [
             'tour_id'   => ['required', 'integer'],
-            'tour_name' => ['required', 'string'],
+
+            // display/name/label: server-derived (S0-1)
+            'tour_name' => ['prohibited'],
 
             // strict: Y-m-d (civil date)
             'date'      => ['required', 'date_format:Y-m-d'],
@@ -27,19 +29,20 @@ class TourBookingRequest extends FormRequest
             'children'  => ['nullable', 'integer', 'min:0'],
             'infants'   => ['nullable', 'integer', 'min:0'],
 
-            // Currency + price alanları client’tan gelebilir ama authoritative DEĞİL
-            'currency'    => ['nullable', 'string', 'size:3'],
-            'price_total' => ['nullable', 'numeric', 'min:0'],
+            // currency + price: server authoritative
+            'currency'    => ['prohibited'],
+            'price_total' => ['prohibited'],
+
+            // snapshot display alanları: server-derived
+            'cover_image'    => ['prohibited'],
+            'category_name'  => ['prohibited'],
         ];
     }
 
     protected function passedValidation(): void
     {
         $this->merge([
-            'date'     => $this->normalizeDateToYmd($this->input('date')),
-
-            // normalize edilir ama authoritative değildir
-            'currency' => $this->normalizeCurrency($this->input('currency')),
+            'date' => $this->normalizeDateToYmd($this->input('date')),
         ]);
     }
 }

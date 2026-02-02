@@ -30,13 +30,11 @@
 
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        @if($errors->has('payment'))
-                            <div class="alert alert-danger">{{ $errors->first('payment') }}</div>
-                        @endif
-
-                        @if(!$errors->has('payment') && !empty($attemptError))
-                            <div class="alert alert-danger">{{ $attemptError }}</div>
-                        @endif
+                        {{-- Sprint 4: ikinci mesaj kanalı yok.
+                             Mesajlar yalnızca resources/views/partials/alerts.blade.php üzerinden akar:
+                             - session('notices')
+                             - $errors->first('global')
+                        --}}
 
                         <form method="post"
                               id="paymentForm"

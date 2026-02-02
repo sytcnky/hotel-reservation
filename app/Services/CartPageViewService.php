@@ -47,7 +47,7 @@ class CartPageViewService
                 'cartSubtotal'          => 0.0,
                 'cartCurrency'          => null,
                 'cartCoupons'           => [],
-                'appliedCouponIds'       => [],
+                'appliedCouponIds'      => [],
                 'couponDiscountTotal'   => 0.0,
                 'cartCampaigns'         => [],
                 'campaignDiscountTotal' => 0.0,
@@ -57,6 +57,7 @@ class CartPageViewService
 
         [$cartSubtotal, $cartCurrency] = $this->cartInvariant->computeSubtotalAndCurrency($items);
 
+        // Scoped notices kaldırıldı — cart item’lar aynen kullanılır
         $cartItems = $items;
 
         $cartCoupons         = [];
@@ -71,9 +72,7 @@ class CartPageViewService
         if ($user && $cartSubtotal > 0 && $cartCurrency) {
             $userCurrency = CurrencyContext::code($request);
 
-            // -----------------------------
             // Kuponlar (mevcut akış)
-            // -----------------------------
             $cartCoupons = $this->couponVm->buildCartCouponsForUser(
                 $user,
                 $userCurrency,
@@ -106,9 +105,7 @@ class CartPageViewService
             }
             unset($vm);
 
-            // -----------------------------
             // Kampanyalar (mevcut akış)
-            // -----------------------------
             $cartCampaigns = $this->campaignVm->buildCartCampaignsForUser(
                 $user,
                 $cartItems,

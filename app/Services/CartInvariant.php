@@ -127,6 +127,5 @@ class CartInvariant
     public function resetCart(): void
     {
         session()->forget('cart');
-        session()->forget('cart.applied_coupons');
     }
 }

@@ -149,6 +149,7 @@
                                        id="guestInput"
                                        class="form-control guest-wrapper"
                                        placeholder="{{ t('ui.guest.placeholder') }}"
+                                       data-placeholder="{{ t('ui.guest.placeholder') }}"
                                        readonly
                                        data-label-adult="{{ t('ui.adult') }}"
                                        data-label-child="{{ t('ui.child') }}"

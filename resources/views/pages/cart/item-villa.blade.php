@@ -21,10 +21,15 @@
     $nightly      = (float)($s['price_nightly']    ?? 0);
     $prepayment   = (float)($s['price_prepayment'] ?? $amount);
     $total        = (float)($s['price_total']      ?? $amount);
+
+    // Villa kontratı: prepayment = sistemde tahsil edilen nihai tutar (total kavramı eşitlenmiş durumda).
+    // Kalan ödeme ev sahibine elden → UI'da kalan gösterimi opsiyonel ama tutarlı kalsın.
     $remaining    = max($total - $prepayment, 0);
 
     // Lokasyon etiketi (opsiyonel)
     $locationLabel = $s['location_label'] ?? null;
+
+    $notices = (array) ($ci['notices'] ?? []);
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -39,6 +44,28 @@
     </form>
 
     <div class="card-body">
+
+        {{-- Scoped notices (entity içi) --}}
+        @if (!empty($notices))
+            <div class="mb-2">
+                @foreach ($notices as $n)
+                    @php
+                        $code   = is_array($n) ? ($n['code'] ?? null) : null;
+                        $params = is_array($n) ? (array) ($n['params'] ?? []) : [];
+                        $level  = is_array($n) ? (string) ($n['level'] ?? 'error') : 'error';
+
+                        $cls = $level === 'info' ? 'alert alert-info' : 'alert alert-danger';
+                    @endphp
+
+                    @if (is_string($code) && trim($code) !== '')
+                        <div class="{{ $cls }} py-2 mb-2">
+                            {{ t($code, $params) }}
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        @endif
+
         <div class="row g-3 align-items-center">
 
             {{-- Görsel --}}
@@ -63,10 +90,10 @@
 
                 <div class="text-muted small">
                     @if ($locationLabel)
-                    <div class="mb-1">
-                        <i class="fi fi-rr-marker"></i>
-                        {{ $locationLabel }}
-                    </div>
+                        <div class="mb-1">
+                            <i class="fi fi-rr-marker"></i>
+                            {{ $locationLabel }}
+                        </div>
                     @endif
 
                     @if ($checkinYmd && $checkoutYmd)
@@ -87,13 +114,13 @@
                     @endif
 
                     @if ($adults || $children)
-                    <div>
-                        <i class="fi fi-rr-users"></i>
-                        {{ $adults }} Yetişkin
-                        @if ($children)
-                        , {{ $children }} Çocuk
-                        @endif
-                    </div>
+                        <div>
+                            <i class="fi fi-rr-users"></i>
+                            {{ $adults }} Yetişkin
+                            @if ($children)
+                                , {{ $children }} Çocuk
+                            @endif
+                        </div>
                     @endif
                 </div>
             </div>
@@ -101,24 +128,24 @@
             {{-- Fiyat --}}
             <div class="col-12 col-md-3 text-md-end">
                 @if ($prepayment > 0)
-                <div class="fw-bold fs-5 text-primary">
-                    <small>Ön ödeme:</small><br>
-                    {{ \App\Support\Currency\CurrencyPresenter::format($prepayment, $currency) }}
-                </div>
-                <div class="small text-muted">
-                    Kalan: {{ \App\Support\Currency\CurrencyPresenter::format($remaining, $currency) }}
-                    <i class="fi fi-rr-info"
-                       data-bs-toggle="tooltip"
-                       data-bs-placement="top"
-                       title="Kalan ücret konaklama sırasında alınır."></i>
-                </div>
-                <div class="small text-muted">
-                    Toplam: {{ \App\Support\Currency\CurrencyPresenter::format($total, $currency) }}
-                </div>
+                    <div class="fw-bold fs-5 text-primary">
+                        <small>Ön ödeme:</small><br>
+                        {{ \App\Support\Currency\CurrencyPresenter::format($prepayment, $currency) }}
+                    </div>
+                    <div class="small text-muted">
+                        Kalan: {{ \App\Support\Currency\CurrencyPresenter::format($remaining, $currency) }}
+                        <i class="fi fi-rr-info"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Kalan ücret konaklama sırasında alınır."></i>
+                    </div>
+                    <div class="small text-muted">
+                        Toplam: {{ \App\Support\Currency\CurrencyPresenter::format($total, $currency) }}
+                    </div>
                 @else
-                <div class="fw-bold fs-5 text-primary">
-                    {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currency) }}
-                </div>
+                    <div class="fw-bold fs-5 text-primary">
+                        {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currency) }}
+                    </div>
                 @endif
             </div>
         </div>

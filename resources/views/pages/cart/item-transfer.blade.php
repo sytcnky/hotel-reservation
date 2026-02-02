@@ -12,10 +12,11 @@
 
     $amount   = (float)($ci['amount'] ?? 0);
     $currency = $ci['currency'] ?? null;
+
+    $notices = is_array($ci['notices'] ?? null) ? $ci['notices'] : [];
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
-    {{-- Sil butonu --}}
     <form method="POST"
           action="{{ route('cart.remove', ['key' => $key]) }}"
           class="position-absolute top-0 end-0 m-2">
@@ -52,6 +53,24 @@
                     →
                     {{ $s['to_label'] ?? $s['to_location_id'] ?? '' }}
                 </h5>
+
+                @if (!empty($notices))
+                    <div class="mt-2">
+                        @foreach ($notices as $n)
+                            @php
+                                $code   = (string) ($n['code'] ?? '');
+                                $params = is_array($n['params'] ?? null) ? $n['params'] : [];
+                                $level  = (string) ($n['level'] ?? 'error');
+                                $cls    = $level === 'warning' ? 'alert-warning' : 'alert-danger';
+                            @endphp
+                            @if ($code !== '')
+                                <div class="alert {{ $cls }} py-2 px-3 mb-2">
+                                    {{ t($code, $params) }}
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="text-muted small">
                     @if (!empty($s['departure_date']))

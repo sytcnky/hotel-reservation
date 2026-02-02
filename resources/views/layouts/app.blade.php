@@ -20,7 +20,10 @@
 <body data-page="{{ $pageKey ?? '' }}">
 @include('partials.header')
 
-<main>@yield('content')</main>
+<main>
+    @include('partials.alerts')
+    @yield('content')
+</main>
 
 @include('partials.footer')
 @include('partials.mobile-bottom-nav')

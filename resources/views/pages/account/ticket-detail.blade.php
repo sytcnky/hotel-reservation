@@ -171,7 +171,10 @@
                                 id="addAttachmentBtn"
                                 class="btn btn-secondary text-light btn-sm mt-3"
                                 data-text-add="{{ t('account.tickets.attachments.add') }}"
-                                data-text-add-more="{{ t('account.tickets.attachments.add_more') }}">
+                                data-text-add-more="{{ t('account.tickets.attachments.add_more') }}"
+                                data-msg-file-too-large="{{ t('msg.err.account.tickets.attachments.errors.too_large') }}"
+                                data-msg-file-type-unsupported="{{ t('msg.err.account.tickets.attachments.errors.type_unsupported') }}"
+                                data-msg-file-invalid-generic="{{ t('msg.err.account.tickets.attachments.errors.invalid_generic') }}">
                             <i class="fi-br-plus align-middle"></i>
                             <span id="addAttachmentBtnText">
                                 {{ t('account.tickets.attachments.add') }}

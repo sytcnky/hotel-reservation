@@ -108,7 +108,6 @@ class SupportTicketsController extends Controller
         ]);
     }
 
-
     public function store(Request $request)
     {
         $user = $request->user();
@@ -123,18 +122,24 @@ class SupportTicketsController extends Controller
                 'attachments.*' => ['file', 'max:2048', 'mimes:jpg,jpeg,png,webp'],
             ],
             [
-                'attachments.*.mimes' => 'Dosya türü desteklenmiyor. Lütfen .jpg, .jpeg, .png veya .webp yükleyin.',
-                'attachments.*.max' => 'Dosya boyutu çok büyük. Lütfen 2MB\'dan küçük bir dosya yükleyin.',
-                'attachments.*.uploaded' => 'Dosya yüklenemedi. Lütfen farklı bir dosya deneyin.',
+                // array max:5
+                'attachments.max' => 'msg.err.account.tickets.attachments.errors.too_many',
+
+                // file validations
+                'attachments.*.mimes' => 'msg.err.account.tickets.attachments.errors.type_unsupported',
+                'attachments.*.max' => 'msg.err.account.tickets.attachments.errors.too_large',
+                'attachments.uploaded' => 'msg.err.account.tickets.attachments.errors.invalid_generic',
+                'attachments.*.uploaded' => 'msg.err.account.tickets.attachments.errors.invalid_generic',
             ]
         );
 
         /** @var SupportTicketCategory $category */
         $category = SupportTicketCategory::query()->findOrFail($data['support_ticket_category_id']);
 
+        // order zorunlu ise
         if ($category->requires_order && empty($data['order_id'])) {
             throw ValidationException::withMessages([
-                'order_id' => __('validation.required'),
+                'order_id' => 'msg.err.account.tickets.order_required',
             ]);
         }
 
@@ -151,7 +156,7 @@ class SupportTicketsController extends Controller
 
             if ($existing) {
                 throw ValidationException::withMessages([
-                    'order_id' => 'Bu sipariş için zaten bir destek talebi bulunmaktadır.',
+                    'order_id' => 'msg.err.account.tickets.order_already_has_ticket',
                 ]);
             }
         }
@@ -191,14 +196,14 @@ class SupportTicketsController extends Controller
             }
         });
 
-        // ✅ Ops mail: müşteri yeni destek talebi oluşturdu
+        // Ops mail: müşteri yeni destek talebi oluşturdu
         if ($ticketId && $messageId) {
             dispatch(new SendSupportTicketCreatedOpsEmail($ticketId, $messageId));
         }
 
         return redirect()
             ->to(localized_route('account.tickets.show', ['ticket' => $ticketId]))
-            ->with('success', __('account.support_tickets.created'));
+            ->with('success', 'msg.ok.account.support_tickets.created');
     }
 
     public function storeMessage(Request $request, SupportTicket $ticket)
@@ -214,9 +219,14 @@ class SupportTicketsController extends Controller
                 'attachments.*' => ['file', 'max:2048', 'mimes:jpg,jpeg,png,webp'],
             ],
             [
-                'attachments.*.mimes' => 'Dosya türü desteklenmiyor. Lütfen .jpg, .jpeg, .png veya .webp yükleyin.',
-                'attachments.*.max' => 'Dosya boyutu çok büyük. Lütfen 2MB\'dan küçük bir dosya yükleyin.',
-                'attachments.*.uploaded' => 'Dosya yüklenemedi. Lütfen farklı bir dosya deneyin.',
+                // array max:5
+                'attachments.max' => 'msg.err.account.tickets.attachments.errors.too_many',
+
+                // file validations
+                'attachments.*.mimes' => 'msg.err.account.tickets.attachments.errors.type_unsupported',
+                'attachments.*.max' => 'msg.err.account.tickets.attachments.errors.too_large',
+                'attachments.uploaded' => 'msg.err.account.tickets.attachments.errors.invalid_generic',
+                'attachments.*.uploaded' => 'msg.err.account.tickets.attachments.errors.invalid_generic',
             ]
         );
 
@@ -253,6 +263,6 @@ class SupportTicketsController extends Controller
             dispatch(new SendSupportTicketCustomerMessageOpsEmail($messageId));
         }
 
-        return redirect()->back()->with('success', __('account.support_tickets.message_sent'));
+        return redirect()->back()->with('success', 'msg.ok.account.support_tickets.message_sent');
     }
 }

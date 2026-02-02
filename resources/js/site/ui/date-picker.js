@@ -35,7 +35,7 @@ const CONTRACTS = Object.freeze({
         writeInputValue: true,
     },
 
-    // Hotel details: submit d.m.Y - d.m.Y, UI same
+    // Hotel details: submit Y-m-d - Y-m-d, UI d.m.Y - d.m.Y
     hotel_details_range_ymd_alt: {
         mode: 'range',
         submitFormat: 'Y-m-d',
@@ -43,7 +43,7 @@ const CONTRACTS = Object.freeze({
         useAltInput: true,
         rangeSeparator: RANGE_SEP,
         minDate: 'today',
-        writeInputValue: true, // flatpickr handles it (dateFormat == UI)
+        writeInputValue: true,
     },
 
     // Transfer: submit Y-m-d, UI d.m.Y
@@ -57,7 +57,7 @@ const CONTRACTS = Object.freeze({
         writeInputValue: true,
     },
 
-    // Excursion: submit d.m.Y, UI same
+    // Excursion: submit Y-m-d, UI d.m.Y
     excursion_single_ymd_alt: {
         mode: 'single',
         submitFormat: 'Y-m-d',
@@ -163,7 +163,6 @@ function fixAltInputInsideBootstrapInputGroup(originalEl, instance) {
     if (!group.contains(hiddenInput)) return;
 
     // Ensure altInput looks/behaves like original input in Bootstrap
-    // (flatpickr may not keep all classes)
     const originalClasses = (originalEl.className || '').split(' ').filter(Boolean);
     for (const cls of originalClasses) {
         altInput.classList.add(cls);
@@ -235,16 +234,13 @@ export function initDatePicker(config) {
             ? { ...(localeObj || {}), rangeSeparator: contract.rangeSeparator || RANGE_SEP }
             : (localeObj || undefined),
 
-        // Submit value format (or UI format when useAltInput=false)
         dateFormat: contract.submitFormat,
         allowInput: true,
 
-        // Range separator if applicable
         ...(contract.mode === 'range' && contract.rangeSeparator
             ? { rangeSeparator: contract.rangeSeparator }
             : {}),
 
-        // UI display unification
         ...(contract.useAltInput
             ? {
                 altInput: true,
@@ -253,26 +249,25 @@ export function initDatePicker(config) {
             : {}),
 
         onReady: (selectedDates, _dateStr, instance) => {
-            // Bootstrap input-group + altInput fix
             if (contract.useAltInput) {
                 fixAltInputInsideBootstrapInputGroup(el, instance);
             }
-
-            // If there is an initial selected date already, make sure hooks can react deterministically
-            // (no change to existing behavior; onChange handles later interactions)
-            // Intentionally no extra emissions here.
         },
 
         onChange: (selectedDates, _dateStr, instance) => {
             // Clear
             if (!selectedDates || selectedDates.length === 0) {
+                if (contract.writeInputValue) {
+                    el.value = '';
+                }
+
                 if (typeof hooks.onClear === 'function') {
                     hooks.onClear();
                 }
                 return;
             }
 
-            // If contract wants deterministic input.value writing (submit contract)
+            // Deterministic input.value writing (submit contract)
             if (contract.writeInputValue) {
                 if (contract.mode === 'single') {
                     const d = selectedDates[0];
@@ -293,7 +288,6 @@ export function initDatePicker(config) {
                 }
             }
 
-            // Hook payload
             if (typeof hooks.onValidChange === 'function') {
                 const payload = buildPayload({
                     contract,
@@ -301,7 +295,6 @@ export function initDatePicker(config) {
                     selectedDates,
                 });
 
-                // For range, only "valid" when both dates selected.
                 if (contract.mode === 'range') {
                     if (payload.start && payload.end) {
                         hooks.onValidChange(payload);

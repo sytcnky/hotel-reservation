@@ -7,10 +7,53 @@ use App\Services\CartInvariant;
 use App\Services\CartPageViewService;
 use App\Services\CouponViewModelService;
 use App\Support\Helpers\CurrencyHelper;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    /**
+     * @param 'err'|'warn'|'notice'|'ok' $level
+     */
+    private function redirectNotice(string $toUrl, string $level, string $code, array $params = []): RedirectResponse
+    {
+        $level = in_array($level, ['err', 'warn', 'notice', 'ok'], true) ? $level : 'notice';
+
+        $code = is_string($code) ? trim($code) : '';
+        if ($code === '') {
+            return redirect()->to($toUrl);
+        }
+
+        return redirect()
+            ->to($toUrl)
+            ->with('notices', [[
+                'level'  => $level,
+                'code'   => $code,
+                'params' => is_array($params) ? $params : [],
+            ]]);
+    }
+
+    /**
+     * @param 'err'|'warn'|'notice'|'ok' $level
+     */
+    private function backNotice(string $level, string $code, array $params = []): RedirectResponse
+    {
+        $level = in_array($level, ['err', 'warn', 'notice', 'ok'], true) ? $level : 'notice';
+
+        $code = is_string($code) ? trim($code) : '';
+        if ($code === '') {
+            return redirect()->back();
+        }
+
+        return redirect()
+            ->back()
+            ->with('notices', [[
+                'level'  => $level,
+                'code'   => $code,
+                'params' => is_array($params) ? $params : [],
+            ]]);
+    }
+
     public function index(
         Request $request,
         CartPageViewService $cartPage,
@@ -18,25 +61,25 @@ class CartController extends Controller
     ) {
         $data = $cartPage->buildIndexViewData($request);
 
-        // Mixed currency guard (fail-fast) — mevcut davranış: mismatch => cart reset + redirect err
-        if (!empty($data['guard_triggered'])) {
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'err_cart_currency_mismatch');
+        // Mixed currency guard (fail-fast)
+        if (! empty($data['guard_triggered'])) {
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.cart.currency_mismatch'
+            );
         }
 
         return view('pages.cart.index', [
-            'cartItems'           => $data['cartItems'],
-            'cartSubtotal'        => $data['cartSubtotal'],
-            'cartCurrency'        => $data['cartCurrency'],
-            'cartCoupons'         => $data['cartCoupons'],
-            'couponDiscountTotal' => $data['couponDiscountTotal'],
-            'finalTotal'          => $data['finalTotal'],
-
+            'cartItems'             => $data['cartItems'],
+            'cartSubtotal'          => $data['cartSubtotal'],
+            'cartCurrency'          => $data['cartCurrency'],
+            'cartCoupons'           => $data['cartCoupons'],
+            'couponDiscountTotal'   => $data['couponDiscountTotal'],
+            'finalTotal'            => $data['finalTotal'],
             'cartCampaigns'         => $data['cartCampaigns'],
             'campaignDiscountTotal' => $data['campaignDiscountTotal'],
-
-            'campaigns' => $campaignPlacement->buildForPlacement('basket'),
+            'campaigns'             => $campaignPlacement->buildForPlacement('basket'),
         ]);
     }
 
@@ -49,15 +92,13 @@ class CartController extends Controller
 
             if (empty($items)) {
                 session()->forget('cart');
-                session()->forget('cart.applied_coupons');
             } else {
                 session(['cart.items' => $items]);
             }
         }
 
-        return redirect()
-            ->back()
-            ->with('ok', 'cart_item_removed');
+        // Sessiz dönüş (msg yok)
+        return redirect()->back();
     }
 
     public function applyCoupon(
@@ -69,7 +110,11 @@ class CartController extends Controller
         if (! $user) {
             return redirect()
                 ->route('login', ['redirect' => '/cart'])
-                ->with('err', 'err_login_required');
+                ->with('notices', [[
+                    'level'  => 'err',
+                    'code'   => 'msg.err.auth.login_required',
+                    'params' => [],
+                ]]);
         }
 
         $userCouponId = (int) $request->input('user_coupon_id');
@@ -78,24 +123,18 @@ class CartController extends Controller
         $items = (array) ($cart['items'] ?? []);
 
         if (empty($items)) {
-            return redirect()
-                ->back()
-                ->with('err', 'err_cart_empty');
+            return $this->backNotice('err', 'msg.err.cart.empty');
         }
 
-        // Mixed currency guard (fail-fast) — mevcut davranış: mismatch => cart reset + err
+        // Currency invariant
         if ($cartInvariant->resetIfCurrencyMismatch($items)) {
-            return redirect()
-                ->back()
-                ->with('err', 'err_cart_currency_mismatch');
+            return $this->backNotice('err', 'msg.err.cart.currency_mismatch');
         }
 
         [$cartSubtotal, $cartCurrency] = $cartInvariant->computeSubtotalAndCurrency($items);
 
         if ((float) $cartSubtotal <= 0 || ! $cartCurrency) {
-            return redirect()
-                ->back()
-                ->with('err', 'err_no_amount');
+            return $this->backNotice('err', 'msg.err.cart.no_amount');
         }
 
         $userCurrency = CurrencyHelper::currentCode();
@@ -109,19 +148,17 @@ class CartController extends Controller
 
         $target = collect($cartCoupons)->firstWhere('id', $userCouponId);
 
+        // Uygulanamaz kupon → GLOBAL hata (notices)
         if (! $target || empty($target['is_applicable'])) {
-            return redirect()
-                ->back()
-                ->with('err', 'err_not_applicable');
+            return $this->backNotice('err', 'msg.err.coupon.not_applicable');
         }
 
         $applied = (array) session('cart.applied_coupons', []);
         $applied = array_map('intval', $applied);
 
+        // Idempotent: zaten uygulanmışsa sessizce dön
         if (in_array($userCouponId, $applied, true)) {
-            return redirect()
-                ->back()
-                ->with('ok', 'coupon_applied');
+            return redirect()->back();
         }
 
         $isExclusive = ! empty($target['is_exclusive']);
@@ -134,10 +171,9 @@ class CartController extends Controller
                     ->filter(fn (array $vm) => in_array((int) ($vm['id'] ?? 0), $applied, true))
                     ->contains(fn (array $vm) => ! empty($vm['is_exclusive']));
 
+                // Exclusive çakışması → GLOBAL hata
                 if ($hasExclusive) {
-                    return redirect()
-                        ->back()
-                        ->with('err', 'err_exclusive_block');
+                    return $this->backNotice('err', 'msg.err.coupon.exclusive_conflict');
                 }
             }
 
@@ -147,9 +183,8 @@ class CartController extends Controller
 
         session(['cart.applied_coupons' => $applied]);
 
-        return redirect()
-            ->back()
-            ->with('ok', 'coupon_applied');
+        // Başarı mesajı YOK
+        return redirect()->back();
     }
 
     public function removeCoupon(Request $request)
@@ -167,8 +202,7 @@ class CartController extends Controller
 
         session(['cart.applied_coupons' => $applied]);
 
-        return redirect()
-            ->back()
-            ->with('ok', 'coupon_removed');
+        // Başarı mesajı YOK
+        return redirect()->back();
     }
 }

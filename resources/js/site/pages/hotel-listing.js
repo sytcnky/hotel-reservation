@@ -7,6 +7,52 @@ export function initHotelListing() {
     initFilterToggle();
 }
 
+/* =====================================================
+   Helpers (Flatpickr + is-invalid)
+   - Flatpickr altInput kullanıyorsa, is-invalid hem input'tan
+     hem altInput'tan temizlenir.
+===================================================== */
+function clearDateInvalid(input) {
+    if (!input) return;
+
+    input.classList.remove('is-invalid');
+
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.remove('is-invalid');
+    }
+}
+
+function markDateInvalid(input) {
+    if (!input) return;
+
+    input.classList.add('is-invalid');
+
+    const fp = input._flatpickr;
+    if (fp && fp.altInput) {
+        fp.altInput.classList.add('is-invalid');
+    }
+}
+
+function bindDateInvalidClear(input) {
+    if (!input) return;
+
+    const fp = input._flatpickr;
+    const vis = fp && fp.altInput ? fp.altInput : input;
+
+    const handler = () => {
+        const val = (vis.value || '').trim();
+        if (val) clearDateInvalid(input);
+    };
+
+    vis.addEventListener('input', handler);
+    vis.addEventListener('change', handler);
+
+    if (fp) {
+        fp.config.onChange = (fp.config.onChange || []).concat(() => clearDateInvalid(input));
+    }
+}
+
 function initDateRangePicker() {
     const input = document.getElementById('checkin');
     if (!input) return;
@@ -16,7 +62,7 @@ function initDateRangePicker() {
 
     let initialValue = null;
     if (raw.includes(' - ')) {
-        const [start, end] = raw.split(' - ').map(s => s.trim());
+        const [start, end] = raw.split(' - ').map((s) => s.trim());
         if (start && end) {
             initialValue = `${start} - ${end}`;
         }
@@ -28,6 +74,26 @@ function initDateRangePicker() {
         locale: document.documentElement.lang,
         initialValue,
     });
+
+    // altInput dahil invalid temizliği
+    bindDateInvalidClear(input);
+
+    // listing filter form submit'inde boşsa kırmızı
+    const form = document.getElementById('hotelFilterForm');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            const visible = input?._flatpickr?.altInput || input;
+            const val = (visible?.value || '').trim();
+
+            if (!val) {
+                e.preventDefault();
+                e.stopPropagation();
+                markDateInvalid(input);
+            } else {
+                clearDateInvalid(input);
+            }
+        });
+    }
 }
 
 function initSortSync() {

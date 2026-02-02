@@ -43,33 +43,49 @@ class TransferBookingRequest extends FormRequest
             'children' => ['nullable', 'integer', 'min:0'],
             'infants'  => ['nullable', 'integer', 'min:0'],
 
-            // Client price/currency göndermez; server-side hesaplanır (CurrencyContext + pivot)
+            // Client price/currency göndermez; server-side hesaplanır
             'currency'    => ['prohibited'],
             'price_total' => ['prohibited'],
+
+            // S0-1: client-sourced display/name/label kesinlikle kabul edilmez
+            'from_label'   => ['prohibited'],
+            'to_label'     => ['prohibited'],
+            'vehicle_name' => ['prohibited'],
         ];
     }
 
+    /**
+     * Validation mesajları string değil, ui-code döner.
+     * UI katmanı bu kodu t() ile çözer.
+     */
     public function messages(): array
     {
         return [
-            'to_location_id.different' => 'Nereye alanı Nereden ile aynı olamaz.',
-            'return_date.required'     => 'Gidiş–Dönüş seçildiğinde dönüş tarihi zorunludur.',
-            'return_date.prohibited'   => 'Tek yön seçildiğinde dönüş tarihi gönderilemez.',
+            'to_location_id.different' => 'validation.transfer.to_location_id_different',
+
+            'return_date.required'     => 'validation.transfer.return_date_required',
+            'return_date.prohibited'   => 'validation.transfer.return_date_prohibited',
+
+            // Bu iki kural “composite/global” kabul edildiği için
+            // render_target=global olacak şekilde withValidator’da 'global' key'ine taşınacak.
+            'pickup_time_return.prohibited_unless'   => 'validation.transfer.return_fields_prohibited',
+            'flight_number_return.prohibited_unless' => 'validation.transfer.return_fields_prohibited',
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $direction = $this->input('direction');
+            $direction = (string) $this->input('direction');
 
             $pickupOutbound = $this->input('pickup_time_outbound');
             $flightOutbound = $this->input('flight_number_outbound');
 
+            // Gidiş için saat veya uçuş no en az biri zorunlu (global)
             if (empty($pickupOutbound) && empty($flightOutbound)) {
                 $validator->errors()->add(
-                    'pickup_time_outbound',
-                    'Gidiş için saat veya uçuş numarasından en az biri zorunludur.'
+                    'global',
+                    'validation.transfer.pickup_time_outbound_or_flight_required'
                 );
             }
 
@@ -77,11 +93,23 @@ class TransferBookingRequest extends FormRequest
                 $pickupReturn = $this->input('pickup_time_return');
                 $flightReturn = $this->input('flight_number_return');
 
+                // Dönüş için saat veya uçuş no en az biri zorunlu (global)
                 if (empty($pickupReturn) && empty($flightReturn)) {
                     $validator->errors()->add(
-                        'pickup_time_return',
-                        'Gidiş–Dönüş seçildiğinde dönüş için saat veya uçuş numarasından en az biri zorunludur.'
+                        'global',
+                        'validation.transfer.pickup_time_return_or_flight_required'
                     );
+                }
+            }
+
+            // prohibited_unless kaynaklı field error’larını “global”e yansıt (render_target=global)
+            if ($validator->errors()->has('pickup_time_return') || $validator->errors()->has('flight_number_return')) {
+                $msg = 'validation.transfer.return_fields_prohibited';
+
+                if (! $validator->errors()->has('global')) {
+                    $validator->errors()->add('global', $msg);
+                } else {
+                    $validator->errors()->add('global', $msg);
                 }
             }
         });

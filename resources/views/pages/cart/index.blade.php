@@ -10,22 +10,6 @@
             'breadcrumb_cart'  => 'Sepet',
             'title_cart'       => 'Sepetim',
 
-            // OK mesajları
-            'ok_validated'      => 'Ürün sepetinize başarıyla eklendi.',
-            'ok_coupon_applied' => 'Kupon sepetinize uygulandı.',
-            'ok_coupon_removed' => 'Kupon sepetinizden kaldırıldı.',
-            'ok_item_removed'   => 'Ürün sepetinizden kaldırıldı.',
-
-            // ERR mesajları
-            'err_login_required'   => 'Kupon uygulamak için giriş yapmalısınız.',
-            'err_cart_empty'       => 'Sepetiniz boş.',
-            'err_no_amount'        => 'Kupon uygulanacak bir tutar bulunamadı.',
-            'err_not_applicable'   => 'Bu kupon şu an sepetiniz için kullanılamaz.',
-            'err_exclusive_block'  => 'Tek başına kullanılan bir kupon varken başka kupon eklenemez.',
-            'currency_mismatch'    => 'Bu kupon seçili para birimiyle kullanılamaz.',
-            'min_limit_not_met'    => 'Minimum tutar karşılanmıyor',
-
-
             // Coupons
             'coupons_title'         => 'Kuponlarım',
             'coupons_none'          => 'Kullanılabilir kuponunuz bulunmamaktadır.',
@@ -35,7 +19,6 @@
             // Summary
             'summary_title'     => 'Sipariş Özeti',
             'summary_subtotal'  => 'Ara toplam',
-            'summary_discount'  => 'Kupon İndirimleri',
             'summary_total'     => 'Ödenecek Toplam',
 
             // Buttons
@@ -49,8 +32,8 @@
             'corp_tax_no'        => 'Vergi No',
             'corp_address'       => 'Fatura Adresi',
 
-            'err_payment_session_expired' => 'Ödeme oturumunuzun süresi doldu. Lütfen tekrar ödeme başlatın.',
-
+            // Empty cart (page content)
+            'cart_empty_title'  => 'Sepetiniz boş.',
         ];
     @endphp
 
@@ -61,40 +44,6 @@
             <div class="col-lg-8">
 
                 <h1 class="h4 mb-3">{{ $txt['title_cart'] }}</h1>
-
-                {{-- OK mesajları --}}
-                @if (session('ok') === 'validated')
-                    <div class="alert alert-success mt-3">{{ $txt['ok_validated'] }}</div>
-                @endif
-
-                @if (session('ok') === 'coupon_applied')
-                    <div class="alert alert-success mt-3">{{ $txt['ok_coupon_applied'] }}</div>
-                @endif
-
-                @if (session('ok') === 'coupon_removed')
-                    <div class="alert alert-info mt-3">{{ $txt['ok_coupon_removed'] }}</div>
-                @endif
-
-                @if (session('ok') === 'cart_item_removed')
-                    <div class="alert alert-info mt-3">{{ $txt['ok_item_removed'] }}</div>
-                @endif
-
-                {{-- ERR mesajları --}}
-                @if (session('err') === 'err_login_required')
-                    <div class="alert alert-danger mt-3">{{ $txt['err_login_required'] }}</div>
-                @elseif (session('err') === 'err_cart_empty')
-                    <div class="alert alert-danger mt-3">{{ $txt['err_cart_empty'] }}</div>
-                @elseif (session('err') === 'err_no_amount')
-                    <div class="alert alert-danger mt-3">{{ $txt['err_no_amount'] }}</div>
-                @elseif (session('err') === 'err_not_applicable')
-                    <div class="alert alert-danger mt-3">{{ $txt['err_not_applicable'] }}</div>
-                @elseif (session('err') === 'err_exclusive_block')
-                    <div class="alert alert-danger mt-3">{{ $txt['err_exclusive_block'] }}</div>
-                @elseif (session('err') === 'payment_session_expired')
-                    <div class="alert alert-warning mt-3">{{ $txt['err_payment_session_expired'] }}</div>
-                @elseif (session('err'))
-                    <div class="alert alert-danger mt-3">{{ session('err') }}</div>
-                @endif
 
                 {{-- Kuponlar --}}
                 @php
@@ -133,6 +82,8 @@
                                         $isApplicable   = $coupon['is_applicable'] ?? false;
                                         $disabledReason = $coupon['disabled_reason'] ?? null;
                                         $isApplied      = $coupon['is_applied'] ?? false;
+
+                                        $notices = is_array($coupon['notices'] ?? null) ? $coupon['notices'] : [];
                                     @endphp
 
                                     <div class="coupon-card border border-2 border-dashed rounded p-2 bg-white d-flex align-items-center">
@@ -162,7 +113,6 @@
                                             </div>
 
                                             @php
-                                                // Alt limit satırı için renk seçimi
                                                 $altLimitClass =
                                                     ($coupon['min_booking_amount'] ?? null)
                                                         ? ($isApplicable ? 'text-success' : 'text-danger')
@@ -172,6 +122,30 @@
                                             <div class="small {{ $altLimitClass }}">
                                                 {{ $texts['alt_limit'] }}
                                             </div>
+
+                                            {{-- Scoped notices (coupon card içi) --}}
+                                            @if (!empty($notices))
+                                                <div class="mt-1">
+                                                    @foreach ($notices as $n)
+                                                        @php
+                                                            $code   = is_string($n['code'] ?? null) ? (string) $n['code'] : '';
+                                                            $params = is_array($n['params'] ?? null) ? $n['params'] : [];
+                                                            $level  = is_string($n['level'] ?? null) ? (string) $n['level'] : null;
+
+                                                            $cls = 'text-danger';
+                                                            if ($level === 'success') $cls = 'text-success';
+                                                            elseif ($level === 'warning') $cls = 'text-warning';
+                                                            elseif ($level === 'info') $cls = 'text-info';
+                                                        @endphp
+
+                                                        @if ($code !== '')
+                                                            <div class="small {{ $cls }}">
+                                                                {{ t($code, $params) }}
+                                                            </div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
 
                                             @if ($isApplicable)
 
@@ -202,7 +176,6 @@
                                                 @endif
 
                                             @else
-                                                {{-- Uygulanamaz → Artık sadece disabled buton --}}
                                                 <button class="btn btn-sm btn-outline-secondary mt-1 w-100" disabled>
                                                     {{ $txt['apply_coupon'] }}
                                                 </button>
@@ -240,7 +213,7 @@
                             <div class="mb-3">
                                 <i class="fi fi-rr-basket-shopping-simple" style="font-size: 40px;"></i>
                             </div>
-                            <h5 class="mb-2">{{ $txt['err_cart_empty'] }}</h5>
+                            <h5 class="mb-2">{{ $txt['cart_empty_title'] }}</h5>
                             <p class="text-muted small mb-3">
                                 Yeni bir rezervasyon eklemek için otel, villa, tur veya transfer arayabilirsiniz.
                             </p>
@@ -402,7 +375,6 @@
 
                             </div>
 
-
                         </div>
                     </div>
                 </div>
@@ -411,6 +383,7 @@
 
         </div>
     </section>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const noteEl   = document.querySelector('#cartOrderNote');
@@ -418,20 +391,18 @@
             const form     = document.querySelector('form[data-checkout-start]');
             const hidden   = document.querySelector('#cartOrderNoteHidden');
 
-            // Kurumsal fatura alanları
-            const chkCorp          = document.querySelector('#chkCorporate');
-            const corpCompanyInput = document.querySelector('#corpCompanyInput');
+            const chkCorp            = document.querySelector('#chkCorporate');
+            const corpCompanyInput   = document.querySelector('#corpCompanyInput');
             const corpTaxOfficeInput = document.querySelector('#corpTaxOfficeInput');
-            const corpTaxNoInput   = document.querySelector('#corpTaxNoInput');
-            const corpAddressInput = document.querySelector('#corpAddressInput');
+            const corpTaxNoInput     = document.querySelector('#corpTaxNoInput');
+            const corpAddressInput   = document.querySelector('#corpAddressInput');
 
-            const corpIsCorporate   = document.querySelector('#corpIsCorporate');
-            const corpCompanyHidden = document.querySelector('#corpCompanyHidden');
+            const corpIsCorporate     = document.querySelector('#corpIsCorporate');
+            const corpCompanyHidden   = document.querySelector('#corpCompanyHidden');
             const corpTaxOfficeHidden = document.querySelector('#corpTaxOfficeHidden');
-            const corpTaxNoHidden   = document.querySelector('#corpTaxNoHidden');
-            const corpAddressHidden = document.querySelector('#corpAddressHidden');
+            const corpTaxNoHidden     = document.querySelector('#corpTaxNoHidden');
+            const corpAddressHidden   = document.querySelector('#corpAddressHidden');
 
-            // Karakter sayacı (sipariş notu)
             if (noteEl && counter) {
                 counter.textContent = noteEl.value.length;
 
@@ -440,15 +411,12 @@
                 });
             }
 
-            // Form submit olurken notu ve kurumsal alanları hidden input'lara kopyala
             if (form) {
                 form.addEventListener('submit', function () {
-                    // Sipariş notu
                     if (noteEl && hidden) {
                         hidden.value = noteEl.value || '';
                     }
 
-                    // Kurumsal fatura alanları
                     if (
                         chkCorp &&
                         corpIsCorporate &&
@@ -458,18 +426,17 @@
                         corpAddressHidden
                     ) {
                         if (chkCorp.checked) {
-                            corpIsCorporate.value    = '1';
-                            corpCompanyHidden.value  = corpCompanyInput ? corpCompanyInput.value.trim() : '';
-                            corpTaxOfficeHidden.value = corpTaxOfficeInput ? corpTaxOfficeInput.value.trim() : '';
-                            corpTaxNoHidden.value    = corpTaxNoInput ? corpTaxNoInput.value.trim() : '';
-                            corpAddressHidden.value  = corpAddressInput ? corpAddressInput.value.trim() : '';
+                            corpIsCorporate.value      = '1';
+                            corpCompanyHidden.value    = corpCompanyInput ? corpCompanyInput.value.trim() : '';
+                            corpTaxOfficeHidden.value  = corpTaxOfficeInput ? corpTaxOfficeInput.value.trim() : '';
+                            corpTaxNoHidden.value      = corpTaxNoInput ? corpTaxNoInput.value.trim() : '';
+                            corpAddressHidden.value    = corpAddressInput ? corpAddressInput.value.trim() : '';
                         } else {
-                            // İşaretli değilse temizle
-                            corpIsCorporate.value    = '';
-                            corpCompanyHidden.value  = '';
-                            corpTaxOfficeHidden.value = '';
-                            corpTaxNoHidden.value    = '';
-                            corpAddressHidden.value  = '';
+                            corpIsCorporate.value      = '';
+                            corpCompanyHidden.value    = '';
+                            corpTaxOfficeHidden.value  = '';
+                            corpTaxNoHidden.value      = '';
+                            corpAddressHidden.value    = '';
                         }
                     }
                 });

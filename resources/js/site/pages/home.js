@@ -56,6 +56,100 @@ function bindDateInvalidClear(input) {
 }
 
 /* =====================================================
+   Helpers (Guest display) — otel detay yöntemi
+   - Display input value sadece burada üretilir
+   - Label/placeholder dataset’ten okunur (otel details gibi)
+===================================================== */
+function updateGuestDisplayFromCounts(displayInput, counts) {
+    if (!displayInput) return;
+
+    const a = parseInt(counts?.adult ?? 0, 10) || 0;
+    const c = parseInt(counts?.child ?? 0, 10) || 0;
+    const i = parseInt(counts?.infant ?? 0, 10) || 0;
+
+    const labelAdult = displayInput.dataset.labelAdult || '';
+    const labelChild = displayInput.dataset.labelChild || '';
+    const labelInfant = displayInput.dataset.labelInfant || '';
+
+    const parts = [];
+    if (a > 0) parts.push(a + ' ' + labelAdult);
+    if (c > 0) parts.push(c + ' ' + labelChild);
+    if (i > 0) parts.push(i + ' ' + labelInfant);
+
+    const placeholder =
+        displayInput.dataset.placeholder ||
+        displayInput.getAttribute('placeholder') ||
+        '';
+
+    displayInput.value = parts.length ? parts.join(', ') : placeholder;
+}
+
+function readCountsFromWrapper(wrapper) {
+    if (!wrapper) return { adult: 0, child: 0, infant: 0 };
+
+    const adultEl = wrapper.querySelector('input[data-type="adult"]');
+    const childEl = wrapper.querySelector('input[data-type="child"]');
+    const infantEl = wrapper.querySelector('input[data-type="infant"]');
+
+    return {
+        adult: parseInt(adultEl?.value || '0', 10) || 0,
+        child: parseInt(childEl?.value || '0', 10) || 0,
+        infant: parseInt(infantEl?.value || '0', 10) || 0,
+    };
+}
+
+function syncHiddenGuestFields(wrapper, counts) {
+    if (!wrapper) return;
+
+    const adultsHidden = wrapper.querySelector('input[type="hidden"][name="adults"]');
+    const childrenHidden = wrapper.querySelector('input[type="hidden"][name="children"]');
+    const infantsHidden = wrapper.querySelector('input[type="hidden"][name="infants"]');
+
+    if (adultsHidden) adultsHidden.value = String(counts.adult);
+    if (childrenHidden) childrenHidden.value = String(counts.child);
+    if (infantsHidden) infantsHidden.value = String(counts.infant);
+}
+
+function initGuestDisplaySync({ wrapper, displayInput, guestsTotalInput = null }) {
+    if (!wrapper || !displayInput) return;
+
+    const apply = () => {
+        const counts = readCountsFromWrapper(wrapper);
+
+        // display
+        updateGuestDisplayFromCounts(displayInput, counts);
+
+        // hidden’lar (guestpicker zaten yapıyor olabilir; burada “otel details” gibi kesinleştiriyoruz)
+        syncHiddenGuestFields(wrapper, counts);
+
+        // total (hotel listing filtresi)
+        if (guestsTotalInput) {
+            const total = Math.max(1, (counts.adult || 0) + (counts.child || 0) + (counts.infant || 0));
+            guestsTotalInput.value = String(total);
+        }
+    };
+
+    // init’te bir kez düzelt (EN fallback yazısını ezer)
+    apply();
+
+    // plus/minus click sonrası tekrar uygula
+    wrapper.addEventListener('click', (e) => {
+        const btn = e.target?.closest?.('button.plus, button.minus');
+        if (!btn) return;
+
+        // guestpicker muhtemelen aynı clickte value güncelliyor; bir tick sonra oku
+        setTimeout(apply, 0);
+    });
+
+    // dropdown içindeki input değişirse (edge-case)
+    wrapper.addEventListener('change', (e) => {
+        const inp = e.target?.closest?.('input[data-type="adult"], input[data-type="child"], input[data-type="infant"]');
+        if (!inp) return;
+        apply();
+    });
+}
+
+/* =====================================================
    POPULAR HOTELS CAROUSEL
 ===================================================== */
 function initPopularHotels() {
@@ -124,6 +218,9 @@ function initHomeHotelTab() {
     if (!form) return;
 
     const dateInput = document.getElementById('home_hotel_checkin');
+
+    const guestWrapper = form.querySelector('[data-home-hotel-guests]');
+    const guestDisplayInput = document.getElementById('home_hotel_guestInput');
     const guestsTotalInput = form.querySelector('[data-home-hotel-guests-total]');
 
     if (dateInput) {
@@ -133,15 +230,14 @@ function initHomeHotelTab() {
             locale: document.documentElement.lang,
         });
 
-        // flatpickr altInput için invalid temizleme bağla
         bindDateInvalidClear(dateInput);
     }
 
-    document.addEventListener('guestCountChanged', (e) => {
-        const total = e?.detail?.total ?? 0;
-        if (guestsTotalInput) {
-            guestsTotalInput.value = String(Math.max(1, total));
-        }
+    // Otel details yöntemi: display input’u page JS yönetir
+    initGuestDisplaySync({
+        wrapper: guestWrapper,
+        displayInput: guestDisplayInput,
+        guestsTotalInput,
     });
 
     form.addEventListener('submit', (e) => {
@@ -179,6 +275,10 @@ function initHomeTransferTab() {
     const fromSelect = document.getElementById('home_from_location_id');
     const toSelect = document.getElementById('home_to_location_id');
 
+    // transfer guest wrapper/display
+    const guestDisplayInput = document.getElementById('home_transfer_guestInput');
+    const guestWrapper = guestDisplayInput ? guestDisplayInput.closest('.guest-picker-wrapper') : null;
+
     if (dep) {
         initDatePicker({
             el: dep,
@@ -202,7 +302,6 @@ function initHomeTransferTab() {
             const show = roundtrip.checked;
             retWrap.classList.toggle('d-none', !show);
 
-            // roundtrip ise return_date zorunlu olsun
             ret.required = show;
 
             if (!show) {
@@ -215,6 +314,13 @@ function initHomeTransferTab() {
         roundtrip.addEventListener('change', sync);
         sync();
     }
+
+    // Otel details yöntemi: display input’u page JS yönetir
+    initGuestDisplaySync({
+        wrapper: guestWrapper,
+        displayInput: guestDisplayInput,
+        guestsTotalInput: null,
+    });
 
     // From/To: aynı lokasyonu engelle
     if (fromSelect && toSelect) {

@@ -18,27 +18,29 @@ class VillaBookingRequest extends FormRequest
     {
         return [
             'villa_id'   => ['required', 'integer'],
-            'villa_name' => ['required', 'string'],
+
+            // display/name/label: server-derived (S0-1)
+            'villa_name'     => ['prohibited'],
+            'location_label' => ['prohibited'],
 
             // strict: Y-m-d (civil date)
             'checkin'    => ['required', 'date_format:Y-m-d'],
             'checkout'   => ['required', 'date_format:Y-m-d', 'after:checkin'],
 
-            // nights yine taşınabilir ama server authoritative hesaplayacak (tamperable)
-            'nights'     => ['required', 'integer', 'min:1'],
+            // nights: server authoritative (K5)
+            'nights'     => ['prohibited'],
 
             'adults'     => ['required', 'integer', 'min:1'],
             'children'   => ['nullable', 'integer', 'min:0'],
 
-            // Currency + price alanları client’tan gelsin/gelişmesin: authoritative DEĞİL.
-            // Server, CurrencyContext + Villa rateRules ile hesaplayıp override edecek.
-            'currency'         => ['nullable', 'string', 'size:3'],
-            'price_nightly'    => ['nullable', 'numeric', 'min:0'],
-            'price_prepayment' => ['nullable', 'numeric', 'min:0'],
-            'price_total'      => ['nullable', 'numeric', 'min:0'],
+            // currency + price: server authoritative
+            'currency'         => ['prohibited'],
+            'price_nightly'    => ['prohibited'],
+            'price_prepayment' => ['prohibited'],
+            'price_total'      => ['prohibited'],
 
-            // opsiyoneller
-            'location_label'   => ['nullable', 'string'],
+            // snapshot image alanı: server-derived
+            'villa_image' => ['prohibited'],
         ];
     }
 
@@ -47,9 +49,6 @@ class VillaBookingRequest extends FormRequest
         $this->merge([
             'checkin'  => $this->normalizeDateToYmd($this->input('checkin')),
             'checkout' => $this->normalizeDateToYmd($this->input('checkout')),
-
-            // currency normalize sadece taşınıyorsa; authoritative değil
-            'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }
 }

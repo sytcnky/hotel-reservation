@@ -65,6 +65,45 @@ export function initTransferForm() {
     }
 
     // -------------------------------------------------
+    // Helpers (Guest display)
+    // -------------------------------------------------
+    function readGuestCounts() {
+        // Transfer sayfasında dropdown içindeki inputlar name="adults|children|infants"
+        const wrapper = guestInputVisible ? guestInputVisible.closest('.guest-picker-wrapper') : null;
+
+        const adultsEl = wrapper?.querySelector('input[name="adults"]');
+        const childrenEl = wrapper?.querySelector('input[name="children"]');
+        const infantsEl = wrapper?.querySelector('input[name="infants"]');
+
+        const adults = parseInt(adultsEl?.value || '0', 10) || 0;
+        const children = parseInt(childrenEl?.value || '0', 10) || 0;
+        const infants = parseInt(infantsEl?.value || '0', 10) || 0;
+
+        return { adults, children, infants };
+    }
+
+    function updateGuestDisplay() {
+        if (!guestInputVisible) return;
+
+        const { adults, children, infants } = readGuestCounts();
+
+        const parts = [];
+        const adultLabel = guestInputVisible.dataset.labelAdult || '';
+        const childLabel = guestInputVisible.dataset.labelChild || '';
+        const infantLabel = guestInputVisible.dataset.labelInfant || '';
+        const placeholder =
+            guestInputVisible.dataset.placeholder ||
+            guestInputVisible.getAttribute('placeholder') ||
+            '';
+
+        if (adults > 0) parts.push(adults + ' ' + adultLabel);
+        if (children > 0) parts.push(children + ' ' + childLabel);
+        if (infants > 0) parts.push(infants + ' ' + infantLabel);
+
+        guestInputVisible.value = parts.length ? parts.join(', ') : placeholder;
+    }
+
+    // -------------------------------------------------
     // 1) Nereden -> Nereye aynı lokasyonu engelle
     // -------------------------------------------------
     if (fromSelect && toSelect) {
@@ -94,8 +133,7 @@ export function initTransferForm() {
             });
 
             if (!toSelect.value) {
-                const first =
-                    toSelect.querySelector('option[value=""]') || toSelect.options[0];
+                const first = toSelect.querySelector('option[value=""]') || toSelect.options[0];
                 if (first) first.selected = true;
             }
         }
@@ -170,16 +208,24 @@ export function initTransferForm() {
 
     // -------------------------------------------------
     // 4) GuestPicker değişimi (guestpicker.js tetikler)
+    // - display sync + invalid temizliği
     // -------------------------------------------------
     if (guestInputVisible) {
-        document.addEventListener('guestCountChanged', function (e) {
+        const onGuestChanged = function (e) {
             const total =
                 e?.detail && typeof e.detail.total === 'number' ? e.detail.total : 0;
 
             if (total > 0) {
                 guestInputVisible.classList.remove('is-invalid');
             }
-        });
+
+            updateGuestDisplay();
+        };
+
+        document.addEventListener('guestCountChanged', onGuestChanged);
+
+        // init
+        updateGuestDisplay();
     }
 
     // -------------------------------------------------

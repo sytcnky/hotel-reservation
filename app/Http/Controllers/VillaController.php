@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StaticPage;
 use App\Models\Villa;
 use App\Services\CampaignPlacementViewService;
+use App\Services\VillaRateRuleSelector;
 use App\Support\Currency\CurrencyContext;
 use App\Support\Helpers\I18nHelper;
 use App\Support\Helpers\LocaleHelper;
@@ -98,8 +99,12 @@ class VillaController extends Controller
     /**
      * Villa detay
      */
-    public function show(string $slug, CampaignPlacementViewService $campaignService)
-    {
+    public function show(
+        Request $request,
+        string $slug,
+        CampaignPlacementViewService $campaignService,
+        VillaRateRuleSelector $ruleSelector
+    ) {
         $locale   = app()->getLocale();              // uiLocale
         $baseLang = LocaleHelper::defaultCode();     // baseLocale
 
@@ -131,30 +136,13 @@ class VillaController extends Controller
             $categoryLabel = I18nHelper::scalar($villa->category->name, $locale, $baseLang);
         }
 
-        // === FİYAT + MIN/MAX NIGHTS ===
-        $selectedCurrency = CurrencyContext::code(request());
+        // === FİYAT + MIN/MAX NIGHTS (single authority: selector) ===
+        $selectedCurrency = CurrencyContext::code($request);
         $selectedCurrency = $selectedCurrency !== null ? strtoupper(trim($selectedCurrency)) : null;
 
         $rule = null;
         if ($selectedCurrency) {
-            // getBasePrice() ile AYNI seçme kuralları:
-            // - currency code: case-insensitive
-            // - is_active: true veya null
-            // - closed: false veya null
-            // - priority/date_start sırası
-            $rule = $villa->rateRules()
-                ->whereHas('currency', function ($q) use ($selectedCurrency) {
-                    $q->whereRaw('upper(code) = ?', [$selectedCurrency]);
-                })
-                ->where(function ($q) {
-                    $q->where('is_active', true)->orWhereNull('is_active');
-                })
-                ->where(function ($q) {
-                    $q->where('closed', false)->orWhereNull('closed');
-                })
-                ->orderBy('priority', 'asc')
-                ->orderBy('date_start', 'asc')
-                ->first();
+            $rule = $ruleSelector->select($villa, $selectedCurrency);
         }
 
         $basePrice = null;

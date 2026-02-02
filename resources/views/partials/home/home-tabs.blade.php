@@ -71,8 +71,12 @@
                             <input type="text"
                                    id="home_hotel_guestInput"
                                    class="form-control guest-wrapper"
-                                   placeholder="Kişi sayısı seçin"
-                                   readonly>
+                                   placeholder="{{ t('ui.guest.placeholder') }}"
+                                   data-placeholder="{{ t('ui.guest.placeholder') }}"
+                                   readonly
+                                   data-label-adult="{{ t('ui.adult') }}"
+                                   data-label-child="{{ t('ui.child') }}"
+                                   data-label-infant="{{ t('ui.infant') }}">
                             <span class="input-group-text bg-white"><i class="fi fi-rr-user"></i></span>
                         </div>
 
@@ -205,8 +209,12 @@
                             <input type="text"
                                    id="home_transfer_guestInput"
                                    class="form-control guest-wrapper"
-                                   placeholder="Kişi sayısı seçin"
-                                   readonly>
+                                   placeholder="{{ t('ui.guest.placeholder') }}"
+                                   data-placeholder="{{ t('ui.guest.placeholder') }}"
+                                   readonly
+                                   data-label-adult="{{ t('ui.adult') }}"
+                                   data-label-child="{{ t('ui.child') }}"
+                                   data-label-infant="{{ t('ui.infant') }}">
                             <span class="input-group-text bg-white"><i class="fi fi-rr-user"></i></span>
                         </div>
 

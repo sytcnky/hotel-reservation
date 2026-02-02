@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Currency as CurrencyModel;
 use App\Models\Room;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -9,6 +10,13 @@ use Illuminate\Support\Collection;
 
 class RoomRateResolver
 {
+    /**
+     * currency_id -> exponent cache (avoid N+1 in range)
+     *
+     * @var array<int,int>
+     */
+    private array $currencyExponentCache = [];
+
     /**
      * UI'dan gelen "YYYY-MM-DD - YYYY-MM-DD" veya "YYYY-MM-DD" inputunu
      * Y-m-d string'e normalize eder.
@@ -59,15 +67,15 @@ class RoomRateResolver
                 return null;
             }
 
+            // 🔒 K1: Sessiz düzeltme yok (end <= start -> invalid)
             if ($end->lte($start)) {
-                $end = $start->copy()->addDay();
+                return null;
             }
         }
 
-        $nights = $start->diffInDays($end);
+        $nights = (int) $start->diffInDays($end);
         if ($nights < 1) {
-            $nights = 1;
-            $end    = $start->copy()->addDay();
+            return null;
         }
 
         return [
@@ -108,11 +116,15 @@ class RoomRateResolver
             return collect();
         }
 
+        // 🔒 K1: Sessiz düzeltme yok
         if ($checkout->lte($checkin)) {
-            $checkout = $checkin->copy()->addDay();
+            return collect();
         }
 
-        $nights = max(1, $checkin->diffInDays($checkout));
+        $nights = (int) $checkin->diffInDays($checkout);
+        if ($nights < 1) {
+            return collect();
+        }
 
         // checkout fiyatlanmaz → inclusive resolver kullandığımız için checkout-1
         $rangeEnd = $checkout->copy()->subDay();
@@ -196,8 +208,13 @@ class RoomRateResolver
             return ['ok' => false, 'closed' => true, 'reason' => 'closed'];
         }
 
+        // 🔒 K2: Rounding otoritesi burada
+        $exp = $this->getCurrencyExponent($currencyId);
+
         $amount = (float) $rule->amount;
-        $mode   = $rule->price_type === 'room_per_night' ? 'room' : 'person';
+        $amount = round($amount, $exp, PHP_ROUND_HALF_UP);
+
+        $mode = $rule->price_type === 'room_per_night' ? 'room' : 'person';
 
         // Çocuk indirimi (oda > otel). Yalnız kişi-başı modda uygulanır.
         [$childPct, $childSource] = $this->resolveChildDiscount($room);
@@ -211,15 +228,21 @@ class RoomRateResolver
 
             $children = max(0, (int) $children);
             if ($children > 0 && $childPct !== null) {
-                $pct       = max(0, min(100, $childPct));
+                $pct       = max(0, min(100, (float) $childPct));
                 $childUnit = $amount * (1 - $pct / 100);
             } else {
                 $childUnit = $amount; // indirim yoksa çocuk yetişkin gibi
             }
-            $childUnitsTotal = $children * $childUnit;
 
+            $childUnit = round($childUnit, $exp, PHP_ROUND_HALF_UP);
+
+            $childUnitsTotal = $children * $childUnit;
             $total = $adultTotal + $childUnitsTotal;
         }
+
+        $adultTotal      = round((float) $adultTotal, $exp, PHP_ROUND_HALF_UP);
+        $childUnitsTotal = round((float) $childUnitsTotal, $exp, PHP_ROUND_HALF_UP);
+        $total           = round((float) $total, $exp, PHP_ROUND_HALF_UP);
 
         return [
             'ok'            => true,
@@ -274,9 +297,9 @@ class RoomRateResolver
             return $out;
         }
 
-        // Ters verilirse düzelt
+        // 🔒 K1: Sessiz düzeltme yok
         if ($end->lt($start)) {
-            $end = $start->copy();
+            return $out;
         }
 
         // Başlangıç ve bitiş dahil
@@ -344,7 +367,6 @@ class RoomRateResolver
         int $adults,
         int $children = 0
     ): array {
-        // Günlük detayları al
         $days = $this->resolveRange(
             $room,
             $dateStart,
@@ -371,7 +393,6 @@ class RoomRateResolver
             ];
         }
 
-        // Herhangi bir gün kapalı mı?
         if ($days->contains(fn (array $d) => ($d['closed'] ?? false) === true)) {
             return [
                 'ok'              => false,
@@ -388,7 +409,6 @@ class RoomRateResolver
             ];
         }
 
-        // Herhangi bir gün için kural bulunamamış mı?
         if ($days->contains(fn (array $d) => ($d['ok'] ?? false) === false)) {
             $firstError = $days->first(fn (array $d) => ($d['ok'] ?? false) === false);
 
@@ -407,13 +427,18 @@ class RoomRateResolver
             ];
         }
 
-        // Buraya geldiysek tüm günler için fiyat var
         $nights   = $days->count();
-        $total    = $days->sum('total');
+        $total    = (float) $days->sum('total');
         $first    = $days->first();
         $mode     = $first['price_mode'] ?? null;
         $currency = $first['currency_id'] ?? $currencyId;
         $board    = $first['board_type_id'] ?? $boardTypeId;
+
+        $exp = $this->getCurrencyExponent((int) $currency);
+        $total = round($total, $exp, PHP_ROUND_HALF_UP);
+
+        $perNight = $nights > 0 ? $total / $nights : 0.0;
+        $perNight = round($perNight, $exp, PHP_ROUND_HALF_UP);
 
         return [
             'ok'              => true,
@@ -421,7 +446,7 @@ class RoomRateResolver
             'price_mode'      => $mode,
             'nights'          => $nights,
             'total'           => $total,
-            'per_night_total' => $nights > 0 ? $total / $nights : 0.0,
+            'per_night_total' => $perNight,
             'unit_amount'     => $first['unit_amount'] ?? null,
             'currency_id'     => $currency,
             'board_type_id'   => $board,
@@ -430,6 +455,36 @@ class RoomRateResolver
                 'children' => $children,
             ],
         ];
+    }
+
+    private function getCurrencyExponent(int $currencyId): int
+    {
+        if ($currencyId <= 0) {
+            return 2;
+        }
+
+        if (array_key_exists($currencyId, $this->currencyExponentCache)) {
+            return $this->currencyExponentCache[$currencyId];
+        }
+
+        $exp = 2;
+
+        try {
+            $m = CurrencyModel::query()->find($currencyId);
+            if ($m && $m->exponent !== null) {
+                $exp = (int) $m->exponent;
+            }
+        } catch (\Throwable) {
+            $exp = 2;
+        }
+
+        if ($exp < 0) {
+            $exp = 0;
+        }
+
+        $this->currencyExponentCache[$currencyId] = $exp;
+
+        return $exp;
     }
 
     private function isValidYmd(string $ymd): bool

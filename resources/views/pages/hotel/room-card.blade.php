@@ -61,7 +61,7 @@
 
                 @elseif($state === 'unavailable')
                 <div class="text-muted small">
-                    {{ t('ui.not_available') }}
+                    {{ t('err.hotel.not_available') }}
                 </div>
 
                 @elseif($state === 'priced' && $pricing)
@@ -97,7 +97,7 @@
 
                 @else
                 <div class="small text-muted">
-                    {{ t('ui.price_cannot_calculated') }}
+                    {{ t('warn.price_cannot_calculated') }}
                 </div>
                 @endif
 
@@ -233,14 +233,14 @@
                 @endphp
 
                 <input type="hidden" name="hotel_id" value="{{ $hotel['id'] }}">
-                <input type="hidden" name="hotel_name" value="{{ $hotel['name'] }}">
                 <input type="hidden" name="room_id" value="{{ $room['id'] }}">
-                <input type="hidden" name="room_name" value="{{ $room['name'] }}">
 
                 @if($checkin && $checkout)
-                    <input type="hidden" name="checkin" value="{{ is_string($checkin) ? $checkin : '' }}">
-                    <input type="hidden" name="checkout" value="{{ $checkout }}">
-                    <input type="hidden" name="nights" value="{{ $ctx['nights'] ?? 1 }}">
+                    <input type="hidden" name="checkin"
+                           value="{{ is_string($checkin) ? $checkin : ($checkin?->format('Y-m-d') ?? '') }}">
+
+                    <input type="hidden" name="checkout"
+                           value="{{ is_string($checkout) ? $checkout : ($checkout?->format('Y-m-d') ?? '') }}">
                 @endif
 
                 <input type="hidden" name="adults"   value="{{ $ctx['adults']   ?? 2 }}">
@@ -249,8 +249,6 @@
                 @if(!empty($ctx['board_type_id']))
                     <input type="hidden" name="board_type_id" value="{{ $ctx['board_type_id'] }}">
                 @endif
-
-                <input type="hidden" name="board_type_name" value="{{ $selectedBoardName }}">
 
                 <button type="submit"
                         class="btn btn-primary w-100"

@@ -73,21 +73,8 @@
                       data-days="{{ implode(',', $tour['days_of_week'] ?? []) }}">
                     @csrf
 
-                    {{-- BE için temel alanlar --}}
                     <input type="hidden" name="tour_id" value="{{ $tour['id'] }}">
-                    <input type="hidden" name="tour_name" value="{{ $tour['name'] }}">
 
-                    @if(!empty($tour['cover']))
-                        <input type="hidden" name="cover_image[thumb]" value="{{ $tour['cover']['thumb'] }}">
-                        <input type="hidden" name="cover_image[thumb2x]" value="{{ $tour['cover']['thumb2x'] }}">
-                        <input type="hidden" name="cover_image[alt]" value="{{ $tour['cover']['alt'] }}">
-                    @endif
-
-                    @if(!empty($tour['category_name']))
-                        <input type="hidden" name="category_name" value="{{ $tour['category_name'] }}">
-                    @endif
-
-                    {{-- Kişi sayıları (hidden) --}}
                     <input type="hidden" id="inputAdults"   name="adults"   value="1">
                     <input type="hidden" id="inputChildren" name="children" value="0">
                     <input type="hidden" id="inputInfants"  name="infants"  value="0">
@@ -95,7 +82,6 @@
                     <div class="card shadow-sm my-4">
                         <div class="card-body row align-items-end g-3">
 
-                            {{-- Tarih --}}
                             <div class="col-lg-5">
                                 <label for="excursion-date" class="form-label">{{ t('ui.choose_dates') }}</label>
                                 <div class="input-group">
@@ -105,13 +91,12 @@
                                            class="form-control"
                                            placeholder="{{ t('ui.choose_dates') }}"
                                            required>
-                                        <div class="input-group-text bg-white">
-                                            <i class="fi fi-rr-calendar"></i>
-                                        </div>
+                                    <div class="input-group-text bg-white">
+                                        <i class="fi fi-rr-calendar"></i>
                                     </div>
+                                </div>
                             </div>
 
-                            {{-- Kişi Sayısı --}}
                             <div class="col-lg-4 guest-picker-wrapper position-relative">
                                 <label for="guestInput" class="form-label">{{ t('ui.guests') }}</label>
 
@@ -120,84 +105,60 @@
                                            id="guestInput"
                                            class="form-control guest-wrapper"
                                            placeholder="{{ t('ui.guests') }}"
-                                           readonlydata-prices='@json($prices)'
+                                           readonly
+                                           data-prices='@json($prices)'
                                            data-currency="{{ $currency ?? '' }}"
                                            data-label-adult="{{ t('ui.adult') }}"
                                            data-label-child="{{ t('ui.child') }}"
                                            data-label-infant="{{ t('ui.infant') }}"
                                            data-placeholder="{{ t('ui.guests') }}">
                                     <span class="input-group-text bg-white">
-                                    <i class="fi fi-rr-user"></i>
-                                </span>
+                                        <i class="fi fi-rr-user"></i>
+                                    </span>
                                 </div>
 
-                                {{-- Dropdown --}}
                                 <div class="guest-dropdown border rounded shadow-sm bg-white p-3 position-absolute w-100"
                                      style="z-index: 10; top: 100%; display: none;">
 
-                                    {{-- Yetişkin --}}
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span>{{ t('ui.adult') }}</span>
                                         <div class="input-group input-group-sm" style="width: 120px;">
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary minus"
-                                                    data-type="adult">−</button>
-                                            <input type="text"
-                                                   class="form-control text-center"
-                                                   data-type="adult"
-                                                   value="1"
-                                                   readonly>
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary plus"
-                                                    data-type="adult">+</button>
+                                            <button type="button" class="btn btn-outline-secondary minus" data-type="adult">−</button>
+                                            <input type="text" class="form-control text-center" data-type="adult" value="1" readonly>
+                                            <button type="button" class="btn btn-outline-secondary plus" data-type="adult">+</button>
                                         </div>
                                     </div>
 
-                                    {{-- Çocuk --}}
                                     @if($currency && isset($prices[$currency]['child']))
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span>{{ t('ui.child') }}</span>
                                             <div class="input-group input-group-sm" style="width: 120px;">
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary minus"
-                                                        data-type="child">−</button>
-                                                <input type="text"
-                                                       class="form-control text-center"
-                                                       data-type="child"
-                                                       value="0"
-                                                       readonly>
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary plus"
-                                                        data-type="child">+</button>
+                                                <button type="button" class="btn btn-outline-secondary minus" data-type="child">−</button>
+                                                <input type="text" class="form-control text-center" data-type="child" value="0" readonly>
+                                                <button type="button" class="btn btn-outline-secondary plus" data-type="child">+</button>
                                             </div>
                                         </div>
                                     @endif
 
-                                    {{-- Bebek --}}
                                     @if($currency && isset($prices[$currency]['infant']))
                                         <div class="d-flex justify-content-between align-items-center">
                                             <span>{{ t('ui.infant') }}</span>
                                             <div class="input-group input-group-sm" style="width: 120px;">
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary minus"
-                                                        data-type="infant">−</button>
-                                                <input type="text"
-                                                       class="form-control text-center"
-                                                       data-type="infant"
-                                                       value="0"
-                                                       readonly>
-                                                <button type="button"
-                                                        class="btn btn-outline-secondary plus"
-                                                        data-type="infant">+</button>
+                                                <button type="button" class="btn btn-outline-secondary minus" data-type="infant">−</button>
+                                                <input type="text" class="form-control text-center" data-type="infant" value="0" readonly>
+                                                <button type="button" class="btn btn-outline-secondary plus" data-type="infant">+</button>
                                             </div>
                                         </div>
                                     @endif
                                 </div>
                             </div>
 
-                            {{-- Toplam & Buton --}}
                             <div class="col-lg-3 text-end">
-                                <div class="fw-bold mb-0" id="excursion-price-total">
+                                <div
+                                    class="fw-bold mb-0"
+                                    id="excursion-price-total"
+                                    data-empty-text="—"
+                                >
                                     @if ($adultBase !== null && $currency)
                                         {{ \App\Support\Currency\CurrencyPresenter::format($adultBase, $currency) }}
                                     @else
@@ -205,12 +166,15 @@
                                     @endif
                                 </div>
 
+
                                 <button type="submit"
                                         id="btnExcursionAddToCart"
-                                        class="btn btn-primary mt-2 w-100">
+                                        class="btn btn-primary mt-2 w-100"
+                                        disabled>
                                     {{ t('ui.add_cart') }}
                                 </button>
                             </div>
+
                         </div>
                     </div>
                 </form>

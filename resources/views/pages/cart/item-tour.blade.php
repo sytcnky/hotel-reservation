@@ -8,7 +8,6 @@
 
     $cover = $s['cover_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
-    // Alt override (varsa), yoksa snapshot alt'ı kalsın
     if (is_array($cover)) {
         $cover['alt'] = $cover['alt'] ?? ($s['tour_name'] ?? 'Tur');
     }
@@ -16,6 +15,8 @@
     $a = (int) ($s['adults']   ?? 0);
     $c = (int) ($s['children'] ?? 0);
     $i = (int) ($s['infants']  ?? 0);
+
+    $notices = is_array($ci['notices'] ?? null) ? $ci['notices'] : [];
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -32,7 +33,6 @@
     <div class="card-body">
         <div class="row g-3 align-items-center">
 
-            {{-- Görsel --}}
             <div class="col-4 col-md-3">
                 <x-responsive-image
                     :image="$cover"
@@ -42,7 +42,6 @@
                 />
             </div>
 
-            {{-- Metinler --}}
             <div class="col-8 col-md-6">
                 <div class="small text-uppercase text-muted mb-1">
                     Günlük Tur
@@ -54,6 +53,24 @@
                 <h5 class="mb-1">
                     {{ $s['tour_name'] ?? 'Tur' }}
                 </h5>
+
+                @if (!empty($notices))
+                    <div class="mt-2">
+                        @foreach ($notices as $n)
+                            @php
+                                $code   = (string) ($n['code'] ?? '');
+                                $params = is_array($n['params'] ?? null) ? $n['params'] : [];
+                                $level  = (string) ($n['level'] ?? 'error');
+                                $cls    = $level === 'warning' ? 'alert-warning' : 'alert-danger';
+                            @endphp
+                            @if ($code !== '')
+                                <div class="alert {{ $cls }} py-2 px-3 mb-2">
+                                    {{ t($code, $params) }}
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="text-muted small">
                     @if (!empty($s['date']))
@@ -76,7 +93,6 @@
                 </div>
             </div>
 
-            {{-- Fiyat --}}
             <div class="col-12 col-md-3 text-md-end">
                 <div class="fw-bold fs-5 text-primary">
                     {{ \App\Support\Currency\CurrencyPresenter::format($amount, $currency) }}

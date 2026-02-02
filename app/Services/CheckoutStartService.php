@@ -30,13 +30,13 @@ class CheckoutStartService
     {
         // 1) Mixed currency guard (fail-fast) + total/currency
         if ($this->cartInvariant->resetIfCurrencyMismatch($items)) {
-            return ['ok' => false, 'err' => 'err_cart_currency_mismatch'];
+            return ['ok' => false, 'err' => 'msg.err.cart.currency_mismatch'];
         }
 
         [$cartTotal, $cartCurrency] = $this->cartInvariant->computeSubtotalAndCurrency($items);
 
         if ($cartTotal <= 0 || ! $cartCurrency) {
-            return ['ok' => false, 'err' => 'err_cart_empty'];
+            return ['ok' => false, 'err' => 'msg.err.cart.empty'];
         }
 
         // 2) Metadata (note + invoice) — mevcut controller mantığı korunur

@@ -18,26 +18,30 @@ class HotelBookingRequest extends FormRequest
     {
         return [
             'hotel_id'   => ['required', 'integer'],
-            'hotel_name' => ['required', 'string'],
             'room_id'    => ['required', 'integer'],
-            'room_name'  => ['required', 'string'],
+
+            // display/name/label alanları: server-derived (S0-1)
+            'hotel_name'       => ['prohibited'],
+            'room_name'        => ['prohibited'],
+            'board_type_name'  => ['prohibited'],
+            'location_label'   => ['prohibited'],
 
             // strict: Y-m-d (civil date)
             'checkin'    => ['required', 'date_format:Y-m-d'],
             'checkout'   => ['required', 'date_format:Y-m-d', 'after:checkin'],
 
-            'nights'     => ['required', 'integer', 'min:1'],
+            // nights: server authoritative (K5)
+            'nights'     => ['prohibited'],
+
             'adults'     => ['required', 'integer', 'min:1'],
             'children'   => ['nullable', 'integer', 'min:0'],
 
-            // Currency + price alanları client’tan gelebilir ama authoritative DEĞİL
-            'currency'    => ['nullable', 'string', 'size:3'],
-            'price_total' => ['nullable', 'numeric', 'min:0'],
+            // currency + price: server authoritative
+            'currency'    => ['prohibited'],
+            'price_total' => ['prohibited'],
 
-            // Opsiyonel
+            // Opsiyonel (ID kabul edilir, name kabul edilmez)
             'board_type_id' => ['nullable', 'integer', 'min:1'],
-            'board_type_name' => ['nullable', 'string'],
-            'location_label' => ['nullable', 'string'],
         ];
     }
 
@@ -46,9 +50,6 @@ class HotelBookingRequest extends FormRequest
         $this->merge([
             'checkin'  => $this->normalizeDateToYmd($this->input('checkin')),
             'checkout' => $this->normalizeDateToYmd($this->input('checkout')),
-
-            // normalize edilir ama authoritative değildir
-            'currency' => $this->normalizeCurrency($this->input('currency')),
         ]);
     }
 }

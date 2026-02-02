@@ -178,7 +178,7 @@
                                                 </div>
                                             @else
                                                 <div class="mb-2">
-                                                    <span class="text-muted small d-block">{{ t('hotel_card.price_not_found') }}</span>
+                                                    <span class="text-muted small d-block">{{ t('msg.info.price_not_found') }}</span>
                                                 </div>
                                             @endif
 

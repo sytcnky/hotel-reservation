@@ -172,14 +172,11 @@ function initBookingFormSync() {
 
         const parts = [];
 
-        if (a > 0) parts.push(a + ' ' + guestInput.dataset.labelAdult);
-        if (c > 0) parts.push(c + ' ' + guestInput.dataset.labelChild);
+        if (a > 0) parts.push(a + ' ' + (guestInput.dataset.labelAdult || ''));
+        if (c > 0) parts.push(c + ' ' + (guestInput.dataset.labelChild || ''));
 
-        guestInput.value = parts.length
-            ? parts.join(', ')
-            : guestInput.dataset.placeholder;
-
-        guestInput.value = parts.join(', ');
+        const placeholder = guestInput.dataset.placeholder || guestInput.getAttribute('placeholder') || '';
+        guestInput.value = parts.length ? parts.join(', ') : placeholder;
     }
 
     function syncHidden() {

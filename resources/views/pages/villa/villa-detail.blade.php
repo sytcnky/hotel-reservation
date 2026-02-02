@@ -128,28 +128,13 @@
                             <input type="hidden" name="villa_id" value="{{ $villa['id'] }}">
                             <input type="hidden" name="checkin"  id="hidden-checkin">
                             <input type="hidden" name="checkout" id="hidden-checkout">
-                            <input type="hidden" name="nights"   id="villa-nights">
 
-                            {{-- Fiyat alanları (server’a sayısal değerler gitsin) --}}
-                            <input type="hidden" name="currency"         value="{{ $currency ?? '' }}">
-                            <input type="hidden" name="price_nightly"    id="villa-price-nightly">
-                            <input type="hidden" name="price_prepayment" id="villa-price-prepayment">
-                            <input type="hidden" name="price_total"      id="villa-price-total">
-
-                            {{-- Snapshot için isim --}}
-                            <input type="hidden" name="villa_name" value="{{ $villa['name'] }}">
-
-                            {{-- İstersen lokasyon etiketi de gönderebilirsin (opsiyonel) --}}
-                            @php
-                                $locationLabel = trim(($villa['location']['city'] ?? '') . ' ' . ($villa['location']['region'] ?? ''));
-                            @endphp
-                            @if($locationLabel !== '')
-                                <input type="hidden" name="location_label" value="{{ $locationLabel }}">
-                            @endif
+                            <input type="hidden" name="adults"   id="adultsInput" value="{{ $initialAdults }}">
+                            <input type="hidden" name="children" id="childrenInput" value="{{ $initialChildren }}">
 
                             <div class="row">
                                 <!-- Sol Sütun: Tarih -->
-                                <div class="col-lg-4">
+                                <div class="col-lg-4 mb-3 mb-lg-0">
                                     <label for="checkin" class="form-label">{{ t('ui.checkin_checkout_dates') }}</label>
                                     <div class="input-group">
                                         <input
@@ -166,13 +151,6 @@
                                         >
                                         <div class="input-group-text bg-white">
                                             <i class="fi fi-rr-calendar"></i>
-                                        </div>
-                                        <div id="min-nights-feedback" class="invalid-feedback d-block d-none">
-                                            {{ t('ui.villa_at_least', ['count' => $villa['min_nights']]) }}
-                                        </div>
-
-                                        <div id="max-nights-feedback" class="invalid-feedback d-block d-none">
-                                            {{ t('ui.villa_max_nights', ['count' => $villa['max_nights']]) }}
                                         </div>
                                     </div>
                                 </div>
@@ -235,9 +213,6 @@
                                                             data-type="child">+</button>
                                                 </div>
                                             </div>
-
-                                            <input type="hidden" name="adults" id="adultsInput" value="{{ $initialAdults }}">
-                                            <input type="hidden" name="children" id="childrenInput" value="{{ $initialChildren }}">
                                         </div>
                                     </div>
                                 </div>
@@ -264,9 +239,17 @@
                                             </div>
                                         @else
                                             <div class="text-muted small">
-                                                {{ t('ui.price_not_found') }}
+                                                {{ t('msg.info.price_not_found') }}
                                             </div>
                                         @endif
+
+                                            <div id="min-nights-feedback" class="invalid-feedback d-block d-none">
+                                                {{ t('msg.err.villa.min_nights', ['count' => $villa['min_nights']]) }}
+                                            </div>
+
+                                            <div id="max-nights-feedback" class="invalid-feedback d-block d-none">
+                                                {{ t('msg.err.villa.max_nights', ['count' => $villa['max_nights']]) }}
+                                            </div>
                                     </div>
 
                                     {{-- Tarih seçilmiş görünüm (JS sadece sayıları doldurur) --}}
@@ -293,11 +276,12 @@
 
                             @if(! $hasPrice)
                                 <div class="alert alert-warning mt-3 mb-0">
-                                    {{ t('ui.villa_price_missing_for_currency') }}
+                                    {{ t('warn.villa_price_missing_for_currency') }}
                                 </div>
                             @endif
 
                             <button type="submit"
+                                    id="villaAddToCartBtn"
                                     class="btn btn-primary w-100 mt-3"
                                     @if(! $hasPrice) disabled @endif>
                                 {{ t('ui.add_cart') }}

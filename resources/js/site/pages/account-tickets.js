@@ -1,7 +1,7 @@
 // resources/js/site/pages/account-tickets.js
 
 /* -------------------------------------------------------------------------- */
-/*  tickets page                                                        */
+/*  tickets page                                                              */
 /* -------------------------------------------------------------------------- */
 function initTicketsIndexPage(root = document) {
     const list = root.getElementById('ticketList');
@@ -58,12 +58,10 @@ function initTicketsIndexPage(root = document) {
     refresh();
 }
 
-
-
 export function initAccountTickets(root = document) {
     // Bu modül yalnızca ilgili sayfalarda çalışsın (guard)
     const replyForm = root.getElementById('replyForm');          // ticket-detail
-    const createForm = root.getElementById('ticketCreateForm'); // ticket-create
+    const createForm = root.getElementById('ticketCreateForm');  // ticket-create
 
     if (!replyForm && !createForm) {
         return;
@@ -114,13 +112,30 @@ function initAttachmentsController(options) {
         return;
     }
 
+    // i18n mesajları: hardcoded fallback YOK (kontrat)
+    const textAdd = (addBtnEl.getAttribute('data-text-add') || '').trim();
+    const textAddMore = (addBtnEl.getAttribute('data-text-add-more') || '').trim();
+
+    const msgFileTooLarge = (addBtnEl.getAttribute('data-msg-file-too-large') || '').trim();
+    const msgFileTypeUnsupported = (addBtnEl.getAttribute('data-msg-file-type-unsupported') || '').trim();
+    const msgFileInvalidGeneric = (addBtnEl.getAttribute('data-msg-file-invalid-generic') || '').trim();
+
+    // Bu modül submit enable/disable akışında otorite olduğu için, metinler yoksa init etme.
+    // (Aksi halde hardcoded’a düşmek gerekir, bu yasak.)
+    if (
+        !textAdd ||
+        !textAddMore ||
+        !msgFileTooLarge ||
+        !msgFileTypeUnsupported ||
+        !msgFileInvalidGeneric
+    ) {
+        return;
+    }
+
     // Güvenlik: yalnızca resim uzantıları + 2MB
     const allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
     const allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
     const maxBytes = 2 * 1024 * 1024;
-
-    const textAdd = addBtnEl.getAttribute('data-text-add') || 'Dosya Ekle';
-    const textAddMore = addBtnEl.getAttribute('data-text-add-more') || 'Başka Dosya Ekle';
 
     function setSubmitEnabled(enabled) {
         if (!submitBtnEl) return;
@@ -157,14 +172,14 @@ function initAttachmentsController(options) {
         const mime = (file.type || '').toLowerCase();
 
         if (file.size > maxBytes) {
-            return "Dosya boyutu çok büyük. Lütfen 2MB'dan küçük bir dosya yükleyin.";
+            return msgFileTooLarge;
         }
 
         const extOk = allowedExt.includes(ext);
         const mimeOk = allowedMime.includes(mime);
 
         if (!extOk && !mimeOk) {
-            return 'Dosya türü desteklenmiyor. Lütfen .jpg, .jpeg, .png veya .webp yükleyin.';
+            return msgFileTypeUnsupported;
         }
 
         return null;
@@ -263,7 +278,7 @@ function initAttachmentsController(options) {
         if (hasAnyInvalidSelection()) {
             event.preventDefault();
             event.stopPropagation();
-            showClientError('Dosya türü desteklenmiyor veya dosya boyutu 2MB sınırını aşıyor.');
+            showClientError(msgFileInvalidGeneric);
             refreshSubmitState();
         }
     }, false);

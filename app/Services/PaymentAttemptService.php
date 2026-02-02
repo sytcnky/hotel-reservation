@@ -25,11 +25,11 @@ class PaymentAttemptService
         $latestAttempt = $this->latestAttemptForSession($session);
 
         if ($latestAttempt && $latestAttempt->status === PaymentAttempt::STATUS_FAILED) {
-            return $latestAttempt->error_message ?: 'Ödeme işlemi başarısız oldu.';
+            return 'msg.err.payment.finalize_failed';
         }
 
         if ($latestAttempt && $latestAttempt->status === PaymentAttempt::STATUS_EXPIRED) {
-            return $latestAttempt->error_message ?: 'Ödeme oturumu zaman aşımına uğradı.';
+            return 'msg.err.payment.session_expired';
         }
 
         return null;
@@ -107,7 +107,7 @@ class PaymentAttemptService
             $pending->forceFill([
                 'status'        => PaymentAttempt::STATUS_EXPIRED,
                 'error_code'    => 'SESSION_EXPIRED',
-                'error_message' => 'Ödeme oturumu zaman aşımına uğradı.',
+                'error_message' => 'msg.err.payment.session_expired',
                 'completed_at'  => now(),
                 'raw_response'  => ['reason' => 'checkout_session_expired'],
             ])->save();

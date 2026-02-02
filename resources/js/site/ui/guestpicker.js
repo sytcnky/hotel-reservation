@@ -9,16 +9,17 @@ export function initGuestPicker(container = document) {
         const dropdown = picker.querySelector('.guest-dropdown');
         if (!input || !dropdown) return;
 
-        // Mevcut input değerlerinden initial sayıları oku
         const getInitial = (type, fallback) => {
             const el = dropdown.querySelector(`input[data-type="${type}"]`);
             if (!el) return fallback;
+
             const v = parseInt(el.value, 10);
             return Number.isFinite(v) && v >= 0 ? v : fallback;
         };
 
+        // No assumptions: defaults are 0; server/blade provides real initial values when needed.
         const counts = {
-            adult: getInitial('adult', 2),   // varsayılan 2 yetişkin
+            adult: getInitial('adult', 0),
             child: getInitial('child', 0),
             infant: getInitial('infant', 0),
         };
@@ -26,30 +27,31 @@ export function initGuestPicker(container = document) {
         function updateDisplay() {
             const parts = [];
 
-            if (counts.adult > 0) {
-                parts.push(`${counts.adult} ${input.dataset.labelAdult}`);
-            }
-            if (counts.child > 0) {
-                parts.push(`${counts.child} ${input.dataset.labelChild}`);
-            }
-            if (counts.infant > 0) {
-                parts.push(`${counts.infant} ${input.dataset.labelInfant}`);
-            }
+            const adultLabel = input.dataset.labelAdult || '';
+            const childLabel = input.dataset.labelChild || '';
+            const infantLabel = input.dataset.labelInfant || '';
 
-            input.value = parts.length
-                ? parts.join(', ')
-                : input.placeholder;
+            if (counts.adult > 0) parts.push(`${counts.adult} ${adultLabel}`);
+            if (counts.child > 0) parts.push(`${counts.child} ${childLabel}`);
+            if (counts.infant > 0) parts.push(`${counts.infant} ${infantLabel}`);
+
+            const placeholder =
+                input.dataset.placeholder ||
+                input.getAttribute('placeholder') ||
+                '';
+
+            input.value = parts.length ? parts.join(', ') : placeholder;
 
             // Dropdown içindeki sayısal input'ları güncelle
-            const adultInput  = dropdown.querySelector('input[data-type="adult"]');
-            const childInput  = dropdown.querySelector('input[data-type="child"]');
+            const adultInput = dropdown.querySelector('input[data-type="adult"]');
+            const childInput = dropdown.querySelector('input[data-type="child"]');
             const infantInput = dropdown.querySelector('input[data-type="infant"]');
 
-            if (adultInput)  adultInput.value  = counts.adult;
-            if (childInput)  childInput.value  = counts.child;
-            if (infantInput) infantInput.value = counts.infant;
+            if (adultInput) adultInput.value = String(counts.adult);
+            if (childInput) childInput.value = String(counts.child);
+            if (infantInput) infantInput.value = String(counts.infant);
 
-            // Aynı picker içinde HIDDEN alanları (name="adults|children|infants") güncelle
+            // Hidden alanları sadece bu picker içinde güncelle
             const nameMap = {
                 adult: 'adults',
                 child: 'children',
@@ -63,26 +65,11 @@ export function initGuestPicker(container = document) {
                 });
             });
 
-            // Sayfa genelinde kullanılan bazı hidden ID'ler:
-            // - Excursion: #inputAdults, #inputChildren, #inputInfants
-            // - Hotel:    #adultsInput, #childrenInput
-            const idMap = {
-                adult: ['inputAdults', 'adultsInput'],
-                child: ['inputChildren', 'childrenInput'],
-                infant: ['inputInfants', 'infantsInput'],
-            };
-
-            Object.entries(idMap).forEach(([type, ids]) => {
-                ids.forEach((id) => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = String(counts[type]);
-                });
-            });
-
             // Toplam misafir sayısını global event ile yayınla
             const totalGuests = counts.adult + counts.child + counts.infant;
-            const event = new CustomEvent('guestCountChanged', { detail: { total: totalGuests } });
-            document.dispatchEvent(event);
+            document.dispatchEvent(
+                new CustomEvent('guestCountChanged', { detail: { total: totalGuests } })
+            );
         }
 
         // Input'a tıklayınca aç/kapat
@@ -102,6 +89,7 @@ export function initGuestPicker(container = document) {
             if (btn.classList.contains('plus')) {
                 counts[type]++;
             } else {
+                // Only enforce min on user decrement action
                 const min = type === 'adult' ? 1 : 0;
                 if (counts[type] > min) counts[type]--;
             }

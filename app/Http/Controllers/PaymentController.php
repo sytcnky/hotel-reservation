@@ -11,11 +11,38 @@ use App\Services\OrderFinalizeService;
 use App\Services\PaymentAttemptService;
 use App\Services\PaymentGateway3dsInterface;
 use App\Services\PaymentGatewayFactory;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 
 class PaymentController extends Controller
 {
+    /**
+     * Tek notice standardı (LEVEL_ZORUNLU)
+     *
+     * @param string $toUrl
+     * @param 'err'|'warn'|'notice'|'ok' $level
+     * @param string $code
+     * @param array $params
+     */
+    private function redirectNotice(string $toUrl, string $level, string $code, array $params = []): RedirectResponse
+    {
+        $level = in_array($level, ['err', 'warn', 'notice', 'ok'], true) ? $level : 'notice';
+
+        $finalCode = is_string($code) ? trim($code) : '';
+        if ($finalCode === '') {
+            return redirect()->to($toUrl);
+        }
+
+        return redirect()
+            ->to($toUrl)
+            ->with('notices', [[
+                'level'  => $level,
+                'code'   => $finalCode,
+                'params' => is_array($params) ? $params : [],
+            ]]);
+    }
+
     /**
      * Ödeme sayfası (CheckoutSession.code ile)
      */
@@ -36,9 +63,11 @@ class PaymentController extends Controller
 
         // TTL → expired olarak işaretle (read tarafında deterministik)
         if ($guard->expireIfNeededAndFinalizeAttempt($session, 'expired_read:' . $session->id, $attempts)) {
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'payment_session_expired');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.payment.session_expired'
+            );
         }
 
         $payable = max(
@@ -86,32 +115,40 @@ class PaymentController extends Controller
             $guard->finalizeAttemptIfSessionExpired($session, 'expired_read:' . $session->id, $attempts)
             || $guard->expireIfNeededAndFinalizeAttempt($session, 'expired_read:' . $session->id, $attempts);
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'payment_session_expired');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.payment.session_expired'
+            );
         }
 
         $token = (string) $request->query('token', '');
         $attemptId = (int) $request->query('attempt', 0);
 
         if ($token === '' || $attemptId <= 0) {
-            return redirect()
-                ->to($this->paymentUrl($session))
-                ->with('err', 'payment_3ds_missing_params');
+            return $this->redirectNotice(
+                $this->paymentUrl($session),
+                'err',
+                'msg.err.payment.3ds_missing_params'
+            );
         }
 
         $attempt = $attempts->findPending3dsAttemptForSession($session, $attemptId);
 
         if (! $attempt || $attempt->status !== PaymentAttempt::STATUS_PENDING_3DS) {
-            return redirect()
-                ->to($this->paymentUrl($session))
-                ->with('err', 'payment_3ds_invalid_attempt');
+            return $this->redirectNotice(
+                $this->paymentUrl($session),
+                'err',
+                'msg.err.payment.3ds_invalid_attempt'
+            );
         }
 
         if (! $attempts->isValid3dsToken($attempt, $token)) {
-            return redirect()
-                ->to($this->paymentUrl($session))
-                ->with('err', 'payment_3ds_invalid_token');
+            return $this->redirectNotice(
+                $this->paymentUrl($session),
+                'err',
+                'msg.err.payment.3ds_invalid_token'
+            );
         }
 
         return view('pages.payment.3ds-demo', [
@@ -147,35 +184,42 @@ class PaymentController extends Controller
         }
 
         if ($guard->isExpired($checkout) || $checkout->status === CheckoutSession::STATUS_EXPIRED) {
-            // Session expired ise: status + attempt finalize (idempotent)
             $guard->finalizeAttemptIfSessionExpired($checkout, 'expired_read:' . $checkout->id, $attempts)
             || $guard->expireIfNeededAndFinalizeAttempt($checkout, 'expired_read:' . $checkout->id, $attempts);
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'payment_session_expired');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.payment.session_expired'
+            );
         }
 
         $attempt = $attempts->getAttemptForComplete3dsOrFail($checkout, (int) $validated['attempt_id']);
 
         if ($attempt->status !== PaymentAttempt::STATUS_PENDING_3DS) {
-            return redirect()
-                ->to($this->paymentUrl($checkout))
-                ->with('err', 'payment_3ds_invalid_attempt');
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_invalid_attempt'
+            );
         }
 
         if (! $attempts->isValid3dsToken($attempt, (string) $validated['token'])) {
-            return redirect()
-                ->to($this->paymentUrl($checkout))
-                ->with('err', 'payment_3ds_invalid_token');
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_invalid_token'
+            );
         }
 
         $gateway = PaymentGatewayFactory::make();
 
         if (! $gateway instanceof PaymentGateway3dsInterface) {
-            return redirect()
-                ->to($this->paymentUrl($checkout))
-                ->with('err', 'payment_3ds_not_supported');
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_not_supported'
+            );
         }
 
         $result = $gateway->complete3ds($checkout, $attempt, [
@@ -194,25 +238,30 @@ class PaymentController extends Controller
                 'completed_at'      => now(),
             ])->save();
 
-            return redirect()
-                ->to($this->paymentUrl($checkout));
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_failed'
+            );
         }
 
         try {
             [$order, $orderCreatedNow] = $finalize->finalizeSuccess($checkout, $attempt, $result);
         } catch (\Throwable $e) {
             logger()->error('payment_finalize_failed', [
-                'checkout_id' => $checkout->id ?? null,
+                'checkout_id'   => $checkout->id ?? null,
                 'checkout_code' => $checkout->code ?? null,
-                'attempt_id' => $attempt->id ?? null,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'attempt_id'    => $attempt->id ?? null,
+                'message'       => $e->getMessage(),
+                'file'          => $e->getFile(),
+                'line'          => $e->getLine(),
             ]);
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'payment_finalize_failed');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.payment.finalize_failed'
+            );
         }
 
         session()->forget('cart');
@@ -242,9 +291,11 @@ class PaymentController extends Controller
 
         $cart = session('cart');
         if (! $cart || empty($cart['items'])) {
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'err_cart_empty');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.cart.empty'
+            );
         }
 
         $items = (array) ($cart['items'] ?? []);
@@ -252,11 +303,13 @@ class PaymentController extends Controller
         $r = $checkoutStart->startForUser($user, $request, $items);
 
         if (empty($r['ok'])) {
-            $err = (string) ($r['err'] ?? 'err_cart_empty');
+            $code = (string) ($r['err'] ?? 'msg.err.cart.empty');
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', $err);
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                $code
+            );
         }
 
         /** @var CheckoutSession $checkout */
@@ -278,9 +331,11 @@ class PaymentController extends Controller
 
         $cart = session('cart');
         if (! $cart || empty($cart['items'])) {
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'err_cart_empty');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.cart.empty'
+            );
         }
 
         $items = (array) ($cart['items'] ?? []);
@@ -288,11 +343,13 @@ class PaymentController extends Controller
         $r = $checkoutStart->startForGuest($guest, $request, $items);
 
         if (empty($r['ok'])) {
-            $err = (string) ($r['err'] ?? 'err_cart_empty');
+            $code = (string) ($r['err'] ?? 'msg.err.cart.empty');
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', $err);
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                $code
+            );
         }
 
         /** @var CheckoutSession $checkout */
@@ -334,21 +391,24 @@ class PaymentController extends Controller
         }
 
         if ($guard->isExpired($checkout) || $checkout->status === CheckoutSession::STATUS_EXPIRED) {
-            // Session expired ise: status + attempt finalize (idempotent)
             $guard->finalizeAttemptIfSessionExpired($checkout, (string) $validated['submit_nonce'], $attempts)
             || $guard->expireIfNeededAndFinalizeAttempt($checkout, (string) $validated['submit_nonce'], $attempts);
 
-            return redirect()
-                ->to(localized_route('cart'))
-                ->with('err', 'payment_session_expired');
+            return $this->redirectNotice(
+                localized_route('cart'),
+                'err',
+                'msg.err.payment.session_expired'
+            );
         }
 
         $gateway = PaymentGatewayFactory::make();
 
         if (! $gateway instanceof PaymentGateway3dsInterface) {
-            return redirect()
-                ->to($this->paymentUrl($checkout))
-                ->with('err', 'payment_3ds_not_supported');
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_not_supported'
+            );
         }
 
         $cardData = [
@@ -383,8 +443,11 @@ class PaymentController extends Controller
                 'completed_at'      => now(),
             ])->save();
 
-            return redirect()
-                ->to($this->paymentUrl($checkout));
+            return $this->redirectNotice(
+                $this->paymentUrl($checkout),
+                'err',
+                'msg.err.payment.3ds_start_failed'
+            );
         }
 
         $attempt->forceFill([
