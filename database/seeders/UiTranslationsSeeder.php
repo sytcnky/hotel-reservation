@@ -1750,8 +1750,23 @@ class UiTranslationsSeeder extends Seeder
             ],
             [
                 'group' => 'ui',
-                'key'   => 'currency_switch_modal_',
-                'values'=> ['tr' => '', 'en' => ''],
+                'key'   => 'currency_switch_modal_title',
+                'values'=> ['tr' => 'Para birimi değişimini şimdi yaparsanız, sepetinizdeki ürünler silinecek.', 'en' => 'If you change the currency now, the items in your cart will be deleted.'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'currency_switch_modal_text',
+                'values'=> ['tr' => 'Para birimini değiştirmek istediğinizden emin misiniz?', 'en' => 'Are you sure you want to change the currency?'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'currency_switch_modal_cancel',
+                'values'=> ['tr' => 'İptal', 'en' => 'Cancel'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'currency_switch_modal_confirm',
+                'values'=> ['tr' => 'Para Birimini Değiştir', 'en' => 'Change Currency'],
             ],
         ];
 

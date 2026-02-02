@@ -397,17 +397,17 @@
                 </div>
                 <div class="modal-body">
                     <p class="mb-0">
-                        Para birimi değişimini şimdi yaparsanız, sepetinizdeki ürünler silinecek.
+                        {{ t('ui.currency_switch_modal_title') }}
                         <br><br>
-                        Para birimini değiştirmek istediğinizden emin misiniz?
+                        {{ t('ui.currency_switch_modal_text') }}
                     </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        İptal
+                        {{ t('ui.currency_switch_modal_cancel') }}
                     </button>
                     <a href="#" class="btn btn-primary" id="confirmCurrencyChange">
-                        Para Birimini Değiştir
+                        {{ t('ui.currency_switch_modal_confirm') }}
                     </a>
                 </div>
             </div>
