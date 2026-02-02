@@ -1720,13 +1720,11 @@ class UiTranslationsSeeder extends Seeder
                 'key'   => 'email_verify.heading',
                 'values'=> ['tr' => 'E-posta Doğrulaması Gerekli', 'en' => 'Email Verification Required'],
             ],
-
             [
                 'group' => 'auth',
                 'key'   => 'email_verify.link_sent',
                 'values'=> ['tr' => 'Doğrulama bağlantısı e-postana gönderildi.', 'en' => 'A verification link has been sent to your email.'],
             ],
-
             [
                 'group' => 'auth',
                 'key'   => 'email_verify.instructions',
@@ -1735,7 +1733,6 @@ class UiTranslationsSeeder extends Seeder
                     'en' => 'To complete your account, click the verification link sent to your email.',
                 ],
             ],
-
             [
                 'group' => 'auth',
                 'key'   => 'email_verify.actions.resend',
@@ -1746,11 +1743,15 @@ class UiTranslationsSeeder extends Seeder
                 'key'   => 'email_verify.actions.logout',
                 'values'=> ['tr' => 'Çıkış yap', 'en' => 'Log out'],
             ],
-
             [
                 'group' => 'auth',
                 'key'   => 'email_verify.retry_suffix',
                 'values'=> ['tr' => 'saniye sonra tekrar deneyebilirsin.', 'en' => 'seconds until you can try again.'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'currency_switch_modal_',
+                'values'=> ['tr' => '', 'en' => ''],
             ],
         ];
 

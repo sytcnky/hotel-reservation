@@ -1,5 +1,6 @@
 {{-- resources/views/partials/header.blade.php --}}
 @php
+    use App\Support\Currency\CurrencyPresenter;
     use App\Support\Helpers\LocaleHelper;
     use App\Support\Helpers\CurrencyHelper;
     use App\Models\Setting;
@@ -54,7 +55,7 @@
     $waUrl    = $waNumber ? ('https://wa.me/' . $waNumber) : null;
 @endphp
 
-<!-- Main Header (Desktop) -->
+    <!-- Main Header (Desktop) -->
 <nav class="navbar bg-white shadow-lg border-bottom border-light site-header-desktop">
     <div class="container py-2 header-row d-flex align-items-center align-items-xl-start justify-content-between gap-4">
 
@@ -100,7 +101,8 @@
                 <div class="vr d-none d-xl-block"></div>
 
                 {{-- Sepet --}}
-                <a href="{{ localized_route('cart') }}" class="btn btn-sm btn-outline-primary position-relative d-none d-xl-block">
+                <a href="{{ localized_route('cart') }}"
+                   class="btn btn-sm btn-outline-primary position-relative d-none d-xl-block">
                     <i class="fi fi-rr-basket-shopping-simple" style="font-size: 18px; vertical-align: text-top;"></i>
 
                     @if($cartCount > 0)
@@ -140,7 +142,8 @@
                                     <a href="{{ locale_switch_url($code) }}"
                                        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 {{ $locale === $code ? 'active' : '' }}">
                                         @if($lang['flag'])
-                                            <img src="{{ $lang['flag'] }}" alt="{{ strtoupper($code) }}" width="20" height="20">
+                                            <img src="{{ $lang['flag'] }}" alt="{{ strtoupper($code) }}" width="20"
+                                                 height="20">
                                         @endif
                                         {{ $lang['label'] }}
                                     </a>
@@ -151,21 +154,31 @@
                         {{-- Para Birimi --}}
                         <div>
                             <div class="dropdown-header px-0">{{ t('nav.currency') }}</div>
-                            <div class="btn-group w-100" role="group">
-                                @foreach ($currencies as $c)
-                                    @php
-                                        $switchUrl  = route('currency.switch', $c['code']);
-                                        $confirmUrl = $switchUrl . '?confirm=1';
-                                    @endphp
 
-                                    <a href="{{ $cartCount > 0 ? '#' : $switchUrl }}"
-                                       class="btn btn-outline-secondary btn-sm {{ $currentCurrency === $c['code'] ? 'active' : '' }} {{ $cartCount > 0 ? 'js-currency-switch' : '' }}"
-                                       data-currency-url="{{ $confirmUrl }}">
-                                        {{ \App\Support\Currency\CurrencyPresenter::label($c['code']) }}
-                                    </a>
-                                @endforeach
-                            </div>
+                            <form method="POST" class="m-0 p-0" id="currencySwitchForm">
+                                @csrf
+                                <input type="hidden" name="confirm" value="0" id="currencyConfirmField">
+
+                                <div class="btn-group w-100" role="group">
+                                    @foreach ($currencies as $c)
+                                        @php
+                                            $isActive = $currentCurrency === $c['code'];
+                                        @endphp
+
+                                        <button type="submit"
+                                                class="btn btn-outline-secondary btn-sm {{ $isActive ? 'active' : '' }} {{ $cartCount > 0 ? 'js-currency-switch' : '' }}"
+                                                data-currency-action="{{ route('currency.switch', $c['code']) }}"
+                                                @if ($cartCount === 0)
+                                                    formaction="{{ route('currency.switch', $c['code']) }}"
+                                            @endif
+                                        >
+                                            {{ \App\Support\Currency\CurrencyPresenter::label($c['code']) }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </form>
                         </div>
+
                     </div>
                 </div>
 
@@ -184,8 +197,9 @@
                            class="d-flex align-items-center gap-2 text-decoration-none text-muted"
                            id="userDropdownTop"
                            data-bs-toggle="dropdown">
-                            <div class="avatar-fallback bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                                 style="width:28px;height:28px;font-size:0.8rem;">
+                            <div
+                                class="avatar-fallback bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                                style="width:28px;height:28px;font-size:0.8rem;">
                                 {{ $initials ?: mb_strtoupper(mb_substr($authUser->name, 0, 1)) }}
                             </div>
                             <span class="d-none d-md-block">{{ $authUser->first_name ?? $authUser->name }}</span>
@@ -227,7 +241,9 @@
                                     {{ t('customer_account.menu.settings') }}
                                 </a>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf

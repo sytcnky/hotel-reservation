@@ -4,6 +4,7 @@ use App\Http\Controllers\HomeController;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use App\Support\Currency\CurrencyContext;
+use App\Support\Helpers\CurrencyHelper;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -33,17 +34,57 @@ use App\Models\RefundAttempt;
 use App\Notifications\VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
 
+/**
+ * Redirect param sanitizer:
+ * - Allow only same-app relative paths
+ * - Must start with single "/" (not "//")
+ * - Must not contain scheme/host (prevents http(s):// and scheme-relative)
+ */
+$safeRelativeRedirect = function (?string $redirect): ?string {
+    if (! is_string($redirect)) {
+        return null;
+    }
+
+    $redirect = trim($redirect);
+
+    if ($redirect === '') {
+        return null;
+    }
+
+    // Must be absolute-path relative to this app
+    if (! str_starts_with($redirect, '/')) {
+        return null;
+    }
+
+    // Prevent scheme-relative URLs like "//evil.com"
+    if (str_starts_with($redirect, '//')) {
+        return null;
+    }
+
+    // Prevent any scheme/host injection via parse_url
+    $parts = @parse_url($redirect);
+    if (! is_array($parts)) {
+        return null;
+    }
+
+    if (isset($parts['scheme']) || isset($parts['host'])) {
+        return null;
+    }
+
+    return $redirect;
+};
+
 /** Hotel booking -> sepete ekleme */
-LocalizedRoute::post('hotel.book', 'hotel/book', [CheckoutController::class, 'bookHotel']);
+LocalizedRoute::post('hotel.book', [CheckoutController::class, 'bookHotel']);
 
 /** Transfer booking -> sepete ekleme */
-LocalizedRoute::post('transfer.book', 'transfer/book', [CheckoutController::class, 'bookTransfer']);
+LocalizedRoute::post('transfer.book', [CheckoutController::class, 'bookTransfer']);
 
 /** Excursion (tour) booking -> sepete ekleme */
-LocalizedRoute::post('tour.book', 'excursions/book', [CheckoutController::class, 'bookTour']);
+LocalizedRoute::post('tour.book', [CheckoutController::class, 'bookTour']);
 
 /** Villa booking -> sepete ekleme */
-LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'bookVilla']);
+LocalizedRoute::post('villa.book', [CheckoutController::class, 'bookVilla']);
 
 /*
 |--------------------------------------------------------------------------
@@ -51,7 +92,7 @@ LocalizedRoute::post('villa.book', 'villas/book', [CheckoutController::class, 'b
 |--------------------------------------------------------------------------
 */
 
-Route::get('/locale/{locale}', function (Request $request, string $locale) {
+Route::get('/locale/{locale}', function (Request $request, string $locale) use ($safeRelativeRedirect) {
     $active = LocaleHelper::active();
 
     if (in_array($locale, $active, true)) {
@@ -66,15 +107,10 @@ Route::get('/locale/{locale}', function (Request $request, string $locale) {
         app()->setLocale($locale);
     }
 
-    $redirect = $request->query('redirect');
+    $redirect = $safeRelativeRedirect($request->query('redirect'));
 
-    // Prevent open redirect: allow only same-app relative paths.
     if (is_string($redirect)) {
-        $redirect = trim($redirect);
-
-        if ($redirect !== '' && str_starts_with($redirect, '/')) {
-            return redirect($redirect);
-        }
+        return redirect($redirect);
     }
 
     // Safe fallback
@@ -91,7 +127,7 @@ Route::get('/locale/{locale}', function (Request $request, string $locale) {
 | Currency switch
 |--------------------------------------------------------------------------
 */
-Route::get('/currency/{code}', function (string $code) {
+Route::post('/currency/{code}', function (Request $request, string $code) {
     $code = strtoupper(trim($code));
 
     if (! \App\Support\Helpers\CurrencyHelper::exists($code)) {
@@ -101,20 +137,19 @@ Route::get('/currency/{code}', function (string $code) {
     $cartItems = (array) session('cart.items', []);
     $hasCart   = count($cartItems) > 0;
 
-    if ($hasCart && ! request()->boolean('confirm')) {
+    if ($hasCart && ! $request->boolean('confirm')) {
         return back();
     }
 
-    if ($hasCart && request()->boolean('confirm')) {
+    if ($hasCart && $request->boolean('confirm')) {
         session()->forget('cart');
         session()->forget('cart.applied_coupons');
     }
 
-    CurrencyContext::set($code, request());
+    CurrencyContext::set($code, $request);
 
     return back();
 })->name('currency.switch');
-
 
 
 
@@ -133,16 +168,11 @@ require __DIR__ . '/auth.php';
 */
 
 Route::get('/', function () {
-    $active = LocaleHelper::active();
-    $default = config('app.locale', 'tr');
-
-    $locale =
+    $candidate =
         session('locale')
-        ?? (auth()->user()->locale ?? $default);
+        ?? (auth()->user()->locale ?? null);
 
-    if (! in_array($locale, $active, true)) {
-        $locale = $active[0] ?? $default;
-    }
+    $locale = LocaleHelper::normalizeCode(is_string($candidate) ? $candidate : null);
 
     return redirect('/' . $locale);
 });
@@ -160,67 +190,67 @@ Route::get('/', function () {
 */
 
 /** Home */
-LocalizedRoute::get('home', '', [HomeController::class, 'index']);
+LocalizedRoute::get('home', [HomeController::class, 'index']);
 
 /** Hotels list */
-LocalizedRoute::get('hotels', 'oteller', [HotelController::class, 'index']);
+LocalizedRoute::get('hotels', [HotelController::class, 'index']);
 
 /** Hotel detail */
-LocalizedRoute::get('hotel.detail', 'hotel/{slug}', [HotelController::class, 'show']);
+LocalizedRoute::get('hotel.detail', [HotelController::class, 'show']);
 
 /** Transfers */
-LocalizedRoute::get('transfers', 'transfers', [TransferController::class, 'index']);
+LocalizedRoute::get('transfers', [TransferController::class, 'index']);
 
 /** Villas */
-LocalizedRoute::get('villa', 'villalar', [VillaController::class, 'index']);
+LocalizedRoute::get('villa', [VillaController::class, 'index']);
 
 /** Villa detail */
-LocalizedRoute::get('villa.villa-detail', 'villa/{slug}', [VillaController::class, 'show']);
+LocalizedRoute::get('villa.villa-detail', [VillaController::class, 'show']);
 
 /** Excursions */
-LocalizedRoute::get('excursions', 'excursions', [TourController::class, 'index']);
+LocalizedRoute::get('excursions', [TourController::class, 'index']);
 
 /** Excursion detail */
-LocalizedRoute::get('excursions.detail', 'excursions/{slug}', [TourController::class, 'show']);
+LocalizedRoute::get('excursions.detail', [TourController::class, 'show']);
 
 /** Guide list */
-LocalizedRoute::get('guides', 'guides', [TravelGuideController::class, 'index']);
+LocalizedRoute::get('guides', [TravelGuideController::class, 'index']);
 
 /** Guide detail */
-LocalizedRoute::get('guides.show', 'guides/{slug}', [TravelGuideController::class, 'show']);
+LocalizedRoute::get('guides.show', [TravelGuideController::class, 'show']);
 
 /** Ödeme sayfası (görüntüleme + işleme) */
-LocalizedRoute::get('payment', 'payment/{code}', [PaymentController::class, 'show']);
+LocalizedRoute::get('payment', [PaymentController::class, 'show']);
 
-LocalizedRoute::post('payment.process', 'payment/{code}', [PaymentController::class, 'process']);
+LocalizedRoute::post('payment.process', [PaymentController::class, 'process']);
 
 /** Sepetten ödeme başlangıcı (ÜYE kullanıcı) */
-LocalizedRoute::post('checkout.start', 'checkout/start', [PaymentController::class, 'start']);
+LocalizedRoute::post('checkout.start', [PaymentController::class, 'start']);
 
 /** Login sayfasındaki misafir formu → ödeme başlangıcı (MİSAFİR) */
 Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])->name('checkout.start.guest');
 
 /** 3D Secure demo ekranı */
-LocalizedRoute::get('payment.3ds', 'payment/{code}/3ds', [PaymentController::class, 'show3ds']);
-LocalizedRoute::post('payment.3ds.complete', 'payment/{code}/3ds/complete', [PaymentController::class, 'complete3ds']);
+LocalizedRoute::get('payment.3ds', [PaymentController::class, 'show3ds']);
+LocalizedRoute::post('payment.3ds.complete', [PaymentController::class, 'complete3ds']);
 
 /** Başarılı Ödeme */
-LocalizedRoute::view('success', 'success', 'pages.payment.success');
+LocalizedRoute::view('success', 'pages.payment.success');
 
 /** Sepet */
-LocalizedRoute::get('cart', 'cart', [CartController::class, 'index']);
+LocalizedRoute::get('cart', [CartController::class, 'index']);
 Route::delete('/cart/item/{key}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
 Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
 /** Statik sayfalar */
-LocalizedRoute::view('contact', 'contact', 'pages.contact.index');
-LocalizedRoute::view('help', 'help', 'pages.help.index');
+LocalizedRoute::view('contact', 'pages.contact.index');
+LocalizedRoute::view('help', 'pages.help.index');
 
 /** Legal sayfalar */
-LocalizedRoute::view('privacy_policy', 'privacy-policy', 'pages.legal.show', ['pageKey' => 'privacy_policy_page']);
-LocalizedRoute::view('terms_of_use', 'terms-of-use', 'pages.legal.show', ['pageKey' => 'terms_of_use_page']);
-LocalizedRoute::view('distance_sales', 'distance-sales', 'pages.legal.show', ['pageKey' => 'distance_sales_page']);
+LocalizedRoute::view('privacy_policy', 'pages.legal.show', ['pageKey' => 'privacy_policy_page']);
+LocalizedRoute::view('terms_of_use', 'pages.legal.show', ['pageKey' => 'terms_of_use_page']);
+LocalizedRoute::view('distance_sales', 'pages.legal.show', ['pageKey' => 'distance_sales_page']);
 
 
 /*
@@ -237,31 +267,31 @@ LocalizedRoute::view('distance_sales', 'distance-sales', 'pages.legal.show', ['p
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Hesabım - Dashboard
-    LocalizedRoute::view('account.dashboard', 'account/dashboard', 'pages.account.index');
+    LocalizedRoute::view('account.dashboard', 'pages.account.index');
 
     // Hesabım - Rezervasyonlarım
-    LocalizedRoute::get('account.bookings', 'account/bookings', [BookingsController::class, 'index']);
+    LocalizedRoute::get('account.bookings', [BookingsController::class, 'index']);
 
     // Hesabım - Kuponlar
-    LocalizedRoute::get('account.coupons', 'account/coupons', [CouponsController::class, 'index']);
+    LocalizedRoute::get('account.coupons', [CouponsController::class, 'index']);
 
     // Hesabım - Destek Talepleri
-    LocalizedRoute::get('account.tickets.create', 'account/tickets/create', [SupportTicketsController::class, 'create']);
+    LocalizedRoute::get('account.tickets.create', [SupportTicketsController::class, 'create']);
 
-    LocalizedRoute::get('account.tickets', 'account/tickets', [SupportTicketsController::class, 'index']);
+    LocalizedRoute::get('account.tickets', [SupportTicketsController::class, 'index']);
 
-    foreach (LocalizedRoute::get('account.tickets.show', 'account/tickets/{ticket}', [SupportTicketsController::class, 'show']) as $route) {
+    foreach (LocalizedRoute::get('account.tickets.show', [SupportTicketsController::class, 'show']) as $route) {
         $route->whereNumber('ticket');
     }
 
-    LocalizedRoute::post('account.tickets.store', 'account/tickets', [SupportTicketsController::class, 'store']);
+    LocalizedRoute::post('account.tickets.store', [SupportTicketsController::class, 'store']);
 
-    foreach (LocalizedRoute::post('account.tickets.message', 'account/tickets/{ticket}/messages', [SupportTicketsController::class, 'storeMessage']) as $route) {
+    foreach (LocalizedRoute::post('account.tickets.message', [SupportTicketsController::class, 'storeMessage']) as $route) {
         $route->whereNumber('ticket');
     }
 
     // Hesabım - Ayalar
-    LocalizedRoute::view('account.settings', 'account/settings', 'pages.account.settings');
+    LocalizedRoute::view('account.settings', 'pages.account.settings');
 
     // Hesabım - Ayalar - Form action'ları (PUT) - her aktif locale için
     foreach (LocaleHelper::active() as $locale) {
@@ -431,23 +461,17 @@ if (app()->environment('local')) {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])
-    ->get('/admin/panel-locale/{locale}', function (Request $request, string $locale) {
+    ->get('/admin/panel-locale/{locale}', function (Request $request, string $locale) use ($safeRelativeRedirect) {
         $locale = in_array($locale, ['tr', 'en'], true) ? $locale : 'en';
 
         session()->put('panel_locale', $locale);
 
-        $redirect = $request->query('redirect');
+        $redirect = $safeRelativeRedirect($request->query('redirect'));
 
-        // Prevent open redirect: allow only same-app relative paths.
         if (is_string($redirect)) {
-            $redirect = trim($redirect);
-
-            if ($redirect !== '' && str_starts_with($redirect, '/')) {
-                return redirect($redirect);
-            }
+            return redirect($redirect);
         }
 
         return redirect('/admin');
     })
     ->name('admin.panel-locale.set');
-

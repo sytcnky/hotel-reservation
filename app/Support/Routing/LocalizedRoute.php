@@ -12,57 +12,58 @@ class LocalizedRoute
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function get(string $baseName, string $defaultSlug, $action): array
+    public static function get(string $baseName, $action): array
     {
-        return self::map('get', $baseName, $defaultSlug, $action);
+        return self::map('get', $baseName, $action);
     }
 
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function post(string $baseName, string $defaultSlug, $action): array
+    public static function post(string $baseName, $action): array
     {
-        return self::map('post', $baseName, $defaultSlug, $action);
+        return self::map('post', $baseName, $action);
     }
 
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function put(string $baseName, string $defaultSlug, $action): array
+    public static function put(string $baseName, $action): array
     {
-        return self::map('put', $baseName, $defaultSlug, $action);
+        return self::map('put', $baseName, $action);
     }
 
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function patch(string $baseName, string $defaultSlug, $action): array
+    public static function patch(string $baseName, $action): array
     {
-        return self::map('patch', $baseName, $defaultSlug, $action);
+        return self::map('patch', $baseName, $action);
     }
 
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function delete(string $baseName, string $defaultSlug, $action): array
+    public static function delete(string $baseName, $action): array
     {
-        return self::map('delete', $baseName, $defaultSlug, $action);
+        return self::map('delete', $baseName, $action);
     }
 
     /**
      * @return array<int, LaravelRoute>
      */
-    public static function view(string $baseName, string $defaultSlug, string $view, array $data = []): array
+    public static function view(string $baseName, string $view, array $data = []): array
     {
-        return self::map('view', $baseName, $defaultSlug, [$view, $data]);
+        return self::map('view', $baseName, [$view, $data]);
     }
 
     /**
-     * Ortak mapper.
+     * Ortak mapper. Fallback yok (fail-fast).
+     * İstisna: home route'u locale root olduğu için slug boş olabilir.
      *
      * @return array<int, LaravelRoute> Her locale için üretilen route nesneleri
      */
-    protected static function map(string $method, string $baseName, string $defaultSlug, $payload): array
+    protected static function map(string $method, string $baseName, $payload): array
     {
         $locales = LocaleHelper::active();
 
@@ -71,12 +72,29 @@ class LocalizedRoute
             ->where('key', $baseName)
             ->first();
 
+        $values = is_array($translation?->values ?? null) ? $translation->values : null;
+
+        if (! is_array($values)) {
+            throw new \RuntimeException("Missing routes translation record: group=routes, key={$baseName}");
+        }
+
         $routes = [];
 
         foreach ($locales as $locale) {
-            $values = is_array($translation?->values ?? null) ? $translation->values : [];
-            $slug = $values[$locale] ?? $defaultSlug;
-            $slug = trim((string) $slug, '/');
+            $slugRaw = $values[$locale] ?? null;
+
+            if (! is_string($slugRaw)) {
+                throw new \RuntimeException("Missing routes translation value: group=routes, key={$baseName}, locale={$locale}");
+            }
+
+            // Allow empty only for home (locale root)
+            $slug = trim($slugRaw);
+
+            if ($slug === '' && $baseName !== 'home') {
+                throw new \RuntimeException("Empty routes translation value: group=routes, key={$baseName}, locale={$locale}");
+            }
+
+            $slug = trim($slug, '/');
 
             $path = $slug === '' ? '/' : '/' . $slug;
 

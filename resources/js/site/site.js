@@ -69,19 +69,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // === Currency change confirm modal (cart doluyken) ===
     const currencyModalEl = document.getElementById('currencyChangeModal');
     if (currencyModalEl) {
-        const currencyLinks = document.querySelectorAll('.js-currency-switch');
+        const currencyButtons = document.querySelectorAll('.js-currency-switch');
         const confirmBtn = document.getElementById('confirmCurrencyChange');
 
-        if (currencyLinks.length > 0 && confirmBtn) {
+        if (currencyButtons.length > 0 && confirmBtn) {
             const modal = new bootstrap.Modal(currencyModalEl);
 
-            currencyLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
+            let pendingAction = null;
+
+            currencyButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const url = link.dataset.currencyUrl;
-                    if (url) confirmBtn.setAttribute('href', url);
+
+                    const action = btn.dataset.currencyAction;
+                    if (!action) return;
+
+                    pendingAction = action;
+
                     modal.show();
                 });
+            });
+
+            confirmBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                if (!pendingAction) return;
+
+                const form = document.getElementById('currencySwitchForm');
+                if (!form) return;
+
+                const confirmField = document.getElementById('currencyConfirmField');
+                if (!confirmField) return;
+
+                confirmField.value = '1';
+                form.setAttribute('action', pendingAction);
+
+                form.submit();
             });
         }
     }
