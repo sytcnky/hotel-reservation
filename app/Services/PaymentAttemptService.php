@@ -12,7 +12,7 @@ class PaymentAttemptService
     {
         return PaymentAttempt::query()
             ->where('checkout_session_id', $session->id)
-            ->whereNull('deleted_at')
+            ->withoutTrashed()
             ->orderByDesc('id')
             ->first();
     }
@@ -47,7 +47,7 @@ class PaymentAttemptService
                 PaymentAttempt::STATUS_PENDING_3DS,
             ])
             ->whereNull('completed_at')
-            ->whereNull('deleted_at')
+            ->withoutTrashed()
             ->orderByDesc('id')
             ->first();
 
@@ -78,7 +78,7 @@ class PaymentAttemptService
                     PaymentAttempt::STATUS_PENDING_3DS,
                 ])
                 ->whereNull('completed_at')
-                ->whereNull('deleted_at')
+                ->withoutTrashed()
                 ->orderByDesc('id')
                 ->first();
 
@@ -99,7 +99,7 @@ class PaymentAttemptService
                 PaymentAttempt::STATUS_PENDING_3DS,
             ])
             ->whereNull('completed_at')
-            ->whereNull('deleted_at')
+            ->withoutTrashed()
             ->orderByDesc('id')
             ->first();
 
@@ -130,7 +130,7 @@ class PaymentAttemptService
             'started_at'          => $session->started_at ?? now(),
             'completed_at'        => now(),
             'error_code'          => 'SESSION_EXPIRED',
-            'error_message'       => 'Ödeme oturumu zaman aşımına uğradı.',
+            'error_message'       => 'msg.err.payment.session_expired',
             'raw_response'        => ['reason' => 'checkout_session_expired'],
         ]);
     }
@@ -147,7 +147,7 @@ class PaymentAttemptService
         return PaymentAttempt::query()
             ->where('id', $attemptId)
             ->where('checkout_session_id', $session->id)
-            ->whereNull('deleted_at')
+            ->withoutTrashed()
             ->first();
     }
 
@@ -159,7 +159,7 @@ class PaymentAttemptService
         return PaymentAttempt::query()
             ->where('id', $attemptId)
             ->where('checkout_session_id', $session->id)
-            ->whereNull('deleted_at')
+            ->withoutTrashed()
             ->firstOrFail();
     }
 

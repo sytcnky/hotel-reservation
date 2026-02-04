@@ -25,6 +25,39 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        /**
+         * PCI/PII policy:
+         * - Validation fail olduğunda request input session'a "old input" olarak flash'lanabilir.
+         * - Kart verileri (PAN/CVC/expiry) kesinlikle flash'lanmamalı.
+         *
+         * Not: Bu liste globaldir; sadece payment değil tüm formlar için güvenlik bariyeridir.
+         */
+        $exceptions->dontFlash([
+            // Cardholder
+            'cardholder',
+
+            // PAN (card number)
+            'cardnumber',
+            'card_number',
+            'pan',
+            'number',
+
+            // Expiry
+            'exp-month',
+            'exp_month',
+            'exp-year',
+            'exp_year',
+            'expiry',
+            'expires',
+            'exp',
+
+            // CVC/CVV
+            'cvc',
+            'cvv',
+            'cvv2',
+
+            // Demo helper input (non-sensitive ama payment akışıyla birlikte taşınmasın)
+            'demo_outcome',
+        ]);
     })
     ->create();

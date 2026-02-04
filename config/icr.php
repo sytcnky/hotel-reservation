@@ -7,7 +7,7 @@ return [
         'driver'    => env('PAYMENT_DRIVER', 'demo'),
 
         // Pending order için dakika cinsinden TTL
-        'order_ttl' => (int) env('PAYMENT_ORDER_TTL', 1),
+        'order_ttl' => (int) env('PAYMENT_ORDER_TTL', 15),
 
         // Demo driver için default outcome (success | fail)
         'demo_mode' => env('PAYMENT_DEMO_MODE', 'success'),

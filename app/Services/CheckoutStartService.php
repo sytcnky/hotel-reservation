@@ -19,10 +19,13 @@ class CheckoutStartService
     /**
      * Auth user checkout başlatır.
      *
-     * Davranış: mevcut PaymentController::start() ile aynı mantık.
+     * Davranış:
      * - cart invariant: mismatch varsa false
      * - coupon + campaign discount snapshot üretir
      * - CheckoutSession oluşturur ve döner
+     *
+     * Idempotency (P0):
+     * - Aynı user + aynı cart_hash için aktif (expire olmamış) checkout varsa YENİ oluşturmaz, onu döner.
      *
      * @return array{ok: bool, err?: string, checkout?: CheckoutSession}
      */
@@ -39,7 +42,25 @@ class CheckoutStartService
             return ['ok' => false, 'err' => 'msg.err.cart.empty'];
         }
 
-        // 2) Metadata (note + invoice) — mevcut controller mantığı korunur
+        // 1.1) Idempotency key (same cart => same hash)
+        $cartHash = $this->computeCartHash($items, (string) $cartCurrency);
+
+        // 1.2) Reuse active checkout for same user + same cart hash (prevents double tab / double click)
+        $existing = CheckoutSession::query()
+            ->where('type', CheckoutSession::TYPE_USER)
+            ->where('user_id', $user->id)
+            ->where('status', CheckoutSession::STATUS_ACTIVE)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->whereRaw("customer_snapshot->'metadata'->>'cart_hash' = ?", [$cartHash])
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existing) {
+            return ['ok' => true, 'checkout' => $existing];
+        }
+
+        // 2) Metadata (note + invoice)
         $orderNote = trim((string) $request->input('order_note'));
 
         $invoice = [
@@ -124,12 +145,19 @@ class CheckoutStartService
             'items'             => $items,
             'discount_snapshot' => array_merge($couponSnapshot, $campaignSnapshot),
             'metadata'          => [
+                'cart_hash'     => $cartHash,
+
                 'client_ip'     => $request->ip(),
                 'user_agent'    => substr((string) $request->userAgent(), 0, 255),
                 'customer_note' => $orderNote !== '' ? $orderNote : null,
                 'invoice'       => $invoice,
             ],
         ];
+
+        $ttlMinutes = (int) config('icr.payments.order_ttl', 15);
+        if ($ttlMinutes < 1) {
+            $ttlMinutes = 1;
+        }
 
         $checkout = CheckoutSession::create([
             'code'              => $this->generateCheckoutCode(),
@@ -143,7 +171,7 @@ class CheckoutStartService
             'ip_address'        => $request->ip(),
             'user_agent'        => substr((string) $request->userAgent(), 0, 255),
             'started_at'        => now(),
-            'expires_at'        => now()->addMinutes((int) config('icr.payments.order_ttl', 20)),
+            'expires_at'        => now()->addMinutes($ttlMinutes),
         ]);
 
         return ['ok' => true, 'checkout' => $checkout];
@@ -152,7 +180,8 @@ class CheckoutStartService
     /**
      * Guest checkout başlatır.
      *
-     * Davranış: mevcut PaymentController::startGuest() ile aynı mantık.
+     * Idempotency (P0):
+     * - Aynı guest email + aynı cart_hash için aktif checkout varsa YENİ oluşturmaz, onu döner.
      *
      * @param array{guest_first_name:string,guest_last_name:string,guest_email:string,guest_phone:string} $guest
      * @return array{ok: bool, err?: string, checkout?: CheckoutSession}
@@ -161,13 +190,32 @@ class CheckoutStartService
     {
         // 1) Mixed currency guard (fail-fast) + total/currency
         if ($this->cartInvariant->resetIfCurrencyMismatch($items)) {
-            return ['ok' => false, 'err' => 'err_cart_currency_mismatch'];
+            return ['ok' => false, 'err' => 'msg.err.cart.currency_mismatch'];
         }
 
         [$cartTotal, $cartCurrency] = $this->cartInvariant->computeSubtotalAndCurrency($items);
 
         if ($cartTotal <= 0 || ! $cartCurrency) {
-            return ['ok' => false, 'err' => 'err_cart_empty'];
+            return ['ok' => false, 'err' => 'msg.err.cart.empty'];
+        }
+
+        $cartHash  = $this->computeCartHash($items, (string) $cartCurrency);
+        $guestEmail = (string) ($guest['guest_email'] ?? '');
+
+        // Reuse active guest checkout for same email + same cart hash
+        $existing = CheckoutSession::query()
+            ->where('type', CheckoutSession::TYPE_GUEST)
+            ->whereNull('user_id')
+            ->where('status', CheckoutSession::STATUS_ACTIVE)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->whereRaw("customer_snapshot->'metadata'->>'cart_hash' = ?", [$cartHash])
+            ->whereRaw("customer_snapshot->'metadata'->'guest'->>'email' = ?", [$guestEmail])
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existing) {
+            return ['ok' => true, 'checkout' => $existing];
         }
 
         // 2) Campaign discounts (guest: coupon yok)
@@ -208,6 +256,8 @@ class CheckoutStartService
             'items'             => $items,
             'discount_snapshot' => $campaignSnapshot,
             'metadata'          => [
+                'cart_hash'  => $cartHash,
+
                 'client_ip'  => $request->ip(),
                 'user_agent' => substr((string) $request->userAgent(), 0, 255),
                 'guest'      => [
@@ -218,6 +268,11 @@ class CheckoutStartService
                 ],
             ],
         ];
+
+        $ttlMinutes = (int) config('icr.payments.order_ttl', 15);
+        if ($ttlMinutes < 1) {
+            $ttlMinutes = 1;
+        }
 
         $checkout = CheckoutSession::create([
             'code'              => $this->generateCheckoutCode(),
@@ -231,10 +286,45 @@ class CheckoutStartService
             'ip_address'        => $request->ip(),
             'user_agent'        => substr((string) $request->userAgent(), 0, 255),
             'started_at'        => now(),
-            'expires_at'        => now()->addMinutes((int) config('icr.payments.order_ttl', 20)),
+            'expires_at'        => now()->addMinutes($ttlMinutes),
         ]);
 
         return ['ok' => true, 'checkout' => $checkout];
+    }
+
+    private function computeCartHash(array $items, string $cartCurrency): string
+    {
+        // Deterministic encoding (no assumptions about item ordering stability)
+        $normalized = $this->deepSort($items);
+
+        $payload = [
+            'currency' => strtoupper(trim($cartCurrency)),
+            'items'    => $normalized,
+        ];
+
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return hash('sha256', (string) $json);
+    }
+
+    private function deepSort($value)
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        // Sort associative arrays by key; keep numeric arrays as-is but deep sort elements
+        $isAssoc = array_keys($value) !== range(0, count($value) - 1);
+
+        foreach ($value as $k => $v) {
+            $value[$k] = $this->deepSort($v);
+        }
+
+        if ($isAssoc) {
+            ksort($value);
+        }
+
+        return $value;
     }
 
     private function generateCheckoutCode(): string

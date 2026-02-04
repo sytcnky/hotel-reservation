@@ -46,11 +46,109 @@ class PaymentAttempt extends Model
 
     protected $casts = [
         'amount'       => 'float',
-        'raw_request'  => 'array',
-        'raw_response' => 'array',
         'started_at'   => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+
+    /*
+     |--------------------------------------------------------------------------
+     | Raw payload policy (prod: kapalı)
+     |--------------------------------------------------------------------------
+     |
+     | Prod ortamında raw_request/raw_response kesinlikle DB'ye yazılmaz.
+     | Non-prod ortamında sanitize edilerek JSON (array) olarak yazılır.
+     */
+
+    public function setRawRequestAttribute($value): void
+    {
+        $this->attributes['raw_request'] = $this->normalizeRawPayload($value);
+    }
+
+    public function setRawResponseAttribute($value): void
+    {
+        $this->attributes['raw_response'] = $this->normalizeRawPayload($value);
+    }
+
+    /**
+     * DB jsonb beklediği için array döndürür.
+     * Eloquent JSON cast array'i otomatik serialize eder.
+     */
+    private function normalizeRawPayload($value): ?array
+    {
+        // PROD: kesin kapalı
+        if (app()->isProduction()) {
+            return null;
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        // Bazı yerlerde string gelebilir; non-prod'da normalize ediyoruz.
+        if (is_string($value)) {
+            $value = ['_raw' => $value];
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        return $this->sanitizePayload($value);
+    }
+
+    private function sanitizePayload(array $data): array
+    {
+        $sensitiveKeys = [
+            // card/PAN
+            'pan', 'cardnumber', 'card_number', 'cardno', 'card_no', 'number',
+
+            // cvv/cvc
+            'cvv', 'cvc', 'cvv2',
+
+            // expiry
+            'exp', 'expiry', 'expires', 'exp_month', 'exp-year', 'exp_year', 'exp-month',
+
+            // tokens/signatures that may be replayable
+            'token', 'signature', 'auth', 'authorization',
+
+            // PII (use specific keys, not generic "name")
+            'email', 'phone', 'customer_email', 'customer_phone',
+            'customer_name', 'full_name', 'cardholder', 'card_holder',
+        ];
+
+        $walk = function ($v) use (&$walk, $sensitiveKeys) {
+            if (is_array($v)) {
+                $out = [];
+                foreach ($v as $k => $vv) {
+                    $key = is_string($k) ? strtolower($k) : $k;
+
+                    if (is_string($key) && in_array($key, $sensitiveKeys, true)) {
+                        $out[$k] = '[redacted]';
+                        continue;
+                    }
+
+                    $out[$k] = $walk($vv);
+                }
+                return $out;
+            }
+
+            if (is_string($v)) {
+                // Sadece tamamı digit olan uzun stringleri maskele (PAN/log sızıntısı)
+                $digitsOnly = preg_replace('/\D+/', '', $v);
+                if ($digitsOnly !== '' && $digitsOnly === $v && strlen($digitsOnly) >= 12) {
+                    $last4 = substr($digitsOnly, -4);
+                    return '[masked:****' . $last4 . ']';
+                }
+            }
+
+            return $v;
+        };
+
+        return $walk($data);
+    }
+
+
 
     /*
      |--------------------------------------------------------------------------

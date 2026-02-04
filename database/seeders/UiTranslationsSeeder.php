@@ -1664,8 +1664,6 @@ class UiTranslationsSeeder extends Seeder
                 'key'   => 'password_forgot.actions.back',
                 'values'=> ['tr' => 'Geri dön', 'en' => 'Back'],
             ],
-
-            // "… saniye sonra tekrar deneyebilirsin."
             [
                 'group' => 'auth',
                 'key'   => 'password_forgot.retry_suffix',

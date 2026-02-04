@@ -39,9 +39,13 @@
                         <form method="post"
                               id="paymentForm"
                               action="{{ $checkout->type === \App\Models\CheckoutSession::TYPE_GUEST
-                                  ? URL::signedRoute(app()->getLocale() . '.payment.process', ['code' => $checkout->code])
-                                  : localized_route('payment.process', ['code' => $checkout->code])
-                              }}"
+                                        ? URL::temporarySignedRoute(
+                                            app()->getLocale() . '.payment.process',
+                                            now()->addMinutes(max(1, (int) config('icr.payments.order_ttl', 1)) + 2),
+                                            ['code' => $checkout->code]
+                                          )
+                                        : localized_route('payment.process', ['code' => $checkout->code])
+                                    }}"
                               autocomplete="on"
                               novalidate>
                             @csrf

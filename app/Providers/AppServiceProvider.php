@@ -22,6 +22,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /**
+         * PROD SAFETY: Demo payment driver prod ortamında kesinlikle çalışmamalı.
+         * - Yanlış env ile "demo ödeme"ye düşmeyi engeller.
+         */
+        if (app()->isProduction()) {
+            $driver = (string) config('icr.payments.driver', '');
+
+            if ($driver === '' || $driver === 'demo') {
+                throw new \RuntimeException(
+                    'PAYMENT_DRIVER misconfigured: production ortamında demo driver yasaktır. ' .
+                    'Lütfen .env içinde PAYMENT_DRIVER değerini gerçek sağlayıcıya ayarlayın.'
+                );
+            }
+        }
+
         // Filament bileşenleri (DateTimePicker, TextColumn vs.) için varsayılan timezone
         FilamentTimezone::set('Europe/Istanbul');
 

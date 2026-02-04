@@ -220,19 +220,31 @@ LocalizedRoute::get('guides', [TravelGuideController::class, 'index']);
 LocalizedRoute::get('guides.show', [TravelGuideController::class, 'show']);
 
 /** Ödeme sayfası (görüntüleme + işleme) */
-LocalizedRoute::get('payment', [PaymentController::class, 'show']);
+foreach (LocalizedRoute::get('payment', [PaymentController::class, 'show']) as $route) {
+    $route->middleware('throttle:60,1');
+}
 
-LocalizedRoute::post('payment.process', [PaymentController::class, 'process']);
+foreach (LocalizedRoute::post('payment.process', [PaymentController::class, 'process']) as $route) {
+    $route->middleware('throttle:10,1');
+}
 
 /** Sepetten ödeme başlangıcı (ÜYE kullanıcı) */
-LocalizedRoute::post('checkout.start', [PaymentController::class, 'start']);
+foreach (LocalizedRoute::post('checkout.start', [PaymentController::class, 'start']) as $route) {
+    $route->middleware('throttle:10,1');
+}
 
 /** Login sayfasındaki misafir formu → ödeme başlangıcı (MİSAFİR) */
-Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])->name('checkout.start.guest');
+Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])
+    ->name('checkout.start.guest')
+    ->middleware('throttle:5,1');
 
 /** 3D Secure demo ekranı */
-LocalizedRoute::get('payment.3ds', [PaymentController::class, 'show3ds']);
-LocalizedRoute::post('payment.3ds.complete', [PaymentController::class, 'complete3ds']);
+foreach (LocalizedRoute::get('payment.3ds', [PaymentController::class, 'show3ds']) as $route) {
+    $route->middleware('throttle:30,1');
+}
+foreach (LocalizedRoute::post('payment.3ds.complete', [PaymentController::class, 'complete3ds']) as $route) {
+    $route->middleware('throttle:10,1');
+}
 
 /** Başarılı Ödeme */
 LocalizedRoute::view('success', 'pages.payment.success');

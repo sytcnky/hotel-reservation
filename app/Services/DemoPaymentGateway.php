@@ -25,14 +25,24 @@ class DemoPaymentGateway implements PaymentGateway3dsInterface
 
         $gatewayRef = 'DEMO-PAY-' . strtoupper(bin2hex(random_bytes(6)));
 
+        $rawRequest = [
+            'demo'    => true,
+            'flow'    => 'non_3ds',
+            'outcome' => $outcome,
+        ];
+
         if ($outcome === 'success') {
             return [
                 'success'           => true,
                 'gateway_reference' => $gatewayRef,
                 'error_code'        => null,
                 'message'           => null,
-                'raw_request'       => ['demo' => true, 'flow' => 'non_3ds', 'outcome' => 'success'],
-                'raw_response'      => ['demo' => true, 'result' => 'approved', 'gateway_reference' => $gatewayRef],
+                'raw_request'       => $rawRequest,
+                'raw_response'      => [
+                    'demo'              => true,
+                    'result'            => 'approved',
+                    'gateway_reference' => $gatewayRef,
+                ],
             ];
         }
 
@@ -41,8 +51,13 @@ class DemoPaymentGateway implements PaymentGateway3dsInterface
             'gateway_reference' => $gatewayRef,
             'error_code'        => 'DECLINED',
             'message'           => 'Demo: Ödeme reddedildi (fail seçildi).',
-            'raw_request'       => ['demo' => true, 'flow' => 'non_3ds', 'outcome' => 'fail'],
-            'raw_response'      => ['demo' => true, 'result' => 'declined', 'gateway_reference' => $gatewayRef, 'error_code' => 'DECLINED'],
+            'raw_request'       => $rawRequest,
+            'raw_response'      => [
+                'demo'              => true,
+                'result'            => 'declined',
+                'gateway_reference' => $gatewayRef,
+                'error_code'        => 'DECLINED',
+            ],
         ];
     }
 
@@ -57,12 +72,11 @@ class DemoPaymentGateway implements PaymentGateway3dsInterface
         $digits = preg_replace('/\D+/', '', (string) ($cardData['cardnumber'] ?? ''));
         $last4  = $digits !== '' ? substr($digits, -4) : null;
 
+        // Raw payload policy: kart/PII yok. expiry de yok.
         $rawRequest = [
-            'demo'      => true,
-            'flow'      => '3ds_start',
-            'last4'     => $last4,
-            'exp_month' => $cardData['exp_month'] ?? null,
-            'exp_year'  => $cardData['exp_year'] ?? null,
+            'demo'  => true,
+            'flow'  => '3ds_start',
+            'last4' => $last4,
         ];
 
         $gatewayRef = 'DEMO-3DS-' . strtoupper(bin2hex(random_bytes(6)));
@@ -144,13 +158,12 @@ class DemoPaymentGateway implements PaymentGateway3dsInterface
         $digits = preg_replace('/\D+/', '', (string) ($validated['cardnumber'] ?? ''));
         $last4  = $digits !== '' ? substr($digits, -4) : null;
 
+        // Raw payload policy: kart/PII yok. expiry de yok.
         $rawRequest = [
-            'demo'      => true,
-            'flow'      => 'draft',
-            'last4'     => $last4,
-            'exp_month' => $validated['exp-month'] ?? null,
-            'exp_year'  => $validated['exp-year'] ?? null,
-            'outcome'   => $outcome,
+            'demo'    => true,
+            'flow'    => 'draft',
+            'last4'   => $last4,
+            'outcome' => $outcome,
         ];
 
         $gatewayRef = 'DEMO-DRAFT-' . strtoupper(bin2hex(random_bytes(6)));
@@ -191,18 +204,21 @@ class DemoPaymentGateway implements PaymentGateway3dsInterface
 
         $gatewayRef = 'DEMO-RF-' . strtoupper(bin2hex(random_bytes(6)));
 
+        // Refund payload prod’da zaten null olacak; non-prod’da bile PII taşımayalım.
+        $rawRequest = [
+            'demo'      => true,
+            'flow'      => 'refund',
+            'refund_id' => $refundAttempt->id,
+            'amount'    => $refundAttempt->amount,
+            'currency'  => $refundAttempt->currency,
+        ];
+
         return [
             'success'           => true,
             'gateway_reference' => $gatewayRef,
             'error_code'        => null,
             'message'           => null,
-            'raw_request'       => [
-                'demo'      => true,
-                'refund_id' => $refundAttempt->id,
-                'amount'    => $refundAttempt->amount,
-                'currency'  => $refundAttempt->currency,
-                'payload'   => $payload,
-            ],
+            'raw_request'       => $rawRequest,
             'raw_response'      => [
                 'demo'              => true,
                 'result'            => 'accepted',

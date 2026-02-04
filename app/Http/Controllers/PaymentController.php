@@ -232,9 +232,9 @@ class PaymentController extends Controller
                 'status'            => PaymentAttempt::STATUS_FAILED,
                 'gateway_reference' => $result['gateway_reference'] ?? $attempt->gateway_reference,
                 'error_code'        => $result['error_code'] ?? ($result['code'] ?? null) ?? '3DS_FAILED',
-                'error_message'     => $result['message'] ?? '3D Secure doğrulaması başarısız.',
-                'raw_request'       => $result['raw_request'] ?? null,
-                'raw_response'      => $result['raw_response'] ?? $result,
+                'error_message'     => $result['message'] ?? 'msg.err.payment.3ds_failed',
+                'raw_request'       => $this->safeRaw(isset($result['raw_request']) && is_array($result['raw_request']) ? $result['raw_request'] : null),
+                'raw_response'      => $this->safeRawResponseFromResult($result),
                 'completed_at'      => now(),
             ])->save();
 
@@ -355,12 +355,12 @@ class PaymentController extends Controller
         /** @var CheckoutSession $checkout */
         $checkout = $r['checkout'];
 
-        // Guest ödeme erişimi: code + signature
+        // Guest ödeme erişimi: code + signature (TTL'li)
         $url = $this->signedRoute('payment', ['code' => $checkout->code]);
 
-        \Log::info('guest payment signed url', [
+        // Signed URL'yi loglamıyoruz (sızıntı riskini azaltır); sadece route ismi yazılır.
+        \Log::info('guest payment signed route generated', [
             'route_name' => app()->getLocale() . '.payment',
-            'signed_url' => $url,
         ]);
 
         return redirect()->to($url);
@@ -437,9 +437,9 @@ class PaymentController extends Controller
                 'status'            => PaymentAttempt::STATUS_FAILED,
                 'gateway_reference' => $start['gateway_reference'] ?? null,
                 'error_code'        => $start['error_code'] ?? ($start['code'] ?? null) ?? '3DS_START_FAILED',
-                'error_message'     => $start['message'] ?? '3D Secure başlatılamadı.',
-                'raw_request'       => $start['raw_request'] ?? null,
-                'raw_response'      => $start['raw_response'] ?? $start,
+                'error_message'     => $start['message'] ?? 'msg.err.payment.3ds_start_failed',
+                'raw_request'       => $this->safeRaw(isset($start['raw_request']) && is_array($start['raw_request']) ? $start['raw_request'] : null),
+                'raw_response'      => $this->safeRaw(isset($start['raw_response']) && is_array($start['raw_response']) ? $start['raw_response'] : null),
                 'completed_at'      => now(),
             ])->save();
 
@@ -453,13 +453,13 @@ class PaymentController extends Controller
         $attempt->forceFill([
             'status'            => PaymentAttempt::STATUS_PENDING_3DS,
             'gateway_reference' => $start['gateway_reference'] ?? $attempt->gateway_reference,
-            'raw_request'       => $start['raw_request'] ?? null,
-            'raw_response'      => $start['raw_response'] ?? null,
+            'raw_request'       => $this->safeRaw(isset($start['raw_request']) && is_array($start['raw_request']) ? $start['raw_request'] : null),
+            'raw_response'      => $this->safeRaw(isset($start['raw_response']) && is_array($start['raw_response']) ? $start['raw_response'] : null),
         ])->save();
 
         $token = hash_hmac('sha256', (string) $attempt->id, (string) $attempt->idempotency_key);
 
-        // 3DS URL'yi signed üret (attempt/token query ile)
+        // 3DS URL'yi signed + TTL'li üret (attempt/token query ile)
         $url = $this->signedRoute('payment.3ds', [
             'code'    => $checkout->code,
             'attempt' => $attempt->id,
@@ -470,14 +470,52 @@ class PaymentController extends Controller
     }
 
     /**
-     * Guest için signed URL üretimi.
+     * Guest için temporary signed URL üretimi (TTL'li).
      * LocalizedRoute route isimleri {locale}.{baseName} olduğu için burada locale prefix'li isim kullanılır.
      */
     private function signedRoute(string $baseName, array $params = []): string
     {
         $name = app()->getLocale() . '.' . $baseName;
 
-        return URL::signedRoute($name, $params);
+        $ttlMinutes = (int) config('icr.payments.order_ttl', 1);
+        if ($ttlMinutes < 1) {
+            $ttlMinutes = 1;
+        }
+
+        // Küçük buffer (clock skew / redirect gecikmeleri)
+        $expiresAt = now()->addMinutes($ttlMinutes + 2);
+
+        return URL::temporarySignedRoute($name, $expiresAt, $params);
+    }
+
+    /**
+     * Gateway raw payload policy (2. bariyer):
+     * - Prod’da: null (DB’ye gitmesin)
+     * - Non-prod’da: sadece array kabul et, model sanitize zaten yapıyor.
+     */
+    private function safeRaw(?array $raw): ?array
+    {
+        if (app()->isProduction()) {
+            return null;
+        }
+
+        return is_array($raw) ? $raw : null;
+    }
+
+    /**
+     * Gateway result içinde PII sızıntısı olmasın diye raw_response fallback’i sınırlı tut.
+     * (Eskiden: $result komple yazılıyordu.)
+     */
+    private function safeRawResponseFromResult(array $result): ?array
+    {
+        if (app()->isProduction()) {
+            return null;
+        }
+
+        // Yalnızca gateway’in explicit raw_response alanını al.
+        $raw = $result['raw_response'] ?? null;
+
+        return is_array($raw) ? $raw : null;
     }
 
     /**
