@@ -265,6 +265,7 @@ class Order extends Model
                 $base = [
                     'type'  => $type,
                     'image' => $image,
+                    'image_thumb'=> is_array($image) ? ($image['thumb'] ?? null) : $image,
                     'pax'   => $pax,
                 ];
 

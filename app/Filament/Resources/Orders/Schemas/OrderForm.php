@@ -258,12 +258,12 @@ class OrderForm
                                                 ->schema([
                                                     Grid::make(['default' => 1, 'lg' => 12])
                                                         ->schema([
-                                                            ImageEntry::make('image')
+                                                            ImageEntry::make('image_thumb')
                                                                 ->hiddenLabel()
                                                                 ->circular()
                                                                 ->imageHeight(96)
                                                                 ->columnSpan(['default' => 12, 'lg' => 2])
-                                                                ->hidden(fn ($record, ?string $state) => blank($state)),
+                                                                ->hidden(fn ($record, $state) => blank($state)),
 
                                                             Section::make()
                                                                 ->schema([
