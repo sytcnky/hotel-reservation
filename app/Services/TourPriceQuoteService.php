@@ -120,11 +120,6 @@ class TourPriceQuoteService
 
         $tourName = I18nHelper::scalar($tour->name, $ui, $base);
 
-        $categoryName = null;
-        if ($tour->category) {
-            $categoryName = I18nHelper::scalar($tour->category->name, $ui, $base);
-        }
-
         $snapshot = [
             'tour_id'     => $tourId,
             'date'        => $dateYmd,
@@ -135,8 +130,8 @@ class TourPriceQuoteService
             'currency'    => $currency,
             'price_total' => $total,
 
-            'tour_name'     => $tourName,
-            'category_name' => $categoryName,
+            'tour_name'   => $tourName,
+            'category_id' => $tour->category?->id,
         ];
 
         $img = $tour->cover_image ?? null;

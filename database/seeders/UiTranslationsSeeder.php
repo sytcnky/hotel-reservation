@@ -174,8 +174,8 @@ class UiTranslationsSeeder extends Seeder
                 'group' => 'ui',
                 'key' => 'room_features',
                 'values' => [
-                    'tr' => 'Oda Özellikleri:',
-                    'en' => 'Room Features:',
+                    'tr' => 'Oda Özellikleri',
+                    'en' => 'Room Features',
                 ],
             ],
             [
@@ -390,7 +390,7 @@ class UiTranslationsSeeder extends Seeder
                 'group' => 'ui',
                 'key' => 'pickup',
                 'values' => [
-                    'tr' => 'Alınış',
+                    'tr' => 'Geliş',
                     'en' => 'Pickup',
                 ],
             ],
@@ -1765,6 +1765,172 @@ class UiTranslationsSeeder extends Seeder
                 'group' => 'ui',
                 'key'   => 'currency_switch_modal_confirm',
                 'values'=> ['tr' => 'Para Birimini Değiştir', 'en' => 'Change Currency'],
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'title_cart',
+                'values' => ['tr' => 'Sepetim', 'en' => 'My Cart']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'coupons_title',
+                'values' => ['tr' => 'Kuponlarım', 'en' => 'My Coupons']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'coupon_prev',
+                'values' => ['tr' => 'Önceki', 'en' => 'Previous']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'coupon_next',
+                'values' => ['tr' => 'Sonraki', 'en' => 'Next']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'apply_coupon',
+                'values' => ['tr' => 'Uygula', 'en' => 'Apply']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'coupon_applied',
+                'values' => ['tr' => 'Uygulandı', 'en' => 'Applied']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'cart_empty_title',
+                'values' => ['tr' => 'Sepetiniz boş.', 'en' => 'Your cart is empty.']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'cart_empty_hint',
+                'values' => ['tr' => 'Yeni bir rezervasyon eklemek için otel, villa, tur veya transfer arayabilirsiniz.', 'en' => 'To add a new booking, you can search for hotels, villas, tours, or transfers.']],
+            [
+                'group' => 'cart',
+                'key' => 'back_home',
+                'values' => ['tr' => 'Ana sayfaya dön', 'en' => 'Back to home']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'order_note_label',
+                'values' => ['tr' => 'Sipariş Notunuz:', 'en' => 'Order note:']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'order_note_placeholder',
+                'values' => ['tr' => 'Özel istekleriniz...', 'en' => 'Your special requests...']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'summary_title',
+                'values' => ['tr' => 'Sipariş Özeti', 'en' => 'Order Summary']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'summary_subtotal',
+                'values' => ['tr' => 'Ara toplam', 'en' => 'Subtotal']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'summary_total',
+                'values' => ['tr' => 'Ödenecek Toplam', 'en' => 'Total Due']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'summary_discounts',
+                'values' => ['tr' => 'İndirimler', 'en' => 'Discounts']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'summary_discount_coupon',
+                'values' => ['tr' => 'Kupon İndirimi', 'en' => 'Coupon Discount']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'btn_pay',
+                'values' => ['tr' => 'Ödeme Yap', 'en' => 'Proceed to Payment']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'corporate_checkbox',
+                'values' => ['tr' => 'Kurumsal fatura istiyorum', 'en' => 'I want a corporate invoice']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_company',
+                'values' => ['tr' => 'Firma Adı', 'en' => 'Company Name']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_tax_office',
+                'values' => ['tr' => 'Vergi Dairesi', 'en' => 'Tax Office']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_tax_no',
+                'values' => ['tr' => 'Vergi No', 'en' => 'Tax Number']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_address',
+                'values' => ['tr' => 'Fatura Adresi', 'en' => 'Invoice Address']
+            ],
+
+            [
+                'group' => 'cart',
+                'key' => 'corp_company_placeholder',
+                'values' => ['tr' => 'Örn. ABC Turizm A.Ş.', 'en' => 'e.g. ABC Travel Ltd.']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_tax_office_placeholder',
+                'values' => ['tr' => 'Örn. Beyoğlu', 'en' => 'e.g. Beyoglu']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_tax_no_placeholder',
+                'values' => ['tr' => '##########', 'en' => '##########']
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'corp_address_placeholder',
+                'values' => ['tr' => 'Adres', 'en' => 'Address']
+            ],
+            [
+                'group' => 'ui',
+                'key' => 'pickup',
+                'values' => [
+                    'tr' => 'Geliş',
+                    'en' => 'Pickup',
+                ],
+            ],
+            [
+                'group' => 'cart',
+                'key' => 'return',
+                'values' => [
+                    'tr' => 'Dönüş',
+                    'en' => 'Return',
+                ],
+            ],
+            [
+                'group' => 'cart',
+                'key'   => 'villa.total',
+                'values'=> ['tr' => 'Toplam', 'en' => 'Total'],
+            ],
+            [
+                'group' => 'cart',
+                'key'   => 'villa.remaining',
+                'values'=> ['tr' => 'Kalan', 'en' => 'Remaining:'],
+            ],
+            [
+                'group' => 'cart',
+                'key'   => 'item_delete',
+                'values'=> ['tr' => 'Sil', 'en' => 'Delete:'],
             ],
         ];
 

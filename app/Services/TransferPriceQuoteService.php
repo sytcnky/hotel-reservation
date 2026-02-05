@@ -128,8 +128,8 @@ class TransferPriceQuoteService
         $toArea     = $route->to?->name;
         $toDistrict = $route->to?->parent?->name;
 
-        $fromLabel = implode(', ', array_filter([$fromArea, $fromDistrict]));
-        $toLabel   = implode(', ', array_filter([$toArea, $toDistrict]));
+        $fromLabel = trim((string) ($fromArea ?: $fromDistrict));
+        $toLabel   = trim((string) ($toArea   ?: $toDistrict));
 
         $ui   = app()->getLocale();
         $base = \App\Support\Helpers\LocaleHelper::defaultCode();

@@ -10,10 +10,11 @@
 
     $direction = $s['direction'] ?? null;
 
+    $flightOutbound = $s['flight_number_outbound'] ?? null;
+    $flightReturn   = $s['flight_number_return'] ?? null;
+
     $amount   = (float)($ci['amount'] ?? 0);
     $currency = $ci['currency'] ?? null;
-
-    $notices = is_array($ci['notices'] ?? null) ? $ci['notices'] : [];
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -22,9 +23,7 @@
           class="position-absolute top-0 end-0 m-2">
         @csrf
         @method('DELETE')
-        <button type="submit"
-                class="btn btn-sm btn-light text-danger"
-                title="Sil">
+        <button type="submit" class="btn btn-sm btn-light text-danger" title="{{ t('cart.item_delete') }}">
             <i class="fi fi-rr-trash"></i>
         </button>
     </form>
@@ -42,9 +41,8 @@
 
             <div class="col-8 col-md-6">
                 <div class="small text-uppercase text-muted mb-1">
-                    Transfer
-                    <small>
-                        {{ $direction === 'roundtrip' ? '(Geliş-Dönüş)' : '(Tek Yön)' }}
+                    <small class="badge text-bg-dark fw-normal">
+                        {{ $direction === 'roundtrip' ? t('ui.round_trip') : t('ui.one_way') }}
                     </small>
                 </div>
 
@@ -54,56 +52,41 @@
                     {{ $s['to_label'] ?? $s['to_location_id'] ?? '' }}
                 </h5>
 
-                @if (!empty($notices))
-                    <div class="mt-2">
-                        @foreach ($notices as $n)
-                            @php
-                                $code   = (string) ($n['code'] ?? '');
-                                $params = is_array($n['params'] ?? null) ? $n['params'] : [];
-                                $level  = (string) ($n['level'] ?? 'error');
-                                $cls    = $level === 'warning' ? 'alert-warning' : 'alert-danger';
-                            @endphp
-                            @if ($code !== '')
-                                <div class="alert {{ $cls }} py-2 px-3 mb-2">
-                                    {{ t($code, $params) }}
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
-
                 <div class="text-muted small">
                     @if (!empty($s['departure_date']))
                         <div>
-                            Geliş:
+                            {{ t('cart.transfer.pickup') }}:
                             {{ \App\Support\Date\DatePresenter::human(
                                 ymd: (string) $s['departure_date'],
                                 pattern: 'd F'
                             ) }}
-                            @if (!empty($s['pickup_time_outbound'])),
-                            {{ $s['pickup_time_outbound'] }}
+                            @if (!empty($flightOutbound))
+                                - {{ $flightOutbound }}
+                            @elseif (!empty($s['pickup_time_outbound']))
+                                - {{ $s['pickup_time_outbound'] }}
                             @endif
                         </div>
                     @endif
 
                     @if ($direction === 'roundtrip' && !empty($s['return_date']))
                         <div>
-                            Dönüş
+                            {{ t('cart.transfer.return') }}:
                             {{ \App\Support\Date\DatePresenter::human(
                                 ymd: (string) $s['return_date'],
                                 pattern: 'd F'
                             ) }}
-                            @if (!empty($s['pickup_time_return'])),
-                            {{ $s['pickup_time_return'] }}
+                            @if (!empty($flightReturn))
+                                - {{ $flightReturn }}
+                            @elseif (!empty($s['pickup_time_return']))
+                                - {{ $s['pickup_time_return'] }}
                             @endif
                         </div>
                     @endif
 
                     <div>
-                        <i class="fi fi-rr-users"></i>
-                        {{ $adults }} Yetişkin
-                        @if ($children) , {{ $children }} Çocuk @endif
-                        @if ($infants) , {{ $infants }} Bebek @endif
+                        {{ $adults }} {{ t('ui.adult') }}
+                        @if ($children) , {{ $children }} {{ t('ui.child') }} @endif
+                        @if ($infants) , {{ $infants }} {{ t('ui.infant') }} @endif
                     </div>
                 </div>
             </div>

@@ -9,14 +9,12 @@
     $cover = $s['cover_image'] ?? \App\Support\Helpers\ImageHelper::normalize(null);
 
     if (is_array($cover)) {
-        $cover['alt'] = $cover['alt'] ?? ($s['tour_name'] ?? 'Tur');
+        $cover['alt'] = $cover['alt'] ?? ($s['tour_name']);
     }
 
     $a = (int) ($s['adults']   ?? 0);
     $c = (int) ($s['children'] ?? 0);
     $i = (int) ($s['infants']  ?? 0);
-
-    $notices = is_array($ci['notices'] ?? null) ? $ci['notices'] : [];
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -25,7 +23,7 @@
           class="position-absolute top-0 end-0 m-2">
         @csrf
         @method('DELETE')
-        <button type="submit" class="btn btn-sm btn-light text-danger" title="Sil">
+        <button type="submit" class="btn btn-sm btn-light text-danger" title="{{ t('cart.item_delete') }}">
             <i class="fi fi-rr-trash"></i>
         </button>
     </form>
@@ -44,33 +42,20 @@
 
             <div class="col-8 col-md-6">
                 <div class="small text-uppercase text-muted mb-1">
-                    Günlük Tur
-                    @if (!empty($s['category_name']))
-                        <small>({{ $s['category_name'] }})</small>
+                    @if (!empty($s['category_id']))
+                        <small class="badge text-bg-dark fw-normal">
+                            {{ \App\Support\Helpers\I18nHelper::scalar(
+                                \App\Models\TourCategory::find($s['category_id'])?->name,
+                                app()->getLocale(),
+                                \App\Support\Helpers\LocaleHelper::defaultCode()
+                            ) }}
+                        </small>
                     @endif
                 </div>
 
                 <h5 class="mb-1">
-                    {{ $s['tour_name'] ?? 'Tur' }}
+                    {{ $s['tour_name'] }}
                 </h5>
-
-                @if (!empty($notices))
-                    <div class="mt-2">
-                        @foreach ($notices as $n)
-                            @php
-                                $code   = (string) ($n['code'] ?? '');
-                                $params = is_array($n['params'] ?? null) ? $n['params'] : [];
-                                $level  = (string) ($n['level'] ?? 'error');
-                                $cls    = $level === 'warning' ? 'alert-warning' : 'alert-danger';
-                            @endphp
-                            @if ($code !== '')
-                                <div class="alert {{ $cls }} py-2 px-3 mb-2">
-                                    {{ t($code, $params) }}
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
 
                 <div class="text-muted small">
                     @if (!empty($s['date']))
@@ -84,10 +69,9 @@
 
                     @if ($a || $c || $i)
                         <div>
-                            <i class="fi fi-rr-users"></i>
-                            {{ $a }} Yetişkin
-                            @if ($c) , {{ $c }} Çocuk @endif
-                            @if ($i) , {{ $i }} Bebek @endif
+                            {{ $a }} {{ t('ui.adult') }}
+                            @if ($c) , {{ $c }} {{ t('ui.child') }} @endif
+                            @if ($i) , {{ $i }} {{ t('ui.infant') }} @endif
                         </div>
                     @endif
                 </div>

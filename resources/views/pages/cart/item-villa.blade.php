@@ -28,8 +28,6 @@
 
     // Lokasyon etiketi (opsiyonel)
     $locationLabel = $s['location_label'] ?? null;
-
-    $notices = (array) ($ci['notices'] ?? []);
 @endphp
 
 <div class="card shadow-sm mb-3 position-relative">
@@ -38,34 +36,12 @@
           class="position-absolute top-0 end-0 m-2">
         @csrf
         @method('DELETE')
-        <button type="submit" class="btn btn-sm btn-light text-danger" title="Sil">
+        <button type="submit" class="btn btn-sm btn-light text-danger" title="{{ t('cart.item_delete') }}">
             <i class="fi fi-rr-trash"></i>
         </button>
     </form>
 
     <div class="card-body">
-
-        {{-- Scoped notices (entity içi) --}}
-        @if (!empty($notices))
-            <div class="mb-2">
-                @foreach ($notices as $n)
-                    @php
-                        $code   = is_array($n) ? ($n['code'] ?? null) : null;
-                        $params = is_array($n) ? (array) ($n['params'] ?? []) : [];
-                        $level  = is_array($n) ? (string) ($n['level'] ?? 'error') : 'error';
-
-                        $cls = $level === 'info' ? 'alert alert-info' : 'alert alert-danger';
-                    @endphp
-
-                    @if (is_string($code) && trim($code) !== '')
-                        <div class="{{ $cls }} py-2 mb-2">
-                            {{ t($code, $params) }}
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        @endif
-
         <div class="row g-3 align-items-center">
 
             {{-- Görsel --}}
@@ -80,10 +56,6 @@
 
             {{-- Metinler --}}
             <div class="col-8 col-md-6">
-                <div class="small text-uppercase text-muted mb-1">
-                    Villa
-                </div>
-
                 <h5 class="mb-1">
                     {{ $s['villa_name'] ?? 'Villa' }}
                 </h5>
@@ -91,7 +63,6 @@
                 <div class="text-muted small">
                     @if ($locationLabel)
                         <div class="mb-1">
-                            <i class="fi fi-rr-marker"></i>
                             {{ $locationLabel }}
                         </div>
                     @endif
@@ -108,17 +79,16 @@
                                 pattern: 'd F'
                             ) }}
                             @if ($nights)
-                                ({{ $nights }} Gece)
+                                ({{ $nights }} {{ t('ui.night') }})
                             @endif
                         </div>
                     @endif
 
                     @if ($adults || $children)
                         <div>
-                            <i class="fi fi-rr-users"></i>
-                            {{ $adults }} Yetişkin
+                            {{ $adults }} {{ t('ui.adult') }}
                             @if ($children)
-                                , {{ $children }} Çocuk
+                                , {{ $children }} {{ t('ui.child') }}
                             @endif
                         </div>
                     @endif
@@ -129,18 +99,17 @@
             <div class="col-12 col-md-3 text-md-end">
                 @if ($prepayment > 0)
                     <div class="fw-bold fs-5 text-primary">
-                        <small>Ön ödeme:</small><br>
                         {{ \App\Support\Currency\CurrencyPresenter::format($prepayment, $currency) }}
                     </div>
                     <div class="small text-muted">
-                        Kalan: {{ \App\Support\Currency\CurrencyPresenter::format($remaining, $currency) }}
+                        {{ t('ui.villa.remaining') }}: {{ \App\Support\Currency\CurrencyPresenter::format($remaining, $currency) }}
                         <i class="fi fi-rr-info"
                            data-bs-toggle="tooltip"
                            data-bs-placement="top"
-                           title="Kalan ücret konaklama sırasında alınır."></i>
+                           title="{{ t('ui.villa.prepayment') }}"></i>
                     </div>
                     <div class="small text-muted">
-                        Toplam: {{ \App\Support\Currency\CurrencyPresenter::format($total, $currency) }}
+                        {{ t('ui.villa.total') }}: {{ \App\Support\Currency\CurrencyPresenter::format($total, $currency) }}
                     </div>
                 @else
                     <div class="fw-bold fs-5 text-primary">

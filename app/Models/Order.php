@@ -410,12 +410,8 @@ class Order extends Model
                 $title = trim((string) ($row['title'] ?? ''));
                 $code  = trim((string) ($row['code'] ?? ''));
 
-                // Alt başlık (snapshot’ta hangisi varsa)
-                $subtitle =
-                    trim((string) ($row['subtitle'] ?? '')) ?:
-                        trim((string) ($row['campaign_subtitle'] ?? '')) ?:
-                            trim((string) ($row['sub_title'] ?? '')) ?:
-                                trim((string) ($row['context'] ?? ''));
+                // Alt başlık
+                $subtitle = trim((string) ($row['subtitle'] ?? ''));
 
                 // Hiç başlık yoksa satırı tamamen düşür
                 $labelBase = $title !== '' ? $title : $code;

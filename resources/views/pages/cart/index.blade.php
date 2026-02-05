@@ -3,47 +3,13 @@
 
 @section('content')
 
-    @php
-        $txt = [
-
-            // Breadcrumb + titles
-            'breadcrumb_cart'  => 'Sepet',
-            'title_cart'       => 'Sepetim',
-
-            // Coupons
-            'coupons_title'         => 'Kuponlarım',
-            'coupons_none'          => 'Kullanılabilir kuponunuz bulunmamaktadır.',
-            'apply_coupon'          => 'Uygula',
-            'coupon_applied'        => 'Uygulandı',
-
-            // Summary
-            'summary_title'     => 'Sipariş Özeti',
-            'summary_subtotal'  => 'Ara toplam',
-            'summary_total'     => 'Ödenecek Toplam',
-
-            // Buttons
-            'btn_pay'       => 'Ödeme Yap',
-            'btn_checkout'  => 'Siparişi Tamamla',
-
-            // Corporate Invoice
-            'corporate_checkbox' => 'Kurumsal fatura istiyorum',
-            'corp_company'       => 'Firma Adı',
-            'corp_tax_office'    => 'Vergi Dairesi',
-            'corp_tax_no'        => 'Vergi No',
-            'corp_address'       => 'Fatura Adresi',
-
-            // Empty cart (page content)
-            'cart_empty_title'  => 'Sepetiniz boş.',
-        ];
-    @endphp
-
     <section class="container py-4 py-lg-5">
         <div class="row g-4">
 
             {{-- SOL --}}
             <div class="col-lg-8">
 
-                <h1 class="h4 mb-3">{{ $txt['title_cart'] }}</h1>
+                <h1 class="h4 mb-3">{{ t('cart.title_cart') }}</h1>
 
                 {{-- Kuponlar --}}
                 @php
@@ -56,14 +22,14 @@
                     <div class="mb-4 p-3 bg-light rounded" id="couponCarousel" data-coupon-carousel>
 
                         <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold mb-0">{{ $txt['coupons_title'] }}</h6>
+                            <h6 class="fw-bold mb-0">{{ t('cart.coupons_title') }}</h6>
 
                             <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-sm btn-outline-secondary coupon-prev" type="button" aria-label="Önceki">
+                                <button class="btn btn-sm btn-outline-secondary coupon-prev" type="button" aria-label="{{ t('cart.coupon_prev') }}">
                                     <i class="fi fi-rr-angle-left"></i>
                                 </button>
 
-                                <button class="btn btn-sm btn-outline-secondary coupon-next" type="button" aria-label="Sonraki">
+                                <button class="btn btn-sm btn-outline-secondary coupon-next" type="button" aria-label="{{ t('cart.coupon_next') }}">
                                     <i class="fi fi-rr-angle-right"></i>
                                 </button>
                             </div>
@@ -158,7 +124,7 @@
                                                         <input type="hidden" name="user_coupon_id" value="{{ $coupon['id'] }}">
                                                         <button type="submit"
                                                                 class="btn btn-sm btn-success w-100">
-                                                            {{ $txt['coupon_applied'] }}
+                                                            {{ t('cart.coupon_applied') }}
                                                         </button>
                                                     </form>
 
@@ -170,14 +136,14 @@
                                                         <input type="hidden" name="user_coupon_id" value="{{ $coupon['id'] }}">
                                                         <button type="submit"
                                                                 class="btn btn-sm btn-outline-primary w-100">
-                                                            {{ $txt['apply_coupon'] }}
+                                                            {{ t('cart.apply_coupon') }}
                                                         </button>
                                                     </form>
                                                 @endif
 
                                             @else
                                                 <button class="btn btn-sm btn-outline-secondary mt-1 w-100" disabled>
-                                                    {{ $txt['apply_coupon'] }}
+                                                    {{ t('cart.apply_coupon') }}
                                                 </button>
                                             @endif
 
@@ -213,12 +179,12 @@
                             <div class="mb-3">
                                 <i class="fi fi-rr-basket-shopping-simple" style="font-size: 40px;"></i>
                             </div>
-                            <h5 class="mb-2">{{ $txt['cart_empty_title'] }}</h5>
+                            <h5 class="mb-2">{{ t('cart.cart_empty_title') }}</h5>
                             <p class="text-muted small mb-3">
-                                Yeni bir rezervasyon eklemek için otel, villa, tur veya transfer arayabilirsiniz.
+                                {{ t('cart.cart_empty_hint') }}
                             </p>
                             <a href="{{ localized_route('home') }}" class="btn btn-primary btn-sm">
-                                Ana sayfaya dön
+                                {{ t('cart.back_home') }}
                             </a>
                         </div>
                     </div>
@@ -228,11 +194,11 @@
                 @if (!empty($cartItems))
                     <div class="card shadow-sm mb-5">
                         <div class="card-body">
-                            <label class="form-label fw-semibold">Sipariş Notunuz:</label>
+                            <label class="form-label fw-semibold">{{ t('cart.order_note_label') }}</label>
                             <textarea
                                 class="form-control"
                                 rows="3"
-                                placeholder="Özel istekleriniz..."
+                                placeholder="{{ t('cart.order_note_placeholder') }}"
                                 id="cartOrderNote"
                                 data-order-note
                                 maxlength="400"
@@ -256,10 +222,10 @@
                     <div class="card shadow-sm mb-3">
                         <div class="card-body">
 
-                            <h2 class="h5 mb-3">{{ $txt['summary_title'] }}</h2>
+                            <h2 class="h5 mb-3">{{ t('cart.summary_title') }}</h2>
 
                             <div class="d-flex justify-content-between small mb-2">
-                                <span>{{ $txt['summary_subtotal'] }}</span>
+                                <span>{{ t('cart.summary_subtotal') }}</span>
                                 <span>
                                     {{ \App\Support\Currency\CurrencyPresenter::format($cartSubtotal, $cartCurrency) }}
                                 </span>
@@ -267,13 +233,13 @@
 
                             @if ($couponDiscountTotal > 0 || !empty($cartCampaigns))
                                 <div class="small fw-semibold mt-2 mb-1">
-                                    {{ $txt['summary_discounts'] ?? 'İndirimler' }}
+                                    {{ t('cart.summary_discounts') }}
                                 </div>
 
                                 {{-- Kupon indirim satırı --}}
                                 @if ($couponDiscountTotal > 0)
                                     <div class="d-flex justify-content-between small mb-1">
-                                        <span>{{ $txt['summary_discount_coupon'] ?? 'Kupon İndirimi' }}</span>
+                                        <span>{{ t('cart.summary_discount_coupon') }}</span>
                                         <span>
                                             -{{ \App\Support\Currency\CurrencyPresenter::format($couponDiscountTotal, $cartCurrency) }}
                                         </span>
@@ -286,8 +252,11 @@
                                         if ($amount <= 0) {
                                             continue;
                                         }
-                                        $label = $campaign['title']
-                                            ?? ($txt['summary_discount_campaign'] ?? 'Kampanya İndirimi');
+
+                                        $label = trim(
+                                            $campaign['title']
+                                            . (!empty($campaign['subtitle']) ? ' ' . $campaign['subtitle'] : '')
+                                        );
                                     @endphp
 
                                     <div class="d-flex justify-content-between small mb-1">
@@ -302,7 +271,7 @@
                             <hr class="my-3">
 
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-semibold">{{ $txt['summary_total'] }}</span>
+                                <span class="fw-semibold">{{ t('cart.summary_total') }}</span>
                                 <span class="fw-bold fs-5">
                                     {{ \App\Support\Currency\CurrencyPresenter::format($finalTotal, $cartCurrency) }}
                                 </span>
@@ -325,7 +294,7 @@
                                 <input type="hidden" name="corp_address"    id="corpAddressHidden">
 
                                 <button type="submit" class="btn btn-primary w-100">
-                                    {{ $txt['btn_pay'] }}
+                                    {{ t('cart.btn_pay') }}
                                 </button>
                             </form>
 
@@ -334,43 +303,43 @@
                                 <input class="form-check-input" type="checkbox" id="chkCorporate"
                                        data-bs-toggle="collapse" data-bs-target="#corporateFields">
                                 <label class="form-check-label" for="chkCorporate">
-                                    {{ $txt['corporate_checkbox'] }}
+                                    {{ t('cart.corporate_checkbox') }}
                                 </label>
                             </div>
 
                             <div class="collapse mt-3" id="corporateFields">
 
                                 <div class="mb-2">
-                                    <label class="form-label small">{{ $txt['corp_company'] }}</label>
+                                    <label class="form-label small">{{ t('cart.corp_company') }}</label>
                                     <input type="text"
                                            class="form-control"
                                            id="corpCompanyInput"
-                                           placeholder="Örn. ABC Turizm A.Ş.">
+                                           placeholder="{{ t('cart.corp_company_placeholder') }}">
                                 </div>
 
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <label class="form-label small">{{ $txt['corp_tax_office'] }}</label>
+                                        <label class="form-label small">{{ t('cart.corp_tax_office') }}</label>
                                         <input type="text"
                                                class="form-control"
                                                id="corpTaxOfficeInput"
-                                               placeholder="Örn. Beyoğlu">
+                                               placeholder="{{ t('cart.corp_tax_office_placeholder') }}">
                                     </div>
                                     <div class="col-6">
-                                        <label class="form-label small">{{ $txt['corp_tax_no'] }}</label>
+                                        <label class="form-label small">{{ t('cart.corp_tax_no') }}</label>
                                         <input type="text"
                                                class="form-control"
                                                id="corpTaxNoInput"
-                                               placeholder="##########">
+                                               placeholder="{{ t('cart.corp_tax_no_placeholder') }}">
                                     </div>
                                 </div>
 
                                 <div class="mt-2">
-                                    <label class="form-label small">{{ $txt['corp_address'] }}</label>
+                                    <label class="form-label small">{{ t('cart.corp_address') }}</label>
                                     <textarea class="form-control"
                                               rows="2"
                                               id="corpAddressInput"
-                                              placeholder="Adres"></textarea>
+                                              placeholder="{{ t('cart.corp_address_placeholder') }}"></textarea>
                                 </div>
 
                             </div>
