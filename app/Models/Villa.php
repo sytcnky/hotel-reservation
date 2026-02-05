@@ -8,6 +8,7 @@ use App\Support\Helpers\MediaConversions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
@@ -28,7 +29,6 @@ class Villa extends Model implements HasMedia
         'max_guests',
         'bedroom_count',
         'bathroom_count',
-        'villa_category_id',
         'cancellation_policy_id',
         'location_id',
         'address_line',
@@ -71,9 +71,26 @@ class Villa extends Model implements HasMedia
         return $this->getLocalized('name');
     }
 
+    /**
+     * Legacy uyumluluk: daha önce tek kategori adı bekleyen yerler için.
+     * Artık "ilk kategori adı" döner.
+     */
     public function getCategoryNameAttribute(): ?string
     {
-        return $this->category?->name_l;
+        $first = $this->categories()->first();
+        return $first?->name_l;
+    }
+
+    /**
+     * Çoklu kullanım için: kategori adları listesi (UI locale).
+     */
+    public function getCategoryNamesAttribute(): array
+    {
+        return $this->categories
+            ->map(fn (VillaCategory $c) => (string) ($c->name_l ?? ''))
+            ->filter(fn (string $v) => trim($v) !== '')
+            ->values()
+            ->all();
     }
 
     /*
@@ -82,9 +99,14 @@ class Villa extends Model implements HasMedia
     |--------------------------------------------------------------------------
     */
 
-    public function category(): BelongsTo
+    public function categories(): BelongsToMany
     {
-        return $this->belongsTo(VillaCategory::class, 'villa_category_id');
+        return $this->belongsToMany(
+            VillaCategory::class,
+            'villa_category_villa',
+            'villa_id',
+            'villa_category_id'
+        )->withTimestamps();
     }
 
     public function cancellationPolicy(): BelongsTo

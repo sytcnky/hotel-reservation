@@ -87,11 +87,13 @@
                                     @endif
                                 </div>
 
-                                @if(!empty($villa['category_name']))
+                                @if (!empty($villa['category_names']) && is_array($villa['category_names']))
                                     <div class="mb-3">
-                                        <span class="badge bg-light text-muted me-1">
-                                            {{ $villa['category_name'] }}
-                                        </span>
+                                        @foreach ($villa['category_names'] as $name)
+                                            <span class="badge bg-light text-muted me-1">
+                                                {{ $name }}
+                                            </span>
+                                        @endforeach
                                     </div>
                                 @endif
                             </div>

@@ -541,16 +541,16 @@ class VillaForm
                                     Section::make(__('admin.villas.sections.classification'))
                                         ->columns(1)
                                         ->schema([
-                                            Select::make('villa_category_id')
+                                            Select::make('categories')
                                                 ->label(__('admin.villas.form.category'))
+                                                ->multiple()
                                                 ->native(false)
                                                 ->preload()
-                                                ->options(
-                                                    VillaCategory::query()
-                                                        ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
-                                                        ->orderBy('label')
-                                                        ->pluck('label', 'id')
-                                                ),
+                                                ->searchable()
+                                                ->relationship('categories', 'id')
+                                                ->getOptionLabelFromRecordUsing(function (VillaCategory $r): string {
+                                                    return (string) ($r->name_l ?? '');
+                                                }),
 
                                             Select::make('cancellation_policy_id')
                                                 ->label(__('admin.villas.form.cancellation_policy'))

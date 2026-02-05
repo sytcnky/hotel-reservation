@@ -23,7 +23,7 @@ class VillaController extends Controller
         $currencyCode = CurrencyContext::code($request);
 
         $villas = Villa::query()
-            ->with(['location.parent.parent', 'category', 'media', 'rateRules.currency'])
+            ->with(['location.parent.parent', 'categories', 'media', 'rateRules.currency'])
             ->where('is_active', true)
             ->orderBy("name->{$locale}")
             ->get()
@@ -60,7 +60,11 @@ class VillaController extends Controller
                         'city'   => $city,
                         'region' => $region,
                     ],
-                    'category_name'  => $villa->category?->name_l,
+                    'category_names' => $villa->categories
+                        ->map(fn ($cat) => $cat->name_l)
+                        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                        ->values()
+                        ->all(),
                     'cover'          => $cover,
                     'price'          => $price,
                     'currency'       => $currencyCode,
@@ -111,7 +115,7 @@ class VillaController extends Controller
         $villa = Villa::query()
             ->with([
                 'location.parent.parent',
-                'category',
+                'categories', // <-- değişti (category -> categories)
                 'rateRules.currency',
                 'media',
                 'featureGroups.amenities',
@@ -130,10 +134,13 @@ class VillaController extends Controller
         $name        = I18nHelper::scalar($villa->name, $locale, $baseLang);
         $description = I18nHelper::scalar($villa->description, $locale, $baseLang);
 
-        // Kategori → badge
-        $categoryLabel = null;
-        if ($villa->category) {
-            $categoryLabel = I18nHelper::scalar($villa->category->name, $locale, $baseLang);
+        // Kategoriler → badge listesi
+        $categoryLabels = [];
+        foreach ($villa->categories ?? [] as $cat) {
+            $label = I18nHelper::scalar($cat->name ?? null, $locale, $baseLang);
+            if (is_string($label) && trim($label) !== '') {
+                $categoryLabels[] = $label;
+            }
         }
 
         // === FİYAT + MIN/MAX NIGHTS (single authority: selector) ===
@@ -209,7 +216,13 @@ class VillaController extends Controller
             'max_nights'      => $maxNights,
 
             'description'        => $description,
-            'category_name'      => $categoryLabel,
+
+            // yeni alan
+            'category_names'     => $categoryLabels,
+
+            // istersen kaldırırız; FE geçişi bitene kadar güvenli kalması için bırakabilirsin:
+            'category_name'      => $categoryLabels[0] ?? null,
+
             'highlights'         => $highlights,
             'accommodation_info' => $accommodationInfo,
 

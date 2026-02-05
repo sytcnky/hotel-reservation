@@ -276,7 +276,7 @@
 
                             @if(! $hasPrice)
                                 <div class="alert alert-warning mt-3 mb-0">
-                                    {{ t('warn.villa_price_missing_for_currency') }}
+                                    {{ t('msg.warn.villa_price_missing_for_currency') }}
                                 </div>
                             @endif
 
@@ -298,9 +298,18 @@
                 @endif
 
                 <!-- Villa Tipi / Kategori Badge -->
-                @if (!empty($villa['category_name']))
+                @php
+                    $categoryNames = array_values(array_filter(
+                        $villa['category_names'] ?? [],
+                        fn ($v) => is_string($v) && trim($v) !== ''
+                    ));
+                @endphp
+
+                @if ($categoryNames)
                     <div class="mb-3">
-                        <span class="badge bg-secondary me-1">{{ $villa['category_name'] }}</span>
+                        @foreach ($categoryNames as $name)
+                            <span class="badge bg-secondary me-1">{{ $name }}</span>
+                        @endforeach
                     </div>
                 @endif
 
@@ -424,5 +433,4 @@
             </div>
         </div>
     @endif
-
 @endsection

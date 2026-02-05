@@ -5,24 +5,42 @@ namespace App\Models;
 use App\Models\Concerns\HasLocalizedColumns;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VillaCategory extends Model
 {
     use HasFactory, SoftDeletes, HasLocalizedColumns;
 
-    protected $fillable = ['name','slug','description','is_active','sort_order'];
+    protected $fillable = ['name', 'slug', 'description', 'is_active', 'sort_order'];
 
     protected $casts = [
-        'name' => 'array',
-        'slug' => 'array',
+        'name'        => 'array',
+        'slug'        => 'array',
         'description' => 'array',
-        'is_active' => 'boolean',
-        'sort_order' => 'integer',
+        'is_active'    => 'boolean',
+        'sort_order'   => 'integer',
     ];
 
-    protected $appends = ['name_l','slug_l'];
+    protected $appends = ['name_l', 'slug_l'];
 
-    public function getNameLAttribute(): ?string { return $this->getLocalized('name'); }
-    public function getSlugLAttribute(): ?string { return $this->getLocalized('slug'); }
+    public function getNameLAttribute(): ?string
+    {
+        return $this->getLocalized('name');
+    }
+
+    public function getSlugLAttribute(): ?string
+    {
+        return $this->getLocalized('slug');
+    }
+
+    public function villas(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Villa::class,
+            'villa_category_villa',
+            'villa_category_id',
+            'villa_id'
+        )->withTimestamps();
+    }
 }
