@@ -50,7 +50,8 @@ class PaymentController extends Controller
         string $code,
         Request $request,
         CheckoutSessionGuard $guard,
-        PaymentAttemptService $attempts
+        PaymentAttemptService $attempts,
+        OrderFinalizeService $finalize
     ) {
         $session = $guard->loadByCode($code);
 
@@ -74,6 +75,66 @@ class PaymentController extends Controller
             (float) $session->cart_total - (float) $session->discount_amount,
             0
         );
+
+        /**
+         * ZERO PAYABLE (prod standardı):
+         * - Gateway’e gitme
+         * - Internal finalize (idempotent anahtar ile)
+         * - Ödeme ekranı render edilmeden success’e yönlendir
+         */
+        if ($payable <= 0) {
+            // Sabit idempotency: aynı checkout için aynı anahtar
+            $nonce = 'free_zero:' . (string) $session->id;
+
+            $attempt = $attempts->getOrCreatePendingAttempt($session, $nonce, $request);
+
+            // Attempt'i "free/internal success" olarak güncelle (2. bariyer)
+            $attempt->forceFill([
+                'amount'            => 0.0,
+                'currency'          => $session->currency,
+                'status'            => 'success',
+                'gateway'           => $attempt->gateway ?: 'free',
+                'gateway_reference' => $attempt->gateway_reference ?: ('FREE-' . (string) $attempt->id),
+                'error_code'        => null,
+                'error_message'     => null,
+                'raw_request'       => $this->safeRaw(['free' => true, 'reason' => 'zero_payable']),
+                'raw_response'      => $this->safeRaw(['free' => true, 'result' => 'approved']),
+                'started_at'        => $attempt->started_at ?: now(),
+                'completed_at'      => now(),
+            ])->save();
+
+            try {
+                [$order, $orderCreatedNow] = $finalize->finalizeSuccess($session, $attempt, [
+                    'success'           => true,
+                    'gateway_reference' => $attempt->gateway_reference,
+                    'raw_response'      => ['free' => true, 'result' => 'approved'],
+                ]);
+            } catch (\Throwable $e) {
+                logger()->error('payment_finalize_failed_zero_payable', [
+                    'checkout_id'   => $session->id ?? null,
+                    'checkout_code' => $session->code ?? null,
+                    'attempt_id'    => $attempt->id ?? null,
+                    'message'       => $e->getMessage(),
+                    'file'          => $e->getFile(),
+                    'line'          => $e->getLine(),
+                ]);
+
+                return $this->redirectNotice(
+                    localized_route('cart'),
+                    'err',
+                    'msg.err.payment.finalize_failed'
+                );
+            }
+
+            session()->forget('cart');
+            session()->forget('cart.applied_coupons');
+
+            if ($order && $orderCreatedNow) {
+                SendOrderCreatedEmails::dispatch((int) $order->id);
+            }
+
+            return redirect()->to(localized_route('success'));
+        }
 
         $attemptError = $attempts->latestAttemptErrorForSession($session);
 
@@ -370,7 +431,8 @@ class PaymentController extends Controller
         string $code,
         Request $request,
         CheckoutSessionGuard $guard,
-        PaymentAttemptService $attempts
+        PaymentAttemptService $attempts,
+        OrderFinalizeService $finalize
     ) {
         $validated = $request->validate([
             'submit_nonce' => ['required', 'string', 'min:16'],
@@ -401,6 +463,62 @@ class PaymentController extends Controller
             );
         }
 
+        $payable = max((float) $checkout->cart_total - (float) $checkout->discount_amount, 0);
+
+        /**
+         * ZERO PAYABLE (2. bariyer):
+         * Process’e gelmişse bile gateway’e gitme; internal finalize yap.
+         */
+        if ($payable <= 0) {
+            $attempt = $attempts->getOrCreatePendingAttempt($checkout, (string) $validated['submit_nonce'], $request);
+
+            $attempt->forceFill([
+                'amount'            => 0.0,
+                'currency'          => $checkout->currency,
+                'status'            => 'success',
+                'gateway'           => $attempt->gateway ?: 'free',
+                'gateway_reference' => $attempt->gateway_reference ?: ('FREE-' . (string) $attempt->id),
+                'error_code'        => null,
+                'error_message'     => null,
+                'raw_request'       => $this->safeRaw(['free' => true, 'reason' => 'zero_payable']),
+                'raw_response'      => $this->safeRaw(['free' => true, 'result' => 'approved']),
+                'started_at'        => $attempt->started_at ?: now(),
+                'completed_at'      => now(),
+            ])->save();
+
+            try {
+                [$order, $orderCreatedNow] = $finalize->finalizeSuccess($checkout, $attempt, [
+                    'success'           => true,
+                    'gateway_reference' => $attempt->gateway_reference,
+                    'raw_response'      => ['free' => true, 'result' => 'approved'],
+                ]);
+            } catch (\Throwable $e) {
+                logger()->error('payment_finalize_failed_zero_payable_process', [
+                    'checkout_id'   => $checkout->id ?? null,
+                    'checkout_code' => $checkout->code ?? null,
+                    'attempt_id'    => $attempt->id ?? null,
+                    'message'       => $e->getMessage(),
+                    'file'          => $e->getFile(),
+                    'line'          => $e->getLine(),
+                ]);
+
+                return $this->redirectNotice(
+                    localized_route('cart'),
+                    'err',
+                    'msg.err.payment.finalize_failed'
+                );
+            }
+
+            session()->forget('cart');
+            session()->forget('cart.applied_coupons');
+
+            if ($order && $orderCreatedNow) {
+                SendOrderCreatedEmails::dispatch((int) $order->id);
+            }
+
+            return redirect()->to(localized_route('success'));
+        }
+
         $gateway = PaymentGatewayFactory::make();
 
         if (! $gateway instanceof PaymentGateway3dsInterface) {
@@ -420,8 +538,6 @@ class PaymentController extends Controller
         ];
 
         $attempt = $attempts->getOrCreatePendingAttempt($checkout, (string) $validated['submit_nonce'], $request);
-
-        $payable = max((float) $checkout->cart_total - (float) $checkout->discount_amount, 0);
 
         if ((float) $attempt->amount !== (float) $payable || strtoupper((string) $attempt->currency) !== strtoupper((string) $checkout->currency)) {
             $attempt->forceFill([
