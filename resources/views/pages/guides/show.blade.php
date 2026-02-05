@@ -249,7 +249,7 @@
 
                         {{-- Tags --}}
                         @if(is_array($tags) && count($tags))
-                            <div class="d-flex flex-wrap gap-2 mt-5">
+                            <div class="d-flex flex-wrap gap-2 my-5">
                                 @foreach($tags as $tag)
                                     @if(is_string($tag) && trim($tag) !== '')
                                         <span class="badge bg-secondary">{{ $tag }}</span>
@@ -268,7 +268,7 @@
 
                     {{-- Sidebar: Popüler Turlar --}}
                     @if($sidebarTours->isNotEmpty())
-                        <h4 class="text-secondary mt-5 mb-3">{{ t('popular_excursions') }}</h4>
+                        <h4 class="text-secondary mt-5 mb-3">{{ t('ui.popular_excursions') }}</h4>
 
                         @foreach ($sidebarTours as $tour)
                             @php
