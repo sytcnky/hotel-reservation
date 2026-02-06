@@ -242,13 +242,18 @@
                                                     @endif
                                                 </dd>
 
-                                                <dt class="col-lg-4">{{ t('account.bookings.fields.return') }}</dt>
-                                                <dd class="col-lg-8">
-                                                    {{ \App\Support\Date\DatePresenter::human($it['return_date'] ?? null) }}
-                                                    @if(!empty($it['return_flight']))
-                                                        — {{ $it['return_flight'] }}
-                                                    @endif
-                                                </dd>
+                                                @if(!empty($it['return_date']))
+                                                    <dt class="col-lg-4">{{ t('account.bookings.fields.return') }}</dt>
+                                                    <dd class="col-lg-8">
+                                                        {{ \App\Support\Date\DatePresenter::human($it['return_date'] ?? null) }}
+                                                        @if(!empty($it['return_time']))
+                                                            — {{ $it['return_time'] }}
+                                                        @endif
+                                                        @if(!empty($it['return_flight']))
+                                                            — {{ $it['return_flight'] }}
+                                                        @endif
+                                                    </dd>
+                                                @endif
 
                                                 <dt class="col-lg-4">{{ t('account.bookings.fields.passengers') }}</dt>
                                                 <dd class="col-lg-8">{{ $pax ?? t('account.bookings.value.empty') }}</dd>

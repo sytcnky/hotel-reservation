@@ -313,22 +313,9 @@ class Order extends Model
                 }
 
                 if ($type === 'tour' || $type === 'excursion') {
-                    $tourDate = $s['date'] ?? null;
-
-                    $dateOut = null;
-
-                    if (! blank($tourDate)) {
-                        $dateOut = DatePresenter::human(
-                            ymd: (string) $tourDate,
-                            pattern: 'd.m.Y'
-                        );
-
-                        $dateOut = $dateOut !== '' ? $dateOut : (string) $tourDate;
-                    }
-
                     return $base + [
                             'tour_name' => $s['tour_name'] ?? $s['title'] ?? null,
-                            'date'      => $dateOut,
+                            'date'      => $s['date'] ?? null,
                             'paid'      => $formatMoney($item->total_price ?? $item->unit_price),
                         ];
                 }
@@ -344,21 +331,17 @@ class Order extends Model
                         );
                     }
 
-                    $departureDate = $formatDateTimeFromParts(
-                        $s['departure_date']       ?? null,
-                        $s['pickup_time_outbound'] ?? null,
-                    );
-
-                    $returnDate = $formatDateTimeFromParts(
-                        $s['return_date']        ?? null,
-                        $s['pickup_time_return'] ?? null,
-                    );
-
                     return $base + [
                             'route'            => $route,
                             'vehicle'          => $s['vehicle_name'] ?? null,
-                            'departure_date'   => $departureDate,
-                            'return_date'      => $returnDate,
+
+                            'departure_date'   => $s['departure_date'] ?? null,
+                            'return_date'      => $s['return_date'] ?? null,
+
+                            // saat ayrı taşınır (varsa gösterilir, yoksa gösterilmez)
+                            'departure_time'   => $s['pickup_time_outbound'] ?? null,
+                            'return_time'      => $s['pickup_time_return'] ?? null,
+
                             'departure_flight' => $s['flight_number_outbound'] ?? null,
                             'return_flight'    => $s['flight_number_return']   ?? null,
                             'paid'             => $formatMoney($item->total_price ?? $item->unit_price),

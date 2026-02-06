@@ -47,14 +47,21 @@
                     {{-- Image + content side-by-side --}}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                         <tr>
-                            @if(!empty($it['image']))
+                            @php
+                                $img = $it['image'] ?? null;
+                                $imgSrc = is_array($img) ? ($img['thumb'] ?? null) : $img;
+                                $imgAlt = is_array($img) ? ($img['alt'] ?? null) : null;
+                            @endphp
+
+                            @if(!empty($imgSrc))
                                 <td width="25%" valign="top" style="padding-right:18px;">
-                                    <img src="{{ $it['image'] }}"
+                                    <img src="{{ $imgSrc }}"
                                          width="100%"
                                          style="display:block; border-radius:8px;"
-                                         alt="{{ $it['title'] ?? 'Ürün görseli' }}">
+                                         alt="{{ $imgAlt }}">
                                 </td>
                             @endif
+
 
                             <td valign="top" style="font-size:14px; line-height:20px; color:#0f172a;">
 
