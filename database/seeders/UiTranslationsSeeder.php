@@ -1932,6 +1932,26 @@ class UiTranslationsSeeder extends Seeder
                 'key'   => 'item_delete',
                 'values'=> ['tr' => 'Sil', 'en' => 'Delete:'],
             ],
+            [
+                'group' => 'ui',
+                'key'   => 'contact.address',
+                'values'=> ['tr' => 'Adres', 'en' => 'Address:'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'contact.phone',
+                'values'=> ['tr' => 'Telefon', 'en' => 'Phone:'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'contact.email',
+                'values'=> ['tr' => 'E-posta', 'en' => 'E-mail:'],
+            ],
+            [
+                'group' => 'ui',
+                'key'   => 'contact.opening_hours',
+                'values'=> ['tr' => 'Çalışma Saatleri', 'en' => 'Opening Hours'],
+            ],
         ];
 
         foreach ($translations as $data) {

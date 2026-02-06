@@ -4,6 +4,31 @@
 @section('title', 'İletişim')
 
 @section('content')
+    @php
+        use App\Support\Helpers\LocaleHelper;
+        use App\Models\Setting;
+
+        $locale      = app()->getLocale();
+        $baseLocale = LocaleHelper::defaultCode();
+
+        $pick = function (string $key) use ($locale, $baseLocale): ?string {
+            $map = Setting::get($key, []);
+            if (! is_array($map)) {
+                return null;
+            }
+
+            // kontrat: ui → base
+            $val = $map[$locale] ?? $map[$baseLocale] ?? null;
+
+            return is_string($val) && trim($val) !== '' ? trim($val) : null;
+        };
+
+        $waLabel = $pick('contact_whatsapp_label');
+        $waPhone = $pick('contact_whatsapp_phone');
+
+        $waNumber = $waPhone ? preg_replace('/[^0-9]/', '', $waPhone) : null;
+        $waUrl    = $waNumber ? ('https://wa.me/' . $waNumber) : null;
+    @endphp
     <section>
         <div class="text-center my-5 px-lg-5">
             @php
@@ -25,7 +50,28 @@
     <section class="pb-5">
         <div class="container">
             <div class="row justify-content-center">
-                {{-- SOL: Harita + iletişim bilgileri --}}
+
+                <div class="col-lg-8 mb-3">
+                    <div class="card bg-light border-0 mt-4">
+                        <div class="card-body d-flex flex-column flex-md-row align-items-center justify-content-between">
+                            <div class="text-muted mb-2 mb-md-0">
+                                {{ t('help.need_more_help') }}
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if ($waUrl && $waLabel)
+                                    <a href="{{ $waUrl }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="btn btn-outline-success btn-sm text-decoration-none">
+                                        <i class="fi fi-brands-whatsapp fs-5 align-middle"></i>
+                                        <span>{{ $waLabel }}</span>
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-lg-8">
                     @php
                         $offices = $c['offices'] ?? [];
@@ -64,7 +110,7 @@
                                         <div class="d-flex align-items-start mb-3">
                                             <i class="fi fi-rr-marker me-2 fs-4 text-secondary"></i>
                                             <div>
-                                                <div class="fw-semibold">Adres</div>
+                                                <div class="fw-semibold">{{ t('ui.contact.address') }}</div>
                                                 <div class="text-muted">{{ $address }}</div>
                                             </div>
                                         </div>
@@ -72,7 +118,7 @@
                                         <div class="d-flex align-items-start mb-3">
                                             <i class="fi fi-rr-phone-call me-2 fs-4 text-secondary"></i>
                                             <div>
-                                                <div class="fw-semibold">Telefon</div>
+                                                <div class="fw-semibold">{{ t('ui.contact.phone') }}</div>
                                                 @if($phone)
                                                     <a href="tel:{{ $phone }}">{{ $phone }}</a>
                                                 @endif
@@ -82,7 +128,7 @@
                                         <div class="d-flex align-items-start mb-3">
                                             <i class="fi fi-rr-envelope me-2 fs-4 text-secondary"></i>
                                             <div>
-                                                <div class="fw-semibold">E-posta</div>
+                                                <div class="fw-semibold">{{ t('ui.contact.email') }}</div>
                                                 @if($email)
                                                     <a href="mailto:{{ $email }}">{{ $email }}</a>
                                                 @endif
@@ -92,7 +138,7 @@
                                         <div class="d-flex align-items-start">
                                             <i class="fi fi-rr-clock-three me-2 fs-4 text-secondary"></i>
                                             <div>
-                                                <div class="fw-semibold">Çalışma Saatleri</div>
+                                                <div class="fw-semibold">{{ t('ui.contact.opening_hours') }}</div>
                                                 <div class="text-muted">{{ $workingHours }}</div>
                                             </div>
                                         </div>
@@ -105,7 +151,7 @@
                 </div>
 
                 {{-- İletişim formu --}}
-                <div class="col-lg-8">
+                <!--<div class="col-lg-8">
                     <div class="card shadow-sm">
                         <div class="card-body p-4">
                             <h5 class="mb-3">İletişim Formu</h5>
@@ -159,7 +205,7 @@
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>-->
             </div>
         </div>
     </section>
