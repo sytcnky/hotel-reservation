@@ -16,6 +16,26 @@
                     $cartCoupons         = $cartCoupons ?? [];
                     $couponDiscountTotal = $couponDiscountTotal ?? 0;
                     $finalTotal          = $finalTotal ?? $cartSubtotal;
+
+                    /**
+                     * Uygulanan kupon(lar) her zaman en başta görünsün.
+                     * Stabil sıralama: diğer kuponların kendi sırası bozulmaz.
+                     */
+                    $appliedCoupons = [];
+                    $otherCoupons   = [];
+
+                    if (is_array($cartCoupons)) {
+                        foreach ($cartCoupons as $c) {
+                            if (!empty($c['is_applied'])) {
+                                $appliedCoupons[] = $c;
+                            } else {
+                                $otherCoupons[] = $c;
+                            }
+                        }
+                        $cartCoupons = array_merge($appliedCoupons, $otherCoupons);
+                    } else {
+                        $cartCoupons = [];
+                    }
                 @endphp
 
                 @if (!empty($cartCoupons))
@@ -79,39 +99,27 @@
                                             </div>
 
                                             @php
-                                                $altLimitClass =
-                                                    ($coupon['min_booking_amount'] ?? null)
-                                                        ? ($isApplicable ? 'text-success' : 'text-danger')
-                                                        : 'text-muted';
+                                                $minAmount = $coupon['min_booking_amount'] ?? null;
+                                                $minNights = $coupon['min_nights'] ?? null;
+                                                $scopeType = is_string($coupon['scope_type'] ?? null) ? trim((string) $coupon['scope_type']) : '';
+
+                                                $hasMinAmount = is_numeric($minAmount) && (float) $minAmount > 0;
+                                                $hasMinNights = is_numeric($minNights) && (int) $minNights > 0;
+
+                                                // order_total => scope yok gibi kabul
+                                                $hasScope = $scopeType !== '' && $scopeType !== 'order_total';
+
+                                                $hasAnyCondition = $hasMinAmount || $hasMinNights || $hasScope;
+
+                                                // disabled_reason varsa koşul sağlanmıyor demektir (scope/min_nights/min_limit vs.)
+                                                $altLimitClass = $hasAnyCondition
+                                                    ? (! empty($disabledReason) ? 'text-danger' : 'text-success')
+                                                    : 'text-muted';
                                             @endphp
 
                                             <div class="small {{ $altLimitClass }}">
                                                 {{ $texts['alt_limit'] }}
                                             </div>
-
-                                            {{-- Scoped notices (coupon card içi) --}}
-                                            @if (!empty($notices))
-                                                <div class="mt-1">
-                                                    @foreach ($notices as $n)
-                                                        @php
-                                                            $code   = is_string($n['code'] ?? null) ? (string) $n['code'] : '';
-                                                            $params = is_array($n['params'] ?? null) ? $n['params'] : [];
-                                                            $level  = is_string($n['level'] ?? null) ? (string) $n['level'] : null;
-
-                                                            $cls = 'text-danger';
-                                                            if ($level === 'success') $cls = 'text-success';
-                                                            elseif ($level === 'warning') $cls = 'text-warning';
-                                                            elseif ($level === 'info') $cls = 'text-info';
-                                                        @endphp
-
-                                                        @if ($code !== '')
-                                                            <div class="small {{ $cls }}">
-                                                                {{ t($code, $params) }}
-                                                            </div>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            @endif
 
                                             @if ($isApplicable)
 

@@ -17,21 +17,10 @@ class CheckoutStartService
     }
 
     /**
-     * Auth user checkout başlatır.
-     *
-     * Davranış:
-     * - cart invariant: mismatch varsa false
-     * - coupon + campaign discount snapshot üretir
-     * - CheckoutSession oluşturur ve döner
-     *
-     * Idempotency (P0):
-     * - Aynı user + aynı cart_hash için aktif (expire olmamış) checkout varsa YENİ oluşturmaz, onu döner.
-     *
      * @return array{ok: bool, err?: string, checkout?: CheckoutSession}
      */
     public function startForUser(User $user, Request $request, array $items): array
     {
-        // 1) Mixed currency guard (fail-fast) + total/currency
         if ($this->cartInvariant->resetIfCurrencyMismatch($items)) {
             return ['ok' => false, 'err' => 'msg.err.cart.currency_mismatch'];
         }
@@ -42,10 +31,8 @@ class CheckoutStartService
             return ['ok' => false, 'err' => 'msg.err.cart.empty'];
         }
 
-        // 1.1) Idempotency key (same cart => same hash)
         $cartHash = $this->computeCartHash($items, (string) $cartCurrency);
 
-        // 1.2) Reuse active checkout for same user + same cart hash (prevents double tab / double click)
         $existing = CheckoutSession::query()
             ->where('type', CheckoutSession::TYPE_USER)
             ->where('user_id', $user->id)
@@ -60,7 +47,6 @@ class CheckoutStartService
             return ['ok' => true, 'checkout' => $existing];
         }
 
-        // 2) Metadata (note + invoice)
         $orderNote = trim((string) $request->input('order_note'));
 
         $invoice = [
@@ -71,7 +57,6 @@ class CheckoutStartService
             'address'      => mb_substr(trim((string) $request->input('corp_address')), 0, 500),
         ];
 
-        // 3) Discounts
         $couponDiscountTotal   = 0.0;
         $couponSnapshot        = [];
         $campaignDiscountTotal = 0.0;
@@ -82,16 +67,57 @@ class CheckoutStartService
         $cartCoupons = $this->couponVm->buildCartCouponsForUser(
             $user,
             $userCurrency,
-            $cartTotal,
-            $cartCurrency
+            (float) $cartTotal,
+            (string) $cartCurrency,
+            $items
         );
 
+        /*
+         |--------------------------------------------------------------------------
+         | applied ids normalize + stale cleanup (kuponlar listelenmiyorsa düşür)
+         |--------------------------------------------------------------------------
+         */
         $appliedIds = (array) session('cart.applied_coupons', []);
+        $appliedIds = array_values(array_unique(array_map('intval', $appliedIds)));
+
+        $couponMap = []; // id => is_applicable(bool)
+        foreach ($cartCoupons as $vm) {
+            $id = isset($vm['id']) ? (int) $vm['id'] : 0;
+            if ($id > 0) {
+                $couponMap[$id] = ! empty($vm['is_applicable']);
+            }
+        }
+
+        $normalizedApplied = [];
+        foreach ($appliedIds as $aid) {
+            $aid = (int) $aid;
+            if ($aid < 1) {
+                continue;
+            }
+
+            // cartCoupons'a hiç girmeyen -> stale
+            if (! array_key_exists($aid, $couponMap)) {
+                continue;
+            }
+
+            // applicable değilse applied kalmasın
+            if ($couponMap[$aid] !== true) {
+                continue;
+            }
+
+            $normalizedApplied[] = $aid;
+        }
+        $normalizedApplied = array_values(array_unique($normalizedApplied));
+
+        if ($normalizedApplied !== $appliedIds) {
+            session(['cart.applied_coupons' => $normalizedApplied]);
+        }
+        $appliedIds = $normalizedApplied;
 
         foreach ($cartCoupons as $vm) {
-            $id = $vm['id'] ?? null;
+            $id = isset($vm['id']) ? (int) $vm['id'] : 0;
 
-            $isApplied    = $id !== null && in_array($id, $appliedIds, true);
+            $isApplied    = $id > 0 && in_array($id, $appliedIds, true);
             $isApplicable = ! empty($vm['is_applicable']);
             $discount     = (float) ($vm['calculated_discount'] ?? 0);
 
@@ -113,8 +139,8 @@ class CheckoutStartService
         $cartCampaigns = $this->campaignVm->buildCartCampaignsForUser(
             $user,
             $items,
-            $cartCurrency,
-            $cartTotal
+            (string) $cartCurrency,
+            (float) $cartTotal
         );
 
         foreach ($cartCampaigns as $cvm) {
@@ -138,7 +164,6 @@ class CheckoutStartService
             ? min($rawDiscount, $cartTotal)
             : 0.0;
 
-        // 4) customer_snapshot payload (kilitli sözleşme: items + discount_snapshot + metadata)
         $payload = [
             'type'              => CheckoutSession::TYPE_USER,
             'user_id'           => $user->id,
@@ -164,9 +189,9 @@ class CheckoutStartService
             'type'              => CheckoutSession::TYPE_USER,
             'user_id'           => $user->id,
             'customer_snapshot' => $payload,
-            'cart_total'        => $cartTotal,
-            'discount_amount'   => $discountAmount,
-            'currency'          => $cartCurrency,
+            'cart_total'        => (float) $cartTotal,
+            'discount_amount'   => (float) $discountAmount,
+            'currency'          => (string) $cartCurrency,
             'status'            => CheckoutSession::STATUS_ACTIVE,
             'ip_address'        => $request->ip(),
             'user_agent'        => substr((string) $request->userAgent(), 0, 255),
@@ -178,17 +203,10 @@ class CheckoutStartService
     }
 
     /**
-     * Guest checkout başlatır.
-     *
-     * Idempotency (P0):
-     * - Aynı guest email + aynı cart_hash için aktif checkout varsa YENİ oluşturmaz, onu döner.
-     *
-     * @param array{guest_first_name:string,guest_last_name:string,guest_email:string,guest_phone:string} $guest
      * @return array{ok: bool, err?: string, checkout?: CheckoutSession}
      */
     public function startForGuest(array $guest, Request $request, array $items): array
     {
-        // 1) Mixed currency guard (fail-fast) + total/currency
         if ($this->cartInvariant->resetIfCurrencyMismatch($items)) {
             return ['ok' => false, 'err' => 'msg.err.cart.currency_mismatch'];
         }
@@ -199,10 +217,9 @@ class CheckoutStartService
             return ['ok' => false, 'err' => 'msg.err.cart.empty'];
         }
 
-        $cartHash  = $this->computeCartHash($items, (string) $cartCurrency);
+        $cartHash   = $this->computeCartHash($items, (string) $cartCurrency);
         $guestEmail = (string) ($guest['guest_email'] ?? '');
 
-        // Reuse active guest checkout for same email + same cart hash
         $existing = CheckoutSession::query()
             ->where('type', CheckoutSession::TYPE_GUEST)
             ->whereNull('user_id')
@@ -218,15 +235,14 @@ class CheckoutStartService
             return ['ok' => true, 'checkout' => $existing];
         }
 
-        // 2) Campaign discounts (guest: coupon yok)
         $campaignDiscountTotal = 0.0;
         $campaignSnapshot      = [];
 
         $cartCampaigns = $this->campaignVm->buildCartCampaignsForUser(
             null,
             $items,
-            $cartCurrency,
-            $cartTotal
+            (string) $cartCurrency,
+            (float) $cartTotal
         );
 
         foreach ($cartCampaigns as $cvm) {
@@ -249,7 +265,6 @@ class CheckoutStartService
             ? min($rawDiscount, $cartTotal)
             : 0.0;
 
-        // 3) customer_snapshot payload
         $payload = [
             'type'              => CheckoutSession::TYPE_GUEST,
             'user_id'           => null,
@@ -279,9 +294,9 @@ class CheckoutStartService
             'type'              => CheckoutSession::TYPE_GUEST,
             'user_id'           => null,
             'customer_snapshot' => $payload,
-            'cart_total'        => $cartTotal,
-            'discount_amount'   => $discountAmount,
-            'currency'          => $cartCurrency,
+            'cart_total'        => (float) $cartTotal,
+            'discount_amount'   => (float) $discountAmount,
+            'currency'          => (string) $cartCurrency,
             'status'            => CheckoutSession::STATUS_ACTIVE,
             'ip_address'        => $request->ip(),
             'user_agent'        => substr((string) $request->userAgent(), 0, 255),
@@ -294,7 +309,6 @@ class CheckoutStartService
 
     private function computeCartHash(array $items, string $cartCurrency): string
     {
-        // Deterministic encoding (no assumptions about item ordering stability)
         $normalized = $this->deepSort($items);
 
         $payload = [
@@ -313,7 +327,6 @@ class CheckoutStartService
             return $value;
         }
 
-        // Sort associative arrays by key; keep numeric arrays as-is but deep sort elements
         $isAssoc = array_keys($value) !== range(0, count($value) - 1);
 
         foreach ($value as $k => $v) {
@@ -322,9 +335,37 @@ class CheckoutStartService
 
         if ($isAssoc) {
             ksort($value);
+            return $value;
         }
 
+        // numeric list: make deterministic order
+        usort($value, function ($a, $b) {
+            $sa = $this->itemSortSignature($a);
+            $sb = $this->itemSortSignature($b);
+
+            return $sa <=> $sb;
+        });
+
         return $value;
+    }
+
+    private function itemSortSignature($item): string
+    {
+        if (! is_array($item)) {
+            return (string) $item;
+        }
+
+        $pt = strtolower(trim((string) ($item['product_type'] ?? '')));
+        $pid = isset($item['product_id']) ? (int) $item['product_id'] : 0;
+        $cur = strtoupper(trim((string) ($item['currency'] ?? '')));
+        $tot = isset($item['total_price']) ? (string) $item['total_price'] : '';
+
+        $snap = is_array($item['snapshot'] ?? null) ? (array) $item['snapshot'] : [];
+
+        $d1 = (string) ($snap['checkin'] ?? $snap['date'] ?? '');
+        $d2 = (string) ($snap['checkout'] ?? '');
+
+        return $pt . '|' . $pid . '|' . $cur . '|' . $tot . '|' . $d1 . '|' . $d2;
     }
 
     private function generateCheckoutCode(): string

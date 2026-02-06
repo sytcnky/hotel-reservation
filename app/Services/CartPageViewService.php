@@ -14,10 +14,6 @@ class CartPageViewService
     ) {}
 
     /**
-     * Cart index sayfası için tüm view datayı üretir.
-     * - Mixed currency guard: mismatch varsa cart resetlenmiş kabul edilir.
-     * - Applied coupon cleanup: applied ama artık applicable değilse session’dan düşürür (mevcut davranış).
-     *
      * @return array{
      *   guard_triggered: bool,
      *   cartItems: array,
@@ -39,7 +35,7 @@ class CartPageViewService
 
         $items = (array) ($cart['items'] ?? []);
 
-        // Mixed currency guard (fail-fast) — mevcut davranış: mismatch => cart reset + redirect err
+        // Mixed currency guard (fail-fast)
         if ($this->cartInvariant->resetIfCurrencyMismatch($items)) {
             return [
                 'guard_triggered'       => true,
@@ -57,47 +53,83 @@ class CartPageViewService
 
         [$cartSubtotal, $cartCurrency] = $this->cartInvariant->computeSubtotalAndCurrency($items);
 
-        // Scoped notices kaldırıldı — cart item’lar aynen kullanılır
         $cartItems = $items;
 
         $cartCoupons         = [];
-        $appliedCouponIds    = (array) session('cart.applied_coupons', []);
         $couponDiscountTotal = 0.0;
 
         $cartCampaigns         = [];
         $campaignDiscountTotal = 0.0;
+
+        // applied ids (session) -> normalize int + unique
+        $appliedCouponIds = (array) session('cart.applied_coupons', []);
+        $appliedCouponIds = array_values(array_unique(array_map('intval', $appliedCouponIds)));
 
         $user = $request->user();
 
         if ($user && $cartSubtotal > 0 && $cartCurrency) {
             $userCurrency = CurrencyContext::code($request);
 
-            // Kuponlar (mevcut akış)
             $cartCoupons = $this->couponVm->buildCartCouponsForUser(
                 $user,
                 $userCurrency,
-                $cartSubtotal,
-                $cartCurrency
+                (float) $cartSubtotal,
+                (string) $cartCurrency,
+                $cartItems
             );
 
-            foreach ($cartCoupons as &$vm) {
-                $id = $vm['id'] ?? null;
+            /*
+             |--------------------------------------------------------------------------
+             | applied_coupons normalize (stale cleanup)
+             |--------------------------------------------------------------------------
+             | - cartCoupons'a hiç girmeyen (expired/not_started/used-out) kuponlar temizlenir
+             | - is_applicable olmayanlar applied'dan düşer
+             | - session update: tek sefer
+             */
+            $couponMap = []; // id => ['is_applicable'=>bool, 'index'=>int]
+            foreach ($cartCoupons as $i => $vm) {
+                $id = isset($vm['id']) ? (int) $vm['id'] : 0;
+                if ($id > 0) {
+                    $couponMap[$id] = [
+                        'is_applicable' => ! empty($vm['is_applicable']),
+                        'index'         => $i,
+                    ];
+                }
+            }
 
-                $isApplied        = $id !== null && in_array($id, $appliedCouponIds, true);
-                $vm['is_applied'] = $isApplied;
-
-                // applied ama artık applicable değil -> applied listeden düşür (mevcut davranış)
-                if ($isApplied && empty($vm['is_applicable'])) {
-                    $appliedCouponIds = array_values(array_filter(
-                        $appliedCouponIds,
-                        fn ($aid) => (int) $aid !== (int) $id
-                    ));
-
-                    session(['cart.applied_coupons' => $appliedCouponIds]);
-
-                    $vm['is_applied'] = false;
+            $normalizedApplied = [];
+            foreach ($appliedCouponIds as $aid) {
+                $aid = (int) $aid;
+                if ($aid < 1) {
                     continue;
                 }
+
+                // cartCoupons içinde yoksa stale -> düş
+                if (! isset($couponMap[$aid])) {
+                    continue;
+                }
+
+                // applicable değilse applied kalmasın
+                if ($couponMap[$aid]['is_applicable'] !== true) {
+                    continue;
+                }
+
+                $normalizedApplied[] = $aid;
+            }
+            $normalizedApplied = array_values(array_unique($normalizedApplied));
+
+            // session yaz (sadece değiştiyse)
+            if ($normalizedApplied !== $appliedCouponIds) {
+                session(['cart.applied_coupons' => $normalizedApplied]);
+            }
+            $appliedCouponIds = $normalizedApplied;
+
+            // VM'lere is_applied bas + discount sum
+            foreach ($cartCoupons as &$vm) {
+                $id = isset($vm['id']) ? (int) $vm['id'] : 0;
+
+                $isApplied = ($id > 0) && in_array($id, $appliedCouponIds, true);
+                $vm['is_applied'] = $isApplied;
 
                 if ($isApplied) {
                     $couponDiscountTotal += (float) ($vm['calculated_discount'] ?? 0);
@@ -105,12 +137,11 @@ class CartPageViewService
             }
             unset($vm);
 
-            // Kampanyalar (mevcut akış)
             $cartCampaigns = $this->campaignVm->buildCartCampaignsForUser(
                 $user,
                 $cartItems,
-                $cartCurrency,
-                $cartSubtotal
+                (string) $cartCurrency,
+                (float) $cartSubtotal
             );
 
             foreach ($cartCampaigns as $cvm) {
@@ -120,7 +151,10 @@ class CartPageViewService
             }
         }
 
-        $finalTotal = max(0.0, $cartSubtotal - $couponDiscountTotal - $campaignDiscountTotal);
+        $finalTotal = max(
+            0.0,
+            (float) $cartSubtotal - (float) $couponDiscountTotal - (float) $campaignDiscountTotal
+        );
 
         return [
             'guard_triggered'       => false,

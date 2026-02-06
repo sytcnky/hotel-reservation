@@ -369,7 +369,10 @@
 
                                         $supportHref = $hasTicket && $ticketId
                                             ? localized_route('account.tickets.show', ['ticket' => $ticketId])
-                                            : localized_route('account.tickets.create', ['order_id' => $order->id]);
+                                            : localized_route('account.tickets.create', [
+                                                'order_id' => $order->id,
+                                                'category_id' => $orderCategoryId,
+                                            ]);
 
                                         $supportAria = $hasTicket
                                             ? t('account.bookings.aria.go_to_ticket')

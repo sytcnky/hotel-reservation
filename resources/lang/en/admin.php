@@ -660,11 +660,20 @@ return [
             'product_domain'          => 'Product Domain',
             'product_name'            => 'Product Name',
 
-            'min_nights'              => 'Minimum Nights',
-            'min_nights_help'         => 'This condition is evaluated using the total nights in the order. It can be used independently of product type.',
+            'target_type'              => 'Target',
+            'target_type_order_total'  => 'Cart Total',
+            'target_type_product_type' => 'Product Type',
+            'target_type_product'      => 'Specific Product',
 
-            'is_exclusive'            => 'Can Be Used Exclusively',
-            'is_exclusive_help'       => 'If yes, this coupon cannot be active in the same cart with other coupons.',
+            'target_product_type'      => 'Product Type',
+            'target_product_domain'    => 'Product Type',
+            'target_product_name'      => 'Product',
+
+            'min_nights'              => 'Minimum Nights',
+            'min_nights_help'         => 'This condition works based on the number of nights of accommodation (hotel or villa) included in the order.',
+
+            'is_exclusive'            => 'Cannot be used together.',
+            'is_exclusive_help'       => 'On: this coupon cannot be activated in the same cart as other coupons.',
 
             'max_uses_per_user'       => 'Per-user Usage Limit',
             'max_uses_per_user_help'  => 'If left blank, it is unlimited.',
@@ -676,6 +685,8 @@ return [
             'currencies' => 'Currencies',
             'status'     => 'Status',
             'scope'      => 'Scope',
+            'target'     => 'Target',
+            'conditions' => 'Conditions',
             'usage'      => 'Usage',
         ],
 

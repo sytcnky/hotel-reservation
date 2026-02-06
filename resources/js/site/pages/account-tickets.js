@@ -339,8 +339,18 @@ function initTicketCreatePage(form) {
     const bodyEl = document.getElementById('replyMessage');
     const submitBtn = document.getElementById('replySubmitBtn');
 
+    const prefillCategory = (form.getAttribute('data-prefill-category') || '') === '1';
+    const prefillOrder = (form.getAttribute('data-prefill-order') || '') === '1';
+
     function refreshOrderVisibility() {
         if (!categorySelect || !orderWrap || !orderSelect) return;
+
+        // Prefill order akışında order alanı her zaman görünür + required olmalı.
+        if (prefillOrder) {
+            orderWrap.style.display = '';
+            orderSelect.setAttribute('required', 'required');
+            return;
+        }
 
         const opt = categorySelect.options[categorySelect.selectedIndex];
         const requiresOrder = opt ? (opt.getAttribute('data-requires-order') === '1') : false;
@@ -351,17 +361,26 @@ function initTicketCreatePage(form) {
         } else {
             orderWrap.style.display = 'none';
             orderSelect.removeAttribute('required');
-            orderSelect.value = '';
+
+            // order kilitli değilse temizle
+            if (!orderSelect.disabled) {
+                orderSelect.value = '';
+            }
+
             orderSelect.classList.remove('is-invalid');
         }
     }
 
     if (categorySelect) {
-        categorySelect.addEventListener('change', function () {
-            refreshOrderVisibility();
-            // submit state attachments controller içinde refresh edilecek ama garanti olsun:
-            if (submitBtn) submitBtn.disabled = true;
-        });
+        // kategori prefill ile kilitliyse change akışına bağlama
+        if (!prefillCategory) {
+            categorySelect.addEventListener('change', function () {
+                refreshOrderVisibility();
+                // submit state attachments controller içinde refresh edilecek ama garanti olsun:
+                if (submitBtn) submitBtn.disabled = true;
+            });
+        }
+
         refreshOrderVisibility();
     }
 
@@ -370,7 +389,10 @@ function initTicketCreatePage(form) {
         if (!subjectInput || String(subjectInput.value || '').trim() === '') return false;
         if (!bodyEl || String(bodyEl.value || '').trim() === '') return false;
 
-        if (orderSelect && orderSelect.hasAttribute('required')) {
+        // prefill order akışında order zorunlu
+        if (prefillOrder) {
+            if (!orderSelect || String(orderSelect.value || '').trim() === '') return false;
+        } else if (orderSelect && orderSelect.hasAttribute('required')) {
             if (String(orderSelect.value || '').trim() === '') return false;
         }
 
@@ -389,7 +411,7 @@ function initTicketCreatePage(form) {
         isFormValidFn,
     });
 
-    if (orderSelect) {
+    if (orderSelect && !prefillOrder) {
         orderSelect.addEventListener('change', function () {
             const opt = orderSelect.options[orderSelect.selectedIndex];
             const hasTicket = opt && opt.getAttribute('data-has-ticket') === '1';

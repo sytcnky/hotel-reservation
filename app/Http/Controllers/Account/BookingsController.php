@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\RefundAttempt;
 use App\Models\SupportTicket;
+use App\Models\SupportTicketCategory;
 use Illuminate\Http\Request;
 
 final class BookingsController extends Controller
@@ -46,6 +47,17 @@ final class BookingsController extends Controller
             $order->setAttribute('has_ticket', ! empty($ticketId));
         }
 
-        return view('pages.account.bookings', compact('orders'));
+        // ---- Support ticket category id (order) ----
+        // Kontrat: hardcode yok. "Sipariş" tipini slug ile buluyoruz.
+        // Not: slug array olduğu için JSON araması yapıyoruz.
+        $orderCategoryId = SupportTicketCategory::query()
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('slug->tr', 'siparis')
+                    ->orWhere('slug->en', 'order');
+            })
+            ->value('id');
+
+        return view('pages.account.bookings', compact('orders', 'orderCategoryId'));
     }
 }

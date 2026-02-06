@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendSupportTicketCreatedOpsEmail;
 use App\Jobs\SendSupportTicketCustomerMessageOpsEmail;
 use App\Models\Order;
+use App\Models\RefundAttempt;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketCategory;
@@ -77,6 +78,21 @@ class SupportTicketsController extends Controller
                 $o->has_ticket = (bool) $o->has_ticket;
             });
 
+        // ---- Prefill: category ----
+        $prefillCategoryId = $request->integer('category_id') ?: null;
+        $lockCategory = false;
+
+        if ($prefillCategoryId) {
+            // aktif kategori mi?
+            SupportTicketCategory::query()
+                ->where('id', $prefillCategoryId)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            $lockCategory = true;
+        }
+
+        // ---- Prefill: order ----
         $prefillOrderId = $request->integer('order_id') ?: null;
         $lockOrder = false;
 
@@ -103,6 +119,10 @@ class SupportTicketsController extends Controller
         return view('pages.account.ticket-create', [
             'categories' => $categories,
             'orders' => $orders,
+
+            'prefillCategoryId' => $prefillCategoryId,
+            'lockCategory' => $lockCategory,
+
             'prefillOrderId' => $prefillOrderId,
             'lockOrder' => $lockOrder,
         ]);
@@ -111,6 +131,37 @@ class SupportTicketsController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
+
+        // ---- Lock enforcement (server otoritesi) ----
+        // Create sayfasına query ile gelen order_id / category_id, store anında da korunur.
+        // Client manipülasyonu (disabled kaldırma, hidden değiştirme, direct POST) etkisiz kalır.
+        $lockedOrderId = $request->integer('order_id') ?: null;
+        $lockedCategoryId = $request->integer('category_id') ?: null;
+
+        if ($lockedCategoryId) {
+            SupportTicketCategory::query()
+                ->where('id', $lockedCategoryId)
+                ->where('is_active', true)
+                ->firstOrFail();
+        }
+
+        if ($lockedOrderId) {
+            Order::query()
+                ->where('id', $lockedOrderId)
+                ->where('user_id', $user->id)
+                ->firstOrFail();
+
+            $existing = SupportTicket::query()
+                ->where('order_id', $lockedOrderId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existing) {
+                throw ValidationException::withMessages([
+                    'order_id' => 'msg.err.account.tickets.order_already_has_ticket',
+                ]);
+            }
+        }
 
         $data = $request->validate(
             [
@@ -132,6 +183,14 @@ class SupportTicketsController extends Controller
                 'attachments.*.uploaded' => 'msg.err.account.tickets.attachments.errors.invalid_generic',
             ]
         );
+
+        // Locked değerler varsa, request’ten gelenleri override et (tek otorite: server)
+        if ($lockedCategoryId) {
+            $data['support_ticket_category_id'] = $lockedCategoryId;
+        }
+        if ($lockedOrderId) {
+            $data['order_id'] = $lockedOrderId;
+        }
 
         /** @var SupportTicketCategory $category */
         $category = SupportTicketCategory::query()->findOrFail($data['support_ticket_category_id']);

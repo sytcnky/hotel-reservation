@@ -15,12 +15,25 @@
 
             <hr class="my-3">
 
+            @php
+                $prefillCategoryId = $prefillCategoryId ?? null;
+                $prefillOrderId = $prefillOrderId ?? null;
+
+                $lockCategory = (bool) ($lockCategory ?? false);
+                $lockOrder = (bool) ($lockOrder ?? false);
+
+                $selectedCategoryId = old('support_ticket_category_id') ?? $prefillCategoryId;
+                $selectedOrderId = old('order_id') ?? $prefillOrderId;
+            @endphp
+
             <form action="{{ localized_route('account.tickets.store') }}"
                   method="post"
                   enctype="multipart/form-data"
                   id="ticketCreateForm"
                   class="needs-validation"
-                  novalidate>
+                  novalidate
+                  data-prefill-category="{{ $lockCategory ? '1' : '0' }}"
+                  data-prefill-order="{{ $lockOrder ? '1' : '0' }}">
                 @csrf
 
                 <div class="row g-3">
@@ -33,17 +46,24 @@
                         <select id="categorySelect"
                                 name="support_ticket_category_id"
                                 class="form-select @error('support_ticket_category_id') is-invalid @enderror"
-                                required>
+                                required
+                                @if($lockCategory) disabled @endif>
                             <option value="">{{ t('account.tickets.form.select') }}</option>
 
                             @foreach(($categories ?? []) as $cat)
                                 <option value="{{ $cat->id }}"
                                         data-requires-order="{{ $cat->requires_order ? '1' : '0' }}"
-                                    {{ (string) old('support_ticket_category_id') === (string) $cat->id ? 'selected' : '' }}>
+                                    {{ (string) $selectedCategoryId === (string) $cat->id ? 'selected' : '' }}>
                                     {{ $cat->name_l }}
                                 </option>
                             @endforeach
                         </select>
+
+                        @if($lockCategory)
+                            <input type="hidden"
+                                   name="support_ticket_category_id"
+                                   value="{{ $selectedCategoryId }}">
+                        @endif
 
                         @error('support_ticket_category_id')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -51,18 +71,17 @@
                     </div>
 
                     {{-- Sipariş --}}
-                    <div class="col-12 col-lg-6" id="orderSelectWrap" style="display:none;">
+                    <div class="col-12 col-lg-6"
+                         id="orderSelectWrap"
+                         @if($lockOrder) style="display:;" @else style="display:none;" @endif>
                         <label for="orderSelect" class="form-label">
                             {{ t('account.tickets.form.order') }}
                         </label>
 
-                        @php
-                            $selectedOrderId = old('order_id') ?? ($prefillOrderId ?? null);
-                        @endphp
-
                         <select id="orderSelect"
                                 name="order_id"
-                                class="form-select @error('order_id') is-invalid @enderror">
+                                class="form-select @error('order_id') is-invalid @enderror"
+                                @if($lockOrder) disabled @endif>
                             <option value="">{{ t('account.tickets.form.select') }}</option>
 
                             @foreach(($orders ?? []) as $order)
@@ -77,6 +96,12 @@
                                 </option>
                             @endforeach
                         </select>
+
+                        @if($lockOrder)
+                            <input type="hidden"
+                                   name="order_id"
+                                   value="{{ $selectedOrderId }}">
+                        @endif
 
                         @error('order_id')
                         <div class="invalid-feedback">{{ $message }}</div>

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Coupons\Schemas;
 
 use App\Models\Currency;
 use App\Models\Hotel;
-use App\Models\Location;
 use App\Models\Tour;
 use App\Models\TransferRoute;
 use App\Models\Villa;
@@ -130,7 +129,7 @@ class CouponForm
                             ]),
 
                         // -----------------------------------------------------
-                        // SAĞ (4 kolon) — Durum, Kapsam, Kullanım
+                        // SAĞ (4 kolon) — Durum, Kapsam/Koşullar, Kullanım
                         // -----------------------------------------------------
                         Group::make()
                             ->columnSpan(['default' => 12, 'lg' => 4])
@@ -157,7 +156,128 @@ class CouponForm
                                         ->helperText(__('admin.coupons.form.valid_until_help')),
                                 ]),
 
-                                Section::make(__('admin.coupons.sections.scope'))->schema([
+                                // -------------------------------
+                                // YENİ: KAPSAM (Target)
+                                // -------------------------------
+                                Section::make(__('admin.coupons.sections.target'))->schema([
+
+                                    Select::make('target_type')
+                                        ->label(__('admin.coupons.form.target_type'))
+                                        ->options([
+                                            'order_total'  => __('admin.coupons.form.target_type_order_total'),
+                                            'product_type' => __('admin.coupons.form.target_type_product_type'),
+                                            'product'      => __('admin.coupons.form.target_type_product'),
+                                        ])
+                                        ->native(false)
+                                        ->required()
+                                        ->default('order_total')
+                                        ->live(),
+
+                                    Select::make('target_product_type')
+                                        ->label(__('admin.coupons.form.target_product_type'))
+                                        ->native(false)
+                                        ->options([
+                                            'hotel'    => __('admin.coupons.form.product_type_hotel'),
+                                            'villa'    => __('admin.coupons.form.product_type_villa'),
+                                            'tour'     => __('admin.coupons.form.product_type_tour'),
+                                            'transfer' => __('admin.coupons.form.product_type_transfer'),
+                                        ])
+                                        ->visible(fn (Get $get) => $get('target_type') === 'product_type')
+                                        ->required(fn (Get $get) => $get('target_type') === 'product_type'),
+
+                                    Select::make('target_product_domain')
+                                        ->label(__('admin.coupons.form.target_product_domain'))
+                                        ->options([
+                                            'hotel'    => __('admin.coupons.form.product_type_hotel'),
+                                            'villa'    => __('admin.coupons.form.product_type_villa'),
+                                            'tour'     => __('admin.coupons.form.product_type_tour'),
+                                            'transfer' => __('admin.coupons.form.product_type_transfer'),
+                                        ])
+                                        ->native(false)
+                                        ->visible(fn (Get $get) => $get('target_type') === 'product')
+                                        ->required(fn (Get $get) => $get('target_type') === 'product')
+                                        ->live(),
+
+                                    Select::make('target_product_id')
+                                        ->label(__('admin.coupons.form.target_product_name'))
+                                        ->native(false)
+                                        ->searchable()
+                                        ->options(function (Get $get) use ($uiLocale) {
+                                            $domain = $get('target_product_domain');
+
+                                            if (! $domain) {
+                                                return [];
+                                            }
+
+                                            return match ($domain) {
+                                                'hotel' => Hotel::query()
+                                                    ->where('is_active', true)
+                                                    ->orderBy('sort_order')
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
+                                                    ->pluck('label', 'id')
+                                                    ->all(),
+
+                                                'villa' => Villa::query()
+                                                    ->where('is_active', true)
+                                                    ->orderBy('sort_order')
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
+                                                    ->pluck('label', 'id')
+                                                    ->all(),
+
+                                                'tour' => Tour::query()
+                                                    ->where('is_active', true)
+                                                    ->orderBy('sort_order')
+                                                    ->selectRaw("id, NULLIF(name->>'{$uiLocale}', '') AS label")
+                                                    ->orderBy('label')
+                                                    ->pluck('label', 'id')
+                                                    ->all(),
+
+                                                'transfer' => TransferRoute::query()
+                                                    ->where('is_active', true)
+                                                    ->orderBy('sort_order')
+                                                    ->with(['from', 'to'])
+                                                    ->get()
+                                                    ->mapWithKeys(function ($route) use ($uiLocale) {
+                                                        $fromName = $route->from?->name;
+                                                        $toName   = $route->to?->name;
+
+                                                        $fromLabel = null;
+                                                        if (is_array($fromName)) {
+                                                            $fromLabel = $fromName[$uiLocale] ?? null;
+                                                        } elseif ($fromName) {
+                                                            $fromLabel = (string) $fromName;
+                                                        }
+
+                                                        $toLabel = null;
+                                                        if (is_array($toName)) {
+                                                            $toLabel = $toName[$uiLocale] ?? null;
+                                                        } elseif ($toName) {
+                                                            $toLabel = (string) $toName;
+                                                        }
+
+                                                        $label = trim(($fromLabel ?? '') . ' → ' . ($toLabel ?? ''));
+
+                                                        if ($label === '→' || $label === '') {
+                                                            $label = 'Route #' . $route->id;
+                                                        }
+
+                                                        return [$route->id => $label];
+                                                    })
+                                                    ->all(),
+
+                                                default => [],
+                                            };
+                                        })
+                                        ->visible(fn (Get $get) => $get('target_type') === 'product')
+                                        ->required(fn (Get $get) => $get('target_type') === 'product'),
+                                ]),
+
+                                // -------------------------------
+                                // MEVCUT: KOŞULLAR (eski scope)
+                                // -------------------------------
+                                Section::make(__('admin.coupons.sections.conditions'))->schema([
 
                                     Select::make('scope_type')
                                         ->label(__('admin.coupons.form.scope_type'))

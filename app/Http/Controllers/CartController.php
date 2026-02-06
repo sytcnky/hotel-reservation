@@ -109,7 +109,7 @@ class CartController extends Controller
         $user = $request->user();
         if (! $user) {
             return redirect()
-                ->route('login', ['redirect' => '/cart'])
+                ->route('login', ['redirect' => localized_route('cart')])
                 ->with('notices', [[
                     'level'  => 'err',
                     'code'   => 'msg.err.auth.login_required',
@@ -143,7 +143,8 @@ class CartController extends Controller
             $user,
             $userCurrency,
             (float) $cartSubtotal,
-            (string) $cartCurrency
+            (string) $cartCurrency,
+            $items
         );
 
         $target = collect($cartCoupons)->firstWhere('id', $userCouponId);

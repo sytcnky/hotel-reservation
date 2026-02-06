@@ -659,11 +659,20 @@ return [
             'product_domain'          => 'Ürün Alanı',
             'product_name'            => 'Ürün Adı',
 
-            'min_nights'              => 'Minimum Gece',
-            'min_nights_help'         => 'Bu koşul, siparişteki toplam gece sayısına göre çalışır. Ürün türünden bağımsız olarak kullanılabilir.',
+            'target_type'              => 'Hedef Tipi',
+            'target_type_order_total'  => 'Sepet Toplamı',
+            'target_type_product_type' => 'Ürün Tipi',
+            'target_type_product'      => 'Belirli Ürün',
 
-            'is_exclusive'            => 'Tek Başına Kullanılabilir',
-            'is_exclusive_help'       => 'Evet ise, bu kupon başka kuponlarla aynı sepette aktif olamaz.',
+            'target_product_type'      => 'Ürün Tipi',
+            'target_product_domain'    => 'Ürün Tipi',
+            'target_product_name'      => 'Ürün',
+
+            'min_nights'              => 'Minimum Gece',
+            'min_nights_help'         => 'Bu koşul, siparişteki en az bir konaklama (otel veya villa) gece sayısına göre çalışır.',
+
+            'is_exclusive'            => 'Birlikte kullanılamaz',
+            'is_exclusive_help'       => 'Açık ise, bu kupon başka kuponlarla aynı sepette aktif edilemez.',
 
             'max_uses_per_user'       => 'Kullanıcı Başına Kullanım Limiti',
             'max_uses_per_user_help'  => 'Boş bırakılırsa sınırsızdır.',
@@ -675,6 +684,8 @@ return [
             'currencies' => 'Para Birimleri',
             'status'     => 'Durum',
             'scope'      => 'Kapsam',
+            'target'     => 'Hedef',
+            'conditions' => 'Koşullar',
             'usage'      => 'Kullanım',
         ],
 

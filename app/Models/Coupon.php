@@ -27,12 +27,18 @@ class Coupon extends Model
         'discount_type',
         'percent_value',
 
+        // CONDITIONS (eski "kapsam" alanları)
         'scope_type',
         'product_types',
         'product_domain',
         'product_id',
-
         'min_nights',
+
+        // TARGET (yeni)
+        'target_type',
+        'target_product_type',
+        'target_product_domain',
+        'target_product_id',
 
         'currency_data',
     ];
@@ -51,9 +57,13 @@ class Coupon extends Model
         'max_uses_per_user' => 'integer',
         'percent_value'     => 'float',
 
+        // CONDITIONS
         'product_types'     => 'array',
         'product_id'        => 'integer',
         'min_nights'        => 'integer',
+
+        // TARGET
+        'target_product_id' => 'integer',
 
         'currency_data'     => 'array',
     ];
@@ -71,12 +81,6 @@ class Coupon extends Model
     {
         return $this->getLocalized('title');
     }
-
-    /*
-     |--------------------------------------------------------------------------
-     | İlişkiler
-     |--------------------------------------------------------------------------
-     */
 
     public function userCoupons()
     {
