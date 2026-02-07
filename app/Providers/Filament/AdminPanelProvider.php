@@ -12,6 +12,8 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
@@ -46,6 +48,19 @@ class AdminPanelProvider extends PanelProvider
                 FilamentInfoWidget::class,
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
+
+            // FullCalendar (prebuilt) assets: panel-level, deterministik
+            ->assets([
+                Css::make('fullcalendar', resource_path('filament/assets/fullcalendar/index.global.min.css')),
+                Css::make('fullcalendar-filament', resource_path('filament/assets/fullcalendar/fullcalendar.filament.css')),
+
+                Js::make('fullcalendar-core', resource_path('filament/assets/fullcalendar/index.global.min.js')),
+                Js::make('fullcalendar-locales', resource_path('filament/assets/fullcalendar/locales-all.global.min.js')),
+
+                Js::make('fullcalendar-daygrid', resource_path('filament/assets/fullcalendar/daygrid/index.global.min.js')),
+                Js::make('fullcalendar-timegrid', resource_path('filament/assets/fullcalendar/timegrid/index.global.min.js')),
+                Js::make('fullcalendar-interaction', resource_path('filament/assets/fullcalendar/interaction/index.global.min.js')),
+            ])
 
             // User menu: Panel locale switch (single item; always shows the other language)
             ->userMenuItems([

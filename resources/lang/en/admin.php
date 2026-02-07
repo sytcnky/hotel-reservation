@@ -1240,4 +1240,15 @@ return [
             'group' => 'Group',
         ],
     ],
+
+    'calender' => [
+        'singular'                => 'Calendar',
+        'all_type'                => 'All Products',
+        'product_type'            => 'Product Type',
+        'product_type_hotel'      => 'Hotel',
+        'product_type_room'       => 'Room',
+        'product_type_villa'      => 'Villa',
+        'product_type_tour'       => 'Tour',
+        'product_type_transfer'   => 'Transfer',
+    ],
 ];

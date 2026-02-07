@@ -1284,4 +1284,14 @@ return [
             'group' => 'Grup',
         ],
     ],
+    'calender' => [
+        'singular'                => 'Takvim',
+        'all_type'                => 'Tüm Ürünler',
+        'product_type'            => 'Ürün Tipi',
+        'product_type_hotel'      => 'Otel',
+        'product_type_room'       => 'Oda',
+        'product_type_villa'      => 'Villa',
+        'product_type_tour'       => 'Tur',
+        'product_type_transfer'   => 'Transfer',
+    ]
 ];
