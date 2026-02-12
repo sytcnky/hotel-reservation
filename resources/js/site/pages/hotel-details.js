@@ -120,12 +120,6 @@ function initRoomToggles() {
             toggleBtn.classList.toggle('btn-info', isOpen);
 
             if (isOpen) {
-                if (gallery && !gallery.dataset.initialized) {
-                    import('../ui/gallery').then(({ default: initGallery }) => {
-                        initGallery(gallery);
-                    });
-                }
-
                 wrapper.style.height = content.scrollHeight + 'px';
 
                 wrapper.addEventListener(
