@@ -58,7 +58,14 @@ class LocalizedRoute
     }
 
     /**
-     * Ortak mapper. Fallback yok (fail-fast).
+     * Ortak mapper.
+     *
+     * Politika:
+     * - Fallback YOK.
+     * - Eksik routes çevirisi varsa uygulama ayağa kalksın:
+     *   - O route / locale için route register edilmez -> doğal 404
+     *   - Uyarı loglanır (local'de STDERR'e de basılır)
+     *
      * İstisna: home route'u locale root olduğu için slug boş olabilir.
      *
      * @return array<int, LaravelRoute> Her locale için üretilen route nesneleri
@@ -74,8 +81,11 @@ class LocalizedRoute
 
         $values = is_array($translation?->values ?? null) ? $translation->values : null;
 
+        // Kayıt yoksa: hiç route üretme (tüm locale'lerde 404) + uyarı
         if (! is_array($values)) {
-            throw new \RuntimeException("Missing routes translation record: group=routes, key={$baseName}");
+            self::reportIssue('missing_record', $baseName);
+
+            return [];
         }
 
         $routes = [];
@@ -83,15 +93,18 @@ class LocalizedRoute
         foreach ($locales as $locale) {
             $slugRaw = $values[$locale] ?? null;
 
+            // Bu locale için value yoksa: sadece bu locale'i atla + uyarı
             if (! is_string($slugRaw)) {
-                throw new \RuntimeException("Missing routes translation value: group=routes, key={$baseName}, locale={$locale}");
+                self::reportIssue('missing_locale_value', $baseName, (string) $locale);
+                continue;
             }
 
             // Allow empty only for home (locale root)
             $slug = trim($slugRaw);
 
             if ($slug === '' && $baseName !== 'home') {
-                throw new \RuntimeException("Empty routes translation value: group=routes, key={$baseName}, locale={$locale}");
+                self::reportIssue('empty_locale_value', $baseName, (string) $locale);
+                continue;
             }
 
             $slug = trim($slug, '/');
@@ -118,5 +131,30 @@ class LocalizedRoute
         }
 
         return $routes;
+    }
+
+    private static function reportIssue(string $type, string $baseName, ?string $locale = null): void
+    {
+        $msg = "[routes-i18n] {$type}: group=routes key={$baseName}" . ($locale ? " locale={$locale}" : "");
+
+        try {
+            logger()->warning($msg, [
+                'group'  => 'routes',
+                'key'    => $baseName,
+                'locale' => $locale,
+                'type'   => $type,
+            ]);
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        // Local’de hızlı görünürlük için terminale bas (ilk requestte görünür)
+        if (app()->environment('local')) {
+            try {
+                @fwrite(STDERR, $msg . PHP_EOL);
+            } catch (\Throwable) {
+                // ignore
+            }
+        }
     }
 }

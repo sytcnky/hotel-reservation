@@ -15,7 +15,8 @@
         "spatie/laravel-activitylog": "^4",
         "spatie/laravel-medialibrary": "^11",
         "spatie/laravel-permission": "^6.21",
-        "ext-intl": "*"
+        "ext-intl": "*",
+        "ext-iconv": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
