@@ -30,8 +30,7 @@ class PaymentAttemptsTable
 
                 TextColumn::make('order.code')
                     ->label(__('admin.payment_attempts.table.order'))
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 TextColumn::make('amount')
                     ->label(__('admin.payment_attempts.table.amount'))
@@ -109,13 +108,6 @@ class PaymentAttemptsTable
                             });
                         }
                     }),
-
-
-                SelectFilter::make('gateway')
-                    ->options([
-                        'demo'   => 'demo'
-                    ])
-                    ->searchable(),
             ]);
     }
 }

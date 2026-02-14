@@ -944,7 +944,6 @@ return [
 
         'status' => [
             'pending'     => 'Pending',
-            'pending_3ds' => 'Waiting for 3D Secure',
             'success'     => 'Successful',
             'failed'      => 'Failed',
             'cancelled'   => 'Cancelled',

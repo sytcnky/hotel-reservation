@@ -92,6 +92,7 @@ class CartController extends Controller
 
             if (empty($items)) {
                 session()->forget('cart');
+                session()->forget('cart.applied_coupons');
             } else {
                 session(['cart.items' => $items]);
             }
@@ -99,6 +100,20 @@ class CartController extends Controller
 
         // Sessiz dönüş (msg yok)
         return redirect()->back();
+    }
+
+    /**
+     * Ödeme sonrası UI success'te sepeti temizlemek için.
+     * - CSRF'li POST olmalı
+     * - Idempotent
+     */
+    public function clear(Request $request, CartInvariant $cartInvariant)
+    {
+        $cartInvariant->resetCart();
+
+        return response()->json([
+            'ok' => true,
+        ], 200);
     }
 
     public function applyCoupon(

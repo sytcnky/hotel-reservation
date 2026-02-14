@@ -27,12 +27,11 @@ class AppServiceProvider extends ServiceProvider
          * - Yanlış env ile "demo ödeme"ye düşmeyi engeller.
          */
         if (app()->isProduction()) {
-            $driver = (string) config('icr.payments.driver', '');
+            $driver = trim((string) config('icr.payments.driver'));
 
-            if ($driver === '' || $driver === 'demo') {
+            if ($driver === '' || $driver === 'none') {
                 throw new \RuntimeException(
-                    'PAYMENT_DRIVER misconfigured: production ortamında demo driver yasaktır. ' .
-                    'Lütfen .env içinde PAYMENT_DRIVER değerini gerçek sağlayıcıya ayarlayın.'
+                    'PAYMENT_DRIVER misconfigured: production ortamında PAYMENT_DRIVER none/boş olamaz.'
                 );
             }
         }

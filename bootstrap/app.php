@@ -23,41 +23,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SetLocaleFromRequest::class,
         ]);
+
+        /**
+         * Nestpay return/callback POST'ları bankadan gelir; CSRF token yoktur.
+         * Kontrat gereği bu endpoint'ler CSRF hariç olmalıdır.
+         */
+        $middleware->validateCsrfTokens(except: [
+            'payment/nestpay/callback',
+            'payment/nestpay/return/ok',
+            'payment/nestpay/return/fail',
+        ]);
+
+
+        // Tunnel Bağlantısı için eklendi
+        $middleware->append(\App\Http\Middleware\TrustProxies::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        /**
-         * PCI/PII policy:
-         * - Validation fail olduğunda request input session'a "old input" olarak flash'lanabilir.
-         * - Kart verileri (PAN/CVC/expiry) kesinlikle flash'lanmamalı.
-         *
-         * Not: Bu liste globaldir; sadece payment değil tüm formlar için güvenlik bariyeridir.
-         */
         $exceptions->dontFlash([
-            // Cardholder
-            'cardholder',
-
-            // PAN (card number)
-            'cardnumber',
-            'card_number',
-            'pan',
-            'number',
-
-            // Expiry
-            'exp-month',
-            'exp_month',
-            'exp-year',
-            'exp_year',
-            'expiry',
-            'expires',
-            'exp',
-
-            // CVC/CVV
-            'cvc',
-            'cvv',
-            'cvv2',
-
-            // Demo helper input (non-sensitive ama payment akışıyla birlikte taşınmasın)
-            'demo_outcome',
+            // Şimdilik boş: ödeme tarafında kart input'u yok.
         ]);
     })
     ->create();

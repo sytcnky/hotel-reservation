@@ -976,7 +976,6 @@ return [
 
         'status' => [
             'pending'   => 'Beklemede',
-            'pending_3ds'   => '3D Bekleniyor',
             'success'   => 'Başarılı',
             'failed'    => 'Başarısız',
             'cancelled' => 'İptal',

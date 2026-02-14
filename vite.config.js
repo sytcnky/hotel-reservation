@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/css/site.scss',
                 'resources/js/site/site.js',
+                'resources/css/filament/admin/theme.css',
             ],
             refresh: true,
         }),

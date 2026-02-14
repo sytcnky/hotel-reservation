@@ -11,9 +11,14 @@ final class PaymentGatewayFactory
 
     public static function makeFor(string $driver): PaymentGatewayInterface
     {
+        $driver = trim((string) $driver);
+
+        if ($driver === '' || $driver === 'none') {
+            throw new \RuntimeException('Ödeme sağlayıcısı yapılandırılmamış (PAYMENT_DRIVER).');
+        }
+
         return match ($driver) {
-            'demo' => app(\App\Services\DemoPaymentGateway::class),
-            // 'isbank' => app(\App\Services\IsbankPaymentGateway::class),
+            'nestpay' => app()->make(\App\Services\Payments\Nestpay\NestpayGateway::class),
 
             default => throw new \RuntimeException(
                 "Geçerli bir ödeme sağlayıcı bulunamadı: {$driver}"

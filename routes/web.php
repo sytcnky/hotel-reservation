@@ -219,39 +219,20 @@ LocalizedRoute::get('guides', [TravelGuideController::class, 'index']);
 /** Guide detail */
 LocalizedRoute::get('guides.show', [TravelGuideController::class, 'show']);
 
-/** Ödeme sayfası (görüntüleme + işleme) */
-foreach (LocalizedRoute::get('payment', [PaymentController::class, 'show']) as $route) {
-    $route->middleware('throttle:60,1');
-}
 
-foreach (LocalizedRoute::post('payment.process', [PaymentController::class, 'process']) as $route) {
-    $route->middleware('throttle:10,1');
-}
+/*
+|--------------------------------------------------------------------------
+| Payment Routes
+|--------------------------------------------------------------------------
+*/
 
-/** Sepetten ödeme başlangıcı (ÜYE kullanıcı) */
-foreach (LocalizedRoute::post('checkout.start', [PaymentController::class, 'start']) as $route) {
-    $route->middleware('throttle:10,1');
-}
+require __DIR__ . '/web.payments.php';
 
-/** Login sayfasındaki misafir formu → ödeme başlangıcı (MİSAFİR) */
-Route::post('/checkout/guest', [PaymentController::class, 'startGuest'])
-    ->name('checkout.start.guest')
-    ->middleware('throttle:5,1');
-
-/** 3D Secure demo ekranı */
-foreach (LocalizedRoute::get('payment.3ds', [PaymentController::class, 'show3ds']) as $route) {
-    $route->middleware('throttle:30,1');
-}
-foreach (LocalizedRoute::post('payment.3ds.complete', [PaymentController::class, 'complete3ds']) as $route) {
-    $route->middleware('throttle:10,1');
-}
-
-/** Başarılı Ödeme */
-LocalizedRoute::view('success', 'pages.payment.success');
 
 /** Sepet */
 LocalizedRoute::get('cart', [CartController::class, 'index']);
 Route::delete('/cart/item/{key}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
 Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
@@ -487,3 +468,26 @@ Route::middleware(['auth'])
         return redirect('/admin');
     })
     ->name('admin.panel-locale.set');
+
+
+Route::get('/_debug/session', function () {
+    return response()->json([
+        'app_env' => app()->environment(),
+
+        // config
+        'cfg_secure'    => config('session.secure'),
+        'cfg_same_site' => config('session.same_site'),
+        'cfg_cookie'    => config('session.cookie'),
+
+        // env (web process)
+        '_ENV_SECURE'   => $_ENV['SESSION_SECURE_COOKIE'] ?? null,
+        '_ENV_SAMESITE' => $_ENV['SESSION_SAME_SITE'] ?? null,
+        'getenv_secure' => getenv('SESSION_SECURE_COOKIE') ?: null,
+        'getenv_same'   => getenv('SESSION_SAME_SITE') ?: null,
+
+        // request
+        'is_secure' => request()->isSecure(),
+        'xfp'       => request()->header('x-forwarded-proto'),
+    ]);
+});
+

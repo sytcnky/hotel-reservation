@@ -3,15 +3,78 @@
 return [
 
     'payments' => [
-        // Aktif ödeme sürücüsü: demo | isbank | vs.
-        'driver'    => env('PAYMENT_DRIVER', 'demo'),
 
-        // Pending order için dakika cinsinden TTL
+        /*
+        |--------------------------------------------------------------------------
+        | Aktif Ödeme Driver
+        |--------------------------------------------------------------------------
+        |
+        | none | nestpay
+        |
+        */
+        'driver' => env('PAYMENT_DRIVER', 'none'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pending order TTL (dakika)
+        |--------------------------------------------------------------------------
+        */
         'order_ttl' => (int) env('PAYMENT_ORDER_TTL', 15),
 
-        // Demo driver için default outcome (success | fail)
-        'demo_mode' => env('PAYMENT_DEMO_MODE', 'success'),
+        /*
+        |--------------------------------------------------------------------------
+        | Callback Mode
+        |--------------------------------------------------------------------------
+        |
+        | real      → Bankadan gerçek callback beklenir
+        | simulate  → Local test için manuel simulate endpoint/command
+        |
+        */
+        'callback_mode' => env('PAYMENT_CALLBACK_MODE', 'real'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nestpay (3D Pay Hosting)
+        |--------------------------------------------------------------------------
+        */
+        'nestpay' => [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Banka Endpoint
+            |--------------------------------------------------------------------------
+            */
+            'endpoint' => env('NESTPAY_ENDPOINT'),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Merchant Credentials
+            |--------------------------------------------------------------------------
+            */
+            'client_id' => env('NESTPAY_CLIENT_ID'),
+            'store_key' => env('NESTPAY_STORE_KEY'),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Hash Algoritması
+            |--------------------------------------------------------------------------
+            */
+            'hash_algorithm' => 'ver3',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Callback Hash Verify Policy
+            |--------------------------------------------------------------------------
+            |
+            | Prod / staging: zorunlu true
+            | Local: simulate modda false olabilir
+            |
+            */
+            'verify_callback_hash' => (bool) env('NESTPAY_VERIFY_CALLBACK_HASH', true),
+        ],
     ],
+
+
 
     'mail' => [
         // Ops ekibi mail hedefleri (virgülle ayrılmış)

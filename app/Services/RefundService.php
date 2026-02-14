@@ -68,7 +68,20 @@ class RefundService
             ]);
 
             try {
-                $gateway = PaymentGatewayFactory::make();
+                // Gateway yoksa (PAYMENT_DRIVER=none/boş) fail fast
+                try {
+                    $gateway = PaymentGatewayFactory::make();
+                } catch (\Throwable $e) {
+                    $refund->forceFill([
+                        'status'        => RefundAttempt::STATUS_FAILED,
+                        'error_code'    => 'GATEWAY_NOT_CONFIGURED',
+                        'error_message' => 'msg.err.payment.gateway_not_configured',
+                        'completed_at'  => now(),
+                        'raw_response'  => app()->isProduction() ? null : ['reason' => 'gateway_not_configured'],
+                    ])->save();
+
+                    return $refund;
+                }
 
                 $result = $gateway->refund($refund, [
                     'order_code'  => $order->code,
@@ -100,6 +113,7 @@ class RefundService
                 ])->save();
 
                 return $refund;
+
             } catch (\Throwable $e) {
                 Log::error('Refund exception', [
                     'refund_attempt_id' => $refund->id,
@@ -108,8 +122,10 @@ class RefundService
 
                 $refund->forceFill([
                     'status'        => RefundAttempt::STATUS_FAILED,
+                    'error_code'    => 'REFUND_EXCEPTION',
                     'error_message' => $e->getMessage(),
                     'completed_at'  => now(),
+                    'raw_response'  => app()->isProduction() ? null : ['exception' => $e->getMessage()],
                 ])->save();
 
                 return $refund;

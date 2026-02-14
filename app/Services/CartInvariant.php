@@ -124,8 +124,12 @@ class CartInvariant
         return false;
     }
 
+    /**
+     * Tek otorite: cart + applied_coupons birlikte temizlenir.
+     */
     public function resetCart(): void
     {
         session()->forget('cart');
+        session()->forget('cart.applied_coupons');
     }
 }

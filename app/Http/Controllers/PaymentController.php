@@ -9,7 +9,6 @@ use App\Services\CheckoutSessionGuard;
 use App\Services\CheckoutStartService;
 use App\Services\OrderFinalizeService;
 use App\Services\PaymentAttemptService;
-use App\Services\PaymentGateway3dsInterface;
 use App\Services\PaymentGatewayFactory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,9 +42,6 @@ class PaymentController extends Controller
             ]]);
     }
 
-    /**
-     * Ödeme sayfası (CheckoutSession.code ile)
-     */
     public function show(
         string $code,
         Request $request,
@@ -55,14 +51,28 @@ class PaymentController extends Controller
     ) {
         $session = $guard->loadByCode($code);
 
+        /**
+         * Banka dönüşünde (ok/fail) bazı ortamlarda session/auth taşıması edge-case olabilir.
+         * Kontrat: IDOR bariyeri korunur; ancak bank_return=1 ise 404 yerine login’e yönlendir.
+         */
+        if (
+            $session->type === CheckoutSession::TYPE_USER
+            && ! auth()->id()
+            && (string) $request->query('bank_return') === '1'
+        ) {
+            return redirect()->route('login', [
+                'from_cart' => 0,
+                'redirect'  => localized_route('payment', ['code' => $session->code]),
+                'guest'     => 0,
+            ]);
+        }
+
         $guard->authorize($request, $session, requireSignatureForGuest: true);
 
-        // completed → success
         if ($session->status === CheckoutSession::STATUS_COMPLETED) {
             return redirect()->to(localized_route('success'));
         }
 
-        // TTL → expired olarak işaretle (read tarafında deterministik)
         if ($guard->expireIfNeededAndFinalizeAttempt($session, 'expired_read:' . $session->id, $attempts)) {
             return $this->redirectNotice(
                 localized_route('cart'),
@@ -76,23 +86,15 @@ class PaymentController extends Controller
             0
         );
 
-        /**
-         * ZERO PAYABLE (prod standardı):
-         * - Gateway’e gitme
-         * - Internal finalize (idempotent anahtar ile)
-         * - Ödeme ekranı render edilmeden success’e yönlendir
-         */
         if ($payable <= 0) {
-            // Sabit idempotency: aynı checkout için aynı anahtar
             $nonce = 'free_zero:' . (string) $session->id;
 
             $attempt = $attempts->getOrCreatePendingAttempt($session, $nonce, $request);
 
-            // Attempt'i "free/internal success" olarak güncelle (2. bariyer)
             $attempt->forceFill([
                 'amount'            => 0.0,
                 'currency'          => $session->currency,
-                'status'            => 'success',
+                'status'            => PaymentAttempt::STATUS_SUCCESS,
                 'gateway'           => $attempt->gateway ?: 'free',
                 'gateway_reference' => $attempt->gateway_reference ?: ('FREE-' . (string) $attempt->id),
                 'error_code'        => null,
@@ -136,204 +138,73 @@ class PaymentController extends Controller
             return redirect()->to(localized_route('success'));
         }
 
-        $attemptError = $attempts->latestAttemptErrorForSession($session);
-
-        // Form idempotency key (her POST için). Pending unique index zaten 2 attempt’ı engeller.
-        $submitNonce = bin2hex(random_bytes(16));
-
-        return view('pages.payment.index', [
-            'order'        => null,
-            'draft'        => null,
-            'draftCode'    => null,
-            'checkout'     => $session,
-            'submitNonce'  => $submitNonce,
-            'attemptError' => $attemptError,
-            'totalAmount'  => $payable,
-            'currency'     => $session->currency,
-        ]);
-    }
-
-    /**
-     * 3D Secure demo sayfası
-     */
-    public function show3ds(
-        string $code,
-        Request $request,
-        CheckoutSessionGuard $guard,
-        PaymentAttemptService $attempts
-    ) {
-        $session = $guard->loadByCode($code);
-
-        // Guest için: signed varsa geçerli olmalı; signature yoksa (ör. eski view) token zaten 2. faktör olarak çalışıyor.
-        $guard->authorize($request, $session, requireSignatureForGuest: false);
-
-        if ($session->status === CheckoutSession::STATUS_COMPLETED) {
-            return redirect()->to(localized_route('success'));
-        }
-
-        if ($guard->isExpired($session) || $session->status === CheckoutSession::STATUS_EXPIRED) {
-            // Session expired ise: status + attempt finalize (idempotent)
-            $guard->finalizeAttemptIfSessionExpired($session, 'expired_read:' . $session->id, $attempts)
-            || $guard->expireIfNeededAndFinalizeAttempt($session, 'expired_read:' . $session->id, $attempts);
-
-            return $this->redirectNotice(
-                localized_route('cart'),
-                'err',
-                'msg.err.payment.session_expired'
-            );
-        }
-
-        $token = (string) $request->query('token', '');
-        $attemptId = (int) $request->query('attempt', 0);
-
-        if ($token === '' || $attemptId <= 0) {
-            return $this->redirectNotice(
-                $this->paymentUrl($session),
-                'err',
-                'msg.err.payment.3ds_missing_params'
-            );
-        }
-
-        $attempt = $attempts->findPending3dsAttemptForSession($session, $attemptId);
-
-        if (! $attempt || $attempt->status !== PaymentAttempt::STATUS_PENDING_3DS) {
-            return $this->redirectNotice(
-                $this->paymentUrl($session),
-                'err',
-                'msg.err.payment.3ds_invalid_attempt'
-            );
-        }
-
-        if (! $attempts->isValid3dsToken($attempt, $token)) {
-            return $this->redirectNotice(
-                $this->paymentUrl($session),
-                'err',
-                'msg.err.payment.3ds_invalid_token'
-            );
-        }
-
-        return view('pages.payment.3ds-demo', [
-            'checkout'  => $session,
-            'attemptId' => $attempt->id,
-            'token'     => $token,
-        ]);
-    }
-
-    /**
-     * 3D Secure sonucu (demo simülasyon) - success/fail
-     */
-    public function complete3ds(
-        string $code,
-        Request $request,
-        CheckoutSessionGuard $guard,
-        PaymentAttemptService $attempts,
-        OrderFinalizeService $finalize
-    ) {
-        $validated = $request->validate([
-            'attempt_id' => ['required', 'integer', 'min:1'],
-            'token'      => ['required', 'string', 'min:10'],
-            'result'     => ['required', 'in:success,fail'],
-        ]);
-
-        $checkout = $guard->loadByCode($code);
-
-        // Guest için: signed varsa geçerli olmalı; signature yoksa token doğrulaması zaten var (akış bozulmasın).
-        $guard->authorize($request, $checkout, requireSignatureForGuest: false);
-
-        if ($checkout->status === CheckoutSession::STATUS_COMPLETED) {
-            return redirect()->to(localized_route('success'));
-        }
-
-        if ($guard->isExpired($checkout) || $checkout->status === CheckoutSession::STATUS_EXPIRED) {
-            $guard->finalizeAttemptIfSessionExpired($checkout, 'expired_read:' . $checkout->id, $attempts)
-            || $guard->expireIfNeededAndFinalizeAttempt($checkout, 'expired_read:' . $checkout->id, $attempts);
-
-            return $this->redirectNotice(
-                localized_route('cart'),
-                'err',
-                'msg.err.payment.session_expired'
-            );
-        }
-
-        $attempt = $attempts->getAttemptForComplete3dsOrFail($checkout, (int) $validated['attempt_id']);
-
-        if ($attempt->status !== PaymentAttempt::STATUS_PENDING_3DS) {
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_invalid_attempt'
-            );
-        }
-
-        if (! $attempts->isValid3dsToken($attempt, (string) $validated['token'])) {
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_invalid_token'
-            );
-        }
-
-        $gateway = PaymentGatewayFactory::make();
-
-        if (! $gateway instanceof PaymentGateway3dsInterface) {
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_not_supported'
-            );
-        }
-
-        $result = $gateway->complete3ds($checkout, $attempt, [
-            'result' => (string) $validated['result'],
-        ]);
-
-        // 3DS FAIL → attempt failed + payment’e dön
-        if (empty($result['success'])) {
-            $attempt->forceFill([
-                'status'            => PaymentAttempt::STATUS_FAILED,
-                'gateway_reference' => $result['gateway_reference'] ?? $attempt->gateway_reference,
-                'error_code'        => $result['error_code'] ?? ($result['code'] ?? null) ?? '3DS_FAILED',
-                'error_message'     => $result['message'] ?? 'msg.err.payment.3ds_failed',
-                'raw_request'       => $this->safeRaw(isset($result['raw_request']) && is_array($result['raw_request']) ? $result['raw_request'] : null),
-                'raw_response'      => $this->safeRawResponseFromResult($result),
-                'completed_at'      => now(),
-            ])->save();
-
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_failed'
-            );
-        }
+        $attempt = $attempts->getOrCreatePendingAttempt(
+            $session,
+            'hosted_init:' . (string) $session->id . ':' . bin2hex(random_bytes(8)),
+            $request
+        );
 
         try {
-            [$order, $orderCreatedNow] = $finalize->finalizeSuccess($checkout, $attempt, $result);
+            $gateway = PaymentGatewayFactory::make();
+
+            $r = $gateway->initiateHostedPayment($session, $attempt, $request);
+
+            if (! empty($r['success']) && ! empty($r['endpoint']) && ! empty($r['params'])) {
+                $attempt->forceFill([
+                    'raw_request' => $this->safeRaw([
+                        'source'   => 'initiate',
+                        'endpoint' => (string) $r['endpoint'],
+                        'params'   => (array) $r['params'],
+                    ]),
+                ])->save();
+
+                return view('pages.payment.redirect', [
+                    'checkout'     => $session,
+                    'endpoint'     => (string) $r['endpoint'],
+                    'params'       => (array) $r['params'],
+                    'currency'     => $session->currency,
+                    'totalAmount'  => $payable,
+                ]);
+            }
+
+            $attempt->forceFill([
+                'status'        => PaymentAttempt::STATUS_FAILED,
+                'error_code'    => (string) ($r['error_code'] ?? 'INIT_FAILED'),
+                'error_message' => (string) ($r['message'] ?? 'msg.err.payment.gateway_init_failed'),
+                'raw_response'  => $this->safeRaw(['source' => 'initiate', 'result' => $r]),
+                'completed_at'  => now(),
+            ])->save();
+
         } catch (\Throwable $e) {
-            logger()->error('payment_finalize_failed', [
-                'checkout_id'   => $checkout->id ?? null,
-                'checkout_code' => $checkout->code ?? null,
+            logger()->error('payment_initiate_exception', [
+                'checkout_id'   => $session->id ?? null,
+                'checkout_code' => $session->code ?? null,
                 'attempt_id'    => $attempt->id ?? null,
                 'message'       => $e->getMessage(),
                 'file'          => $e->getFile(),
                 'line'          => $e->getLine(),
             ]);
 
-            return $this->redirectNotice(
-                localized_route('cart'),
-                'err',
-                'msg.err.payment.finalize_failed'
-            );
+            $attempt->forceFill([
+                'status'        => PaymentAttempt::STATUS_FAILED,
+                'error_code'    => 'INIT_EXCEPTION',
+                'error_message' => 'msg.err.payment.gateway_init_failed',
+                'raw_response'  => $this->safeRaw(['source' => 'initiate', 'exception' => $e->getMessage()]),
+                'completed_at'  => now(),
+            ])->save();
         }
 
-        session()->forget('cart');
-        session()->forget('cart.applied_coupons');
+        $attemptError = $attempts->latestAttemptErrorForSession($session);
 
-        // mail dispatch (idempotent)
-        if ($order && $orderCreatedNow) {
-            SendOrderCreatedEmails::dispatch((int) $order->id);
-        }
-
-        return redirect()->to(localized_route('success'));
+        return view('pages.payment.index', [
+            'order'        => null,
+            'draft'        => null,
+            'draftCode'    => null,
+            'checkout'     => $session,
+            'attemptError' => $attemptError,
+            'totalAmount'  => $payable,
+            'currency'     => $session->currency,
+        ]);
     }
 
     public function start(
@@ -416,10 +287,8 @@ class PaymentController extends Controller
         /** @var CheckoutSession $checkout */
         $checkout = $r['checkout'];
 
-        // Guest ödeme erişimi: code + signature (TTL'li)
         $url = $this->signedRoute('payment', ['code' => $checkout->code]);
 
-        // Signed URL'yi loglamıyoruz (sızıntı riskini azaltır); sadece route ismi yazılır.
         \Log::info('guest payment signed route generated', [
             'route_name' => app()->getLocale() . '.payment',
         ]);
@@ -427,168 +296,6 @@ class PaymentController extends Controller
         return redirect()->to($url);
     }
 
-    public function process(
-        string $code,
-        Request $request,
-        CheckoutSessionGuard $guard,
-        PaymentAttemptService $attempts,
-        OrderFinalizeService $finalize
-    ) {
-        $validated = $request->validate([
-            'submit_nonce' => ['required', 'string', 'min:16'],
-            'cardholder'   => ['required', 'string', 'min:3'],
-            'cardnumber'   => ['required', 'string'],
-            'exp-month'    => ['required', 'digits:2'],
-            'exp-year'     => ['required', 'digits:2'],
-            'cvc'          => ['required', 'digits_between:3,4'],
-            'terms'        => ['accepted'],
-        ]);
-
-        $checkout = $guard->loadByCode($code);
-
-        $guard->authorize($request, $checkout, requireSignatureForGuest: true);
-
-        if ($checkout->status === CheckoutSession::STATUS_COMPLETED) {
-            return redirect()->to(localized_route('success'));
-        }
-
-        if ($guard->isExpired($checkout) || $checkout->status === CheckoutSession::STATUS_EXPIRED) {
-            $guard->finalizeAttemptIfSessionExpired($checkout, (string) $validated['submit_nonce'], $attempts)
-            || $guard->expireIfNeededAndFinalizeAttempt($checkout, (string) $validated['submit_nonce'], $attempts);
-
-            return $this->redirectNotice(
-                localized_route('cart'),
-                'err',
-                'msg.err.payment.session_expired'
-            );
-        }
-
-        $payable = max((float) $checkout->cart_total - (float) $checkout->discount_amount, 0);
-
-        /**
-         * ZERO PAYABLE (2. bariyer):
-         * Process’e gelmişse bile gateway’e gitme; internal finalize yap.
-         */
-        if ($payable <= 0) {
-            $attempt = $attempts->getOrCreatePendingAttempt($checkout, (string) $validated['submit_nonce'], $request);
-
-            $attempt->forceFill([
-                'amount'            => 0.0,
-                'currency'          => $checkout->currency,
-                'status'            => 'success',
-                'gateway'           => $attempt->gateway ?: 'free',
-                'gateway_reference' => $attempt->gateway_reference ?: ('FREE-' . (string) $attempt->id),
-                'error_code'        => null,
-                'error_message'     => null,
-                'raw_request'       => $this->safeRaw(['free' => true, 'reason' => 'zero_payable']),
-                'raw_response'      => $this->safeRaw(['free' => true, 'result' => 'approved']),
-                'started_at'        => $attempt->started_at ?: now(),
-                'completed_at'      => now(),
-            ])->save();
-
-            try {
-                [$order, $orderCreatedNow] = $finalize->finalizeSuccess($checkout, $attempt, [
-                    'success'           => true,
-                    'gateway_reference' => $attempt->gateway_reference,
-                    'raw_response'      => ['free' => true, 'result' => 'approved'],
-                ]);
-            } catch (\Throwable $e) {
-                logger()->error('payment_finalize_failed_zero_payable_process', [
-                    'checkout_id'   => $checkout->id ?? null,
-                    'checkout_code' => $checkout->code ?? null,
-                    'attempt_id'    => $attempt->id ?? null,
-                    'message'       => $e->getMessage(),
-                    'file'          => $e->getFile(),
-                    'line'          => $e->getLine(),
-                ]);
-
-                return $this->redirectNotice(
-                    localized_route('cart'),
-                    'err',
-                    'msg.err.payment.finalize_failed'
-                );
-            }
-
-            session()->forget('cart');
-            session()->forget('cart.applied_coupons');
-
-            if ($order && $orderCreatedNow) {
-                SendOrderCreatedEmails::dispatch((int) $order->id);
-            }
-
-            return redirect()->to(localized_route('success'));
-        }
-
-        $gateway = PaymentGatewayFactory::make();
-
-        if (! $gateway instanceof PaymentGateway3dsInterface) {
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_not_supported'
-            );
-        }
-
-        $cardData = [
-            'cardholder'   => $validated['cardholder'],
-            'cardnumber'   => $validated['cardnumber'],
-            'exp_month'    => $validated['exp-month'],
-            'exp_year'     => $validated['exp-year'],
-            'cvc'          => $validated['cvc'],
-        ];
-
-        $attempt = $attempts->getOrCreatePendingAttempt($checkout, (string) $validated['submit_nonce'], $request);
-
-        if ((float) $attempt->amount !== (float) $payable || strtoupper((string) $attempt->currency) !== strtoupper((string) $checkout->currency)) {
-            $attempt->forceFill([
-                'amount'   => $payable,
-                'currency' => $checkout->currency,
-            ])->save();
-        }
-
-        $start = $gateway->start3ds($checkout, $attempt, $cardData);
-
-        if (empty($start['success'])) {
-            $attempt->forceFill([
-                'status'            => PaymentAttempt::STATUS_FAILED,
-                'gateway_reference' => $start['gateway_reference'] ?? null,
-                'error_code'        => $start['error_code'] ?? ($start['code'] ?? null) ?? '3DS_START_FAILED',
-                'error_message'     => $start['message'] ?? 'msg.err.payment.3ds_start_failed',
-                'raw_request'       => $this->safeRaw(isset($start['raw_request']) && is_array($start['raw_request']) ? $start['raw_request'] : null),
-                'raw_response'      => $this->safeRaw(isset($start['raw_response']) && is_array($start['raw_response']) ? $start['raw_response'] : null),
-                'completed_at'      => now(),
-            ])->save();
-
-            return $this->redirectNotice(
-                $this->paymentUrl($checkout),
-                'err',
-                'msg.err.payment.3ds_start_failed'
-            );
-        }
-
-        $attempt->forceFill([
-            'status'            => PaymentAttempt::STATUS_PENDING_3DS,
-            'gateway_reference' => $start['gateway_reference'] ?? $attempt->gateway_reference,
-            'raw_request'       => $this->safeRaw(isset($start['raw_request']) && is_array($start['raw_request']) ? $start['raw_request'] : null),
-            'raw_response'      => $this->safeRaw(isset($start['raw_response']) && is_array($start['raw_response']) ? $start['raw_response'] : null),
-        ])->save();
-
-        $token = hash_hmac('sha256', (string) $attempt->id, (string) $attempt->idempotency_key);
-
-        // 3DS URL'yi signed + TTL'li üret (attempt/token query ile)
-        $url = $this->signedRoute('payment.3ds', [
-            'code'    => $checkout->code,
-            'attempt' => $attempt->id,
-            'token'   => $token,
-        ]);
-
-        return redirect()->to($url);
-    }
-
-    /**
-     * Guest için temporary signed URL üretimi (TTL'li).
-     * LocalizedRoute route isimleri {locale}.{baseName} olduğu için burada locale prefix'li isim kullanılır.
-     */
     private function signedRoute(string $baseName, array $params = []): string
     {
         $name = app()->getLocale() . '.' . $baseName;
@@ -598,17 +305,11 @@ class PaymentController extends Controller
             $ttlMinutes = 1;
         }
 
-        // Küçük buffer (clock skew / redirect gecikmeleri)
         $expiresAt = now()->addMinutes($ttlMinutes + 2);
 
         return URL::temporarySignedRoute($name, $expiresAt, $params);
     }
 
-    /**
-     * Gateway raw payload policy (2. bariyer):
-     * - Prod’da: null (DB’ye gitmesin)
-     * - Non-prod’da: sadece array kabul et, model sanitize zaten yapıyor.
-     */
     private function safeRaw(?array $raw): ?array
     {
         if (app()->isProduction()) {
@@ -618,25 +319,6 @@ class PaymentController extends Controller
         return is_array($raw) ? $raw : null;
     }
 
-    /**
-     * Gateway result içinde PII sızıntısı olmasın diye raw_response fallback’i sınırlı tut.
-     * (Eskiden: $result komple yazılıyordu.)
-     */
-    private function safeRawResponseFromResult(array $result): ?array
-    {
-        if (app()->isProduction()) {
-            return null;
-        }
-
-        // Yalnızca gateway’in explicit raw_response alanını al.
-        $raw = $result['raw_response'] ?? null;
-
-        return is_array($raw) ? $raw : null;
-    }
-
-    /**
-     * Payment sayfasına dönüş: session type'a göre doğru URL (guest -> signed).
-     */
     private function paymentUrl(CheckoutSession $session): string
     {
         if ($session->type === CheckoutSession::TYPE_GUEST) {

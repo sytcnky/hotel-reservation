@@ -40,29 +40,47 @@ class PaymentAttemptService
         string $idempotencyKey,
         Request $request
     ): PaymentAttempt {
-        $existing = PaymentAttempt::query()
+        // 1) Zaten pending varsa onu kullan (concurrent double-submit engeli)
+        $existingPending = PaymentAttempt::query()
             ->where('checkout_session_id', $checkout->id)
             ->whereIn('status', [
                 PaymentAttempt::STATUS_PENDING,
-                PaymentAttempt::STATUS_PENDING_3DS,
             ])
             ->whereNull('completed_at')
             ->withoutTrashed()
             ->orderByDesc('id')
             ->first();
 
-        if ($existing) {
-            return $existing;
+        if ($existingPending) {
+            return $existingPending;
+        }
+
+        // 2) Bu idempotencyKey ile daha önce attempt yaratıldıysa (completed olsa bile) onu döndür (race-safe)
+        $existingByKey = PaymentAttempt::query()
+            ->where('checkout_session_id', $checkout->id)
+            ->where('idempotency_key', $idempotencyKey)
+            ->withoutTrashed()
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existingByKey) {
+            return $existingByKey;
         }
 
         $payable = max((float) $checkout->cart_total - (float) $checkout->discount_amount, 0);
+
+        $driver = (string) config('icr.payments.driver');
+        $driver = trim($driver);
+        if ($driver === '') {
+            $driver = 'unknown';
+        }
 
         try {
             return PaymentAttempt::create([
                 'order_id'            => null,
                 'checkout_session_id' => $checkout->id,
                 'idempotency_key'     => $idempotencyKey,
-                'gateway'             => config('icr.payments.driver', 'demo'),
+                'gateway'             => $driver,
                 'amount'              => $payable,
                 'currency'            => $checkout->currency,
                 'status'              => PaymentAttempt::STATUS_PENDING,
@@ -71,11 +89,23 @@ class PaymentAttemptService
                 'started_at'          => now(),
             ]);
         } catch (\Throwable $e) {
+            // 3) Unique violation / race durumunda: aynı key ile oluşanı çek
+            $byKey = PaymentAttempt::query()
+                ->where('checkout_session_id', $checkout->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->withoutTrashed()
+                ->orderByDesc('id')
+                ->first();
+
+            if ($byKey) {
+                return $byKey;
+            }
+
+            // 4) Son çare: pending varsa onu çek
             $pending = PaymentAttempt::query()
                 ->where('checkout_session_id', $checkout->id)
                 ->whereIn('status', [
                     PaymentAttempt::STATUS_PENDING,
-                    PaymentAttempt::STATUS_PENDING_3DS,
                 ])
                 ->whereNull('completed_at')
                 ->withoutTrashed()
@@ -96,7 +126,6 @@ class PaymentAttemptService
             ->where('checkout_session_id', $session->id)
             ->whereIn('status', [
                 PaymentAttempt::STATUS_PENDING,
-                PaymentAttempt::STATUS_PENDING_3DS,
             ])
             ->whereNull('completed_at')
             ->withoutTrashed()
@@ -117,11 +146,17 @@ class PaymentAttemptService
 
         $payable = max((float) $session->cart_total - (float) $session->discount_amount, 0);
 
+        $driver = (string) config('icr.payments.driver');
+        $driver = trim($driver);
+        if ($driver === '') {
+            $driver = 'unknown';
+        }
+
         PaymentAttempt::create([
             'order_id'            => null,
             'checkout_session_id' => $session->id,
             'idempotency_key'     => $idempotencyKey,
-            'gateway'             => config('icr.payments.driver', 'demo'),
+            'gateway'             => $driver,
             'amount'              => $payable,
             'currency'            => $session->currency,
             'status'              => PaymentAttempt::STATUS_EXPIRED,
@@ -133,47 +168,5 @@ class PaymentAttemptService
             'error_message'       => 'msg.err.payment.session_expired',
             'raw_response'        => ['reason' => 'checkout_session_expired'],
         ]);
-    }
-
-    /**
-     * show3ds(): attempt bulunamazsa null döner (redirect akışı bozulmasın).
-     */
-    public function findPending3dsAttemptForSession(CheckoutSession $session, int $attemptId): ?PaymentAttempt
-    {
-        if ($attemptId <= 0) {
-            return null;
-        }
-
-        return PaymentAttempt::query()
-            ->where('id', $attemptId)
-            ->where('checkout_session_id', $session->id)
-            ->withoutTrashed()
-            ->first();
-    }
-
-    /**
-     * complete3ds(): önceki davranışla aynı şekilde "bulunamazsa 404" için firstOrFail kullanır.
-     */
-    public function getAttemptForComplete3dsOrFail(CheckoutSession $session, int $attemptId): PaymentAttempt
-    {
-        return PaymentAttempt::query()
-            ->where('id', $attemptId)
-            ->where('checkout_session_id', $session->id)
-            ->withoutTrashed()
-            ->firstOrFail();
-    }
-
-    /**
-     * 3DS token doğrulama (tek otorite).
-     */
-    public function isValid3dsToken(PaymentAttempt $attempt, string $token): bool
-    {
-        if ($token === '') {
-            return false;
-        }
-
-        $expected = hash_hmac('sha256', (string) $attempt->id, (string) $attempt->idempotency_key);
-
-        return hash_equals($expected, $token);
     }
 }
